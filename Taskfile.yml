@@ -1,0 +1,87 @@
+version: '3'
+
+tasks:
+  deps:
+    desc: Install dependencies
+    cmds:
+      - go mod download
+      - cd site && hugo mod get
+
+  build:docgen:
+    desc: Build the docgen tool
+    cmds:
+      - go build -o bin/docgen ./cmd/docgen
+    sources:
+      - cmd/**/*.go
+      - internal/**/*.go
+      - go.mod
+      - go.sum
+    generates:
+      - bin/docgen
+
+  generate:schema:
+    desc: Generate schema JSON from catalog
+    deps: [build:docgen]
+    cmds:
+      - ./bin/docgen schema --catalog-dir ../catalog --output ./site/data/schema/
+    sources:
+      - ../catalog/v0/**/*.cue
+    generates:
+      - site/data/schema/*.json
+
+  generate:cli:
+    desc: Generate CLI reference markdown
+    deps: [build:docgen]
+    cmds:
+      - ./bin/docgen cli --output ./site/content/reference/cli/
+    generates:
+      - site/content/reference/cli/*.md
+
+  generate:
+    desc: Generate all documentation
+    deps: [generate:schema, generate:cli]
+
+  serve:
+    desc: Run Hugo development server
+    dir: site
+    cmds:
+      - hugo server --buildDrafts --buildFuture
+
+  build:
+    desc: Build the Hugo site
+    deps: [generate]
+    dir: site
+    cmds:
+      - hugo --minify --destination ../public
+
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf bin/ public/ site/data/schema/ site/content/reference/cli/opm*.md site/resources/
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  vet:
+    desc: Vet Go code
+    cmds:
+      - go vet ./...
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+
+  check:
+    desc: Run all checks (fmt, vet, test)
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: test
+
+  default:
+    desc: Build everything
+    cmds:
+      - task: build

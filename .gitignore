@@ -28,5 +28,20 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# Build artifacts
+bin/
+public/
+
+# Hugo generated files
+site/resources/
+site/.hugo_build.lock
+
+# Generated documentation
+site/data/schema/*.json
+site/content/reference/cli/opm*.md
+
+# macOS
+.DS_Store

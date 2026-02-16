@@ -1,0 +1,29 @@
+{{/* Content adapter for generating definition reference pages from JSON schema data */}}
+{{/* This will be activated once docgen schema produces data/schema/*.json files */}}
+
+{{/* Uncomment when schema data is available:
+
+{{ range $file := (resources.Match "data/schema/*.json") }}
+  {{ $data := $file | transform.Unmarshal }}
+  {{ range $data.definitions }}
+    {{ $content := dict "mediaType" "text/markdown" "value" .description }}
+    {{ $params := dict
+      "definition_kind" .kind
+      "fqn" .fqn
+      "fields" .fields
+      "related" .related
+      "module" $data.module
+      "module_version" $data.version
+    }}
+    {{ $page := dict
+      "content" $content
+      "kind" "page"
+      "params" $params
+      "path" (printf "%s/%s" $data.module .name)
+      "title" .name
+    }}
+    {{ $.AddPage $page }}
+  {{ end }}
+{{ end }}
+
+*/}}
