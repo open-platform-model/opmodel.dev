@@ -9,19 +9,7 @@ Documentation site for the Open Platform Model, built with Hugo and a custom Go 
 ## Constitution
 
 This project follows the **Open Platform Model Constitution**.
-All agents MUST read and adhere to the principles defined in the main project.
-
-**Core Principles:**
-
-1. **Type Safety First**: All definitions in CUE. Validation at definition time.
-2. **Separation of Concerns**: Module (Dev) -> ModuleRelease (Consumer). Clear ownership boundaries.
-3. **Composability**: Definitions compose without implicit coupling. Resources, Traits, Blueprints are independent.
-4. **Declarative Intent**: Express WHAT, not HOW. Provider-specific steps in ProviderDefinitions.
-5. **Portability by Design**: Definitions must be runtime-agnostic.
-6. **Semantic Versioning**: SemVer v2.0.0 and Conventional Commits v1 required.
-7. **Simplicity & YAGNI**: Justify complexity. Prefer explicit over implicit.
-
-**Governance**: The constitution supersedes this file in case of conflict.
+Read `CONSTITUTION.md` for the full list of design principles.
 
 ## Build/Test Commands
 
@@ -149,7 +137,7 @@ All agents MUST read and adhere to the principles defined in the main project.
 
 ## Glossary
 
-See the [catalog glossary](https://github.com/open-platform-model/catalog/blob/main/docs/glossary.md) for OPM-specific terms.
+See the [OPM glossary](https://github.com/open-platform-model/opm/blob/main/docs/glossary.md) for OPM-specific terms.
 
 ### Personas
 

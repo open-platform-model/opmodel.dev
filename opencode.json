@@ -1,0 +1,18 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "grub": "orng",
+    "permission": {
+        "external_directory": {
+            "~/Dev/open-platform-model/catalog/**": "allow",
+            "~/Dev/open-platform-model/cli/**": "allow",
+            "~/Dev/open-platform-model/opm/**": "allow"
+        },
+        "read": {
+            "*": "allow",
+            "*.env": "deny",
+            "*.envrc": "deny",
+            "*.env.*": "deny",
+            "*.env.example": "allow"
+        }
+    }
+}
