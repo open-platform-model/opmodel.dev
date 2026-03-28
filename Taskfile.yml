@@ -1,6 +1,11 @@
 version: '3'
 
 tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
   deps:
     desc: Install dependencies
     cmds:
@@ -80,8 +85,3 @@ tasks:
       - task: fmt
       - task: vet
       - task: test
-
-  default:
-    desc: Build everything
-    cmds:
-      - task: build

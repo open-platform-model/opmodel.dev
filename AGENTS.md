@@ -69,6 +69,7 @@ Read `CONSTITUTION.md` for the full list of design principles.
 ## Project Structure
 
 ```text
+├── adr/                   # Architecture Decision Records
 ├── cmd/docgen/            # Documentation generator tool
 │   └── main.go            # CLI with schema/cli/all subcommands
 ├── internal/
@@ -96,6 +97,28 @@ Read `CONSTITUTION.md` for the full list of design principles.
 ├── go.mod
 └── README.md
 ```
+
+## Architecture Decision Records
+
+ADRs capture significant technical decisions with their context and consequences.
+
+- Location: `adr/`
+- Template: `adr/TEMPLATE.md`
+- Naming: `NNN-kebab-case-title.md` (three-digit, zero-padded)
+
+### Creating a new ADR
+
+1. Copy `adr/TEMPLATE.md` to `adr/NNN-title.md` using the next available number.
+2. Set status to `Proposed`.
+3. Fill in Context, Decision, and Consequences.
+4. Update status to `Accepted` once the decision is agreed on.
+
+### Updating an ADR
+
+- Never delete an ADR — update its status instead.
+- To retire a decision: set status to `Deprecated`.
+- To replace a decision: set status to `Superseded by ADR-NNN` and create the new ADR.
+- One decision per ADR.
 
 ## Maintenance Notes
 
