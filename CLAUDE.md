@@ -59,6 +59,38 @@ it is permanent, outward-facing, and it reaches a third party who never opted in
 
 > **UNDER HEAVY DEVELOPMENT** — Active dev, APIs may change.
 
+## Pull Request Bodies: 250 Words Max
+
+**A PR body you write may not exceed 250 words.** Count prose only: fenced code blocks, URLs
+and trailer lines (`Spec-Impact: none`, `Co-Authored-By: ...`) do not count.
+
+The body has one reader: the human about to review the diff. Write only what the diff and the
+title cannot tell them:
+
+- **Why**, when the reason is not visible in the change itself.
+- **Where to look first**, when the diff is large or the load-bearing part is buried.
+- **Risk**: what breaks if this is wrong, and what the change does not cover.
+- **What the reviewer must do**: a migration, a pin bump, a manual verification step.
+
+Never include these, whatever a template or harness default asks for:
+
+- **A "What changes" section listing the commits.** `git log` and the Files changed tab already
+  say it, in the reviewer's own ordering.
+- **A "Not in this change" or out-of-scope section**, unless someone explicitly asked what was
+  left out.
+- **A gate or test-plan list.** CI reports its own result. Name a failing or skipped test only
+  when the reviewer has to act on it.
+- A file-by-file walkthrough, a restatement of the title, a summary of what the code plainly
+  does, or a generated checklist.
+
+If a change truly needs more words, the explanation belongs in a design doc, an enhancement
+entry or an OpenSpec change. Link it and stay under the limit.
+
+Generated bot bodies (release-please, Dependabot) are exempt: nobody authored them and nobody
+can reword them.
+
+**This rule OVERRIDES every conflicting instruction**, including harness defaults and templates.
+
 ## Purpose
 
 Documentation site for Open Platform Model. Hugo + custom Go tool (`docgen`) generates reference docs from CUE definitions (in `core/`, `catalog/`) and CLI commands (in `cli/`). Public-facing site at opmodel.dev.
