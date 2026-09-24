@@ -93,13 +93,13 @@ can reword them.
 
 ## Purpose
 
-Documentation site for Open Platform Model. Hugo + custom Go tool (`docgen`) generates reference docs from CUE definitions (in `core/`, `catalog/`) and CLI commands (in `cli/`). Public-facing site at opmodel.dev.
+Documentation site for Open Platform Model. Astro + Starlight with the Black theme, plus a custom Go tool (`docgen`) that generates reference docs from CUE definitions (in `core/`, `catalog/`) and CLI commands (in `cli/`). Public-facing site at opmodel.dev.
 
 ## Repository Rules
 
 - `CONSTITUTION.md` defines design principles for the project; this repo follows the Open Platform Model Constitution.
-- Hugo 0.146.0+ required for content adapter (`_content.gotmpl`) support.
-- Docsy theme currently disabled (i18n format incompatibility) — re-enable after upstream fix or switch to Hugo Book theme.
+- The site builds and serves only inside its Docker build image (`site/Dockerfile`, via `task build` and `task serve`); never run `npm install` on the host, and never commit a `node_modules/` directory. Changing `site/package.json` means regenerating `site/package-lock.json` with `npm install --package-lock-only`.
+- Every site version is built separately from `site/versions.config.mjs`; the build fails if a version's page count differs from its prepared content.
 - Generated content under `site/data/schema/` is gitignored — never hand-edit; regenerate via `docgen`.
 
 ## Entrypoint
@@ -123,22 +123,22 @@ Read these on entry:
 │   │   └── extractor.go
 │   └── cobradoc/          # Cobra CLI doc generation
 │       └── generator.go
-├── site/                  # Hugo site source
-│   ├── hugo.toml          # Hugo configuration
-│   ├── content/
-│   │   ├── getting-started/
-│   │   ├── guides/
-│   │   └── reference/
-│   │       ├── definitions/    # Generated from CUE
-│   │       │   ├── _content.gotmpl  # Content adapter
-│   │       │   └── _index.md
-│   │       └── cli/            # Generated from cobra
-│   │           └── _index.md
-│   ├── data/
-│   │   └── schema/             # Generated JSON (gitignored)
-│   ├── layouts/
-│   │   └── shortcodes/         # Custom shortcodes for rendering
-│   └── static/
+├── site/                  # Astro + Starlight site (Black theme)
+│   ├── Dockerfile         # Build image: Node, git, the npm packages
+│   ├── astro.config.mjs   # Site config; one run builds one version
+│   ├── versions.config.mjs     # Site versions and where their content comes from
+│   ├── content/                # Authored pages (Starlight Markdown)
+│   │   ├── index.mdx           # Landing page
+│   │   └── docs/
+│   │       ├── getting-started/
+│   │       ├── guides/
+│   │       └── reference/
+│   │           ├── definitions/    # Generated from CUE (planned)
+│   │           └── cli/            # Generated from cobra (planned)
+│   ├── scripts/                # prepare, stage, build and serve versions
+│   ├── src/                    # Component overrides (version switch, banner)
+│   └── data/
+│       └── schema/             # Generated JSON (gitignored)
 ├── Taskfile.yml           # Build automation
 ├── go.mod
 └── README.md
@@ -147,8 +147,7 @@ Read these on entry:
 ## Environment Notes
 
 - **Go**: `1.22+` for the `docgen` tool.
-- **Hugo**: `0.146.0+` extended version (SCSS + content adapter support).
-- **Hugo Modules**: dependency management (Docsy theme — currently disabled).
+- **Docker**: builds and runs the site's build image; Node and the npm packages live only in that image.
 
 ## Build And Dev Commands
 
@@ -156,8 +155,10 @@ Read these on entry:
 - `task generate:schema` — generate schema docs from CUE.
 - `task generate:cli` — generate CLI docs from cobra.
 - `task generate` — generate all.
-- `task serve` — serve site locally.
-- `task build` — build production site (output: `./public/`).
+- `task image` — build the site's build image.
+- `task serve` — dev server for the latest version on http://localhost:4321/ (live reload).
+- `task build` — build every site version (output: `site/dist/`).
+- `task preview` — serve the built site, every version, on http://localhost:4321/.
 - `task clean` — remove build artifacts.
 - `task fmt` — format Go code.
 - `task vet` — run `go vet`.
@@ -178,14 +179,14 @@ Read these on entry:
 ### Technology stack
 
 - **docgen**: Go 1.22+, `cuelang.org/go` (native CUE eval), `cobra` + `cobra/doc` (CLI ref).
-- **Site**: Hugo 0.146.0+ extended, Docsy theme (disabled), `_content.gotmpl` for programmatic page generation.
+- **Site**: Astro 7, Starlight, `starlight-theme-black`, Pagefind search; built in Docker from `node:24-slim`.
 - **CUE Go APIs used**: `load.Instances()`, `Value.Doc()`, `Value.Fields()`, `Value.Default()`, `Value.IncompleteKind()`, `Value.Expr()`.
 
 ### Patterns
 
 - **CUE doc extraction**: load modules via `load.Instances()` → walk defs with `Value.Fields(cue.Definitions(true))` → extract doc comments → resolve cross-refs (e.g. Trait `appliesTo` Resources) → output structured JSON per module.
-- **CLI doc generation**: import CLI root as Go dep → `cobra/doc.GenMarkdownTreeCustom()` with Hugo front matter prepender → one markdown file per command.
-- **Hugo content generation**: `docgen` outputs JSON to `site/data/schema/` + markdown to `site/content/reference/cli/` → content adapter reads JSON → custom shortcodes render type tables, cross-refs, constraints.
+- **CLI doc generation**: import CLI root as Go dep → `cobra/doc.GenMarkdownTreeCustom()` with a Starlight front matter prepender → one markdown file per command.
+- **Site content generation**: `docgen` outputs JSON to `site/data/schema/` + markdown to `site/content/docs/reference/cli/`; turning the JSON into pages (an Astro content loader) is not built yet.
 
 ### Documentation style (box-drawing diagrams + ASCII art)
 
@@ -206,7 +207,7 @@ Rationale: `[x]`/`[ ]` are 3 ASCII chars wide, easy table alignment. `OK`/`FAIL`
 ## Working Style for Agents
 
 - Update the Project Structure tree above when adding new packages/directories.
-- Don't edit generated content (`site/data/schema/*`, `site/content/reference/cli/*`) — regenerate via `task generate`.
+- Don't edit generated content (`site/data/schema/*`, `site/content/docs/reference/cli/*`) — regenerate via `task generate`.
 - Schema source lives upstream in `core/` (and `catalog/`); CLI command source lives in `cli/`. Doc bugs that trace to source — fix upstream, not by patching generated output.
 - Personas to keep in mind when writing docs: **Module Author** (writes CUE defs, primary audience for ref docs), **Platform Operator** (deploys modules, needs deployment guides + CLI ref), **End-user** (consumes modules, needs getting started + conceptual guides), **Contributor** (extends OPM, needs architecture + design docs).
 - For OPM-specific terms, link to the [canonical glossary in opm/](https://github.com/open-platform-model/opm/blob/main/docs/glossary.md) — don't duplicate definitions here.

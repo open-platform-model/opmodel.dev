@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the reader-friendly reference for the principles that shape the `opmodel.dev` documentation site. This repo builds the public-facing documentation for the Open Platform Model using Hugo and a custom Go `docgen` tool that generates reference documentation from CUE definitions and CLI commands.
+This document is the reader-friendly reference for the principles that shape the `opmodel.dev` documentation site. This repo builds the public-facing documentation for the Open Platform Model using Astro with Starlight and a custom Go `docgen` tool that generates reference documentation from CUE definitions and CLI commands.
 
 Documentation here serves four audiences: Module Authors writing CUE definitions, Platform Operators deploying modules, End-users consuming modules, and Contributors extending OPM.
 
@@ -12,7 +12,7 @@ Documentation here serves four audiences: Module Authors writing CUE definitions
 |---|-----------|---------|
 | **I** | [Documentation Owns Its Pipeline](#i-documentation-owns-its-pipeline) | The site owns the full chain from CUE/CLI source to rendered page |
 | **II** | [Generated Before Handwritten](#ii-generated-before-handwritten) | Reference docs are generated; prose docs are handwritten — never mix |
-| **III** | [Separation of Concerns](#iii-separation-of-concerns) | docgen, Hugo, and content are independently replaceable layers |
+| **III** | [Separation of Concerns](#iii-separation-of-concerns) | docgen, the site, and content are independently replaceable layers |
 | **IV** | [Type Safety Carries Through](#iv-type-safety-carries-through) | Schema extraction must preserve CUE type fidelity |
 | **V** | [Portability by Design](#v-portability-by-design) | Site content stays runtime-agnostic; platform-specific content is labeled |
 | **VI** | [Semantic Versioning](#vi-semantic-versioning) | SemVer 2.0.0 for tooling; Conventional Commits for all commits |
@@ -27,7 +27,7 @@ This repo owns the full documentation pipeline from source to rendered output:
 
 - `docgen` extracts schema data from the catalog CUE modules
 - `docgen` generates CLI reference markdown from Cobra commands
-- Hugo renders both generated and handwritten content into the final site
+- Astro (Starlight) renders both generated and handwritten content into the final site
 
 No external system should be required to produce correct documentation output. The pipeline must be reproducible from a clean checkout with `task generate && task build`.
 
@@ -50,10 +50,10 @@ Generated and handwritten content MUST NOT be mixed in the same file. Generated 
 The three layers of the documentation pipeline MUST remain independently replaceable:
 
 - `docgen` (Go tool) — source extraction and JSON/Markdown output
-- `site/` (Hugo) — static site generation and layout
+- `site/` (Astro + Starlight) — static site generation and layout
 - `site/content/` — human-authored content
 
-Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/content/reference/`.
+Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/content/docs/reference/`.
 
 ---
 
@@ -99,11 +99,11 @@ Allowed commit types:
 Start simple. Complexity MUST be justified with clear rationale. Prefer:
 
 - Direct solutions over clever indirection
-- Hugo built-ins over custom shortcodes unless Hugo cannot support the use case
+- Starlight built-ins over custom components unless Starlight cannot support the use case
 - Fewer content types and layouts over many specialized templates
 - Explicit configuration over implicit convention
 
-If a new Hugo shortcode, content adapter, or docgen subcommand is introduced, it must solve a real documentation problem that simpler approaches cannot.
+If a new component override, content loader, or docgen subcommand is introduced, it must solve a real documentation problem that simpler approaches cannot.
 
 ---
 
@@ -150,5 +150,5 @@ When principles appear to conflict, treat that as a design smell and document th
 
 - `AGENTS.md` — repository mechanics, commands, and coding guidance
 - `cmd/docgen/` — documentation generator source
-- `site/` — Hugo site source
+- `site/` — Astro site source
 - `README.md` — implementation status and next steps

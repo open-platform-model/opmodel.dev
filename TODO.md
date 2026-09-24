@@ -2,6 +2,8 @@
 
 Documentation site implementation status and roadmap.
 
+> **2026-09-24: the site moved from Hugo to Astro + Starlight with the Black theme.** The Hugo scaffold in Phase 0 is history; the plan below is written for Astro. The site builds only in its Docker build image (`site/Dockerfile`).
+
 ## ✅ Completed (Phase 0: Scaffold)
 
 ### Repository & Structure
@@ -31,11 +33,10 @@ Documentation site implementation status and roadmap.
 - [x] Hugo modules initialized
 - [x] Site builds successfully (no layouts yet)
 
-### Known Issues
-- [ ] **Docsy theme disabled** - i18n file format incompatibility with Hugo 0.148.1
-  - Docsy requires Hugo 0.146.0+ but has YAML format issues
-  - Site builds with default Hugo renderer (no layouts)
-  - Need to either fix Docsy upstream or switch to Hugo Book theme
+### Astro Site (replaced the Hugo scaffold, 2026-09-24)
+- [x] Astro 7 + Starlight + `starlight-theme-black`, content in `site/content/`
+- [x] Docker build image; `task serve`, `task build`, `task preview` run in it
+- [x] Versioned builds from `site/versions.config.mjs`: version switch, outdated-version banner, `/latest/` alias, per-version search, page-count check
 
 ---
 
@@ -79,7 +80,7 @@ Documentation site implementation status and roadmap.
   - [ ] Import CLI root command as dependency
     - [ ] Add `github.com/open-platform-model/cli` to `go.mod`
     - [ ] Import `github.com/open-platform-model/cli/cmd/opm` package
-  - [ ] Create Hugo front matter prepender function
+  - [ ] Create Starlight front matter prepender function
   - [ ] Create link handler for cross-references
   - [ ] Call `cobra/doc.GenMarkdownTreeCustom()`
   - [ ] Output to `site/content/reference/cli/`
@@ -92,42 +93,24 @@ Documentation site implementation status and roadmap.
 - [ ] Add `github.com/spf13/cobra/doc` dependency
 - [ ] Add `github.com/open-platform-model/cli` as dependency
 
-### 1.3 - Hugo Content Adapter Activation
+### 1.3 - Astro Content Loader for Schema JSON
 
-- [ ] Uncomment `site/content/reference/definitions/_content.gotmpl`
-- [ ] Test content adapter with generated JSON
+- [ ] Write a content loader that turns `site/data/schema/*.json` into definition pages
+- [ ] Include the generated pages in each version's prepared content and page count
 - [ ] Verify pages are created correctly
 - [ ] Add error handling for missing data files
 
 ### 1.4 - Theme Selection & Integration
 
-**Option A: Fix Docsy**
-- [ ] Investigate Docsy i18n YAML format issue
-- [ ] Submit upstream PR or fork with fix
-- [ ] Re-enable Docsy in `hugo.toml`
-
-**Option B: Switch to Hugo Book**
-- [ ] Replace Docsy with Hugo Book theme
-- [ ] Update `hugo.toml` module imports
-- [ ] Adjust content front matter for Book theme
-- [ ] Create basic layouts for home and list pages
-
-**Option C: Minimal Custom Theme**
-- [ ] Create `site/layouts/_default/baseof.html`
-- [ ] Create `site/layouts/_default/single.html`
-- [ ] Create `site/layouts/_default/list.html`
-- [ ] Create `site/layouts/index.html`
-- [ ] Add minimal CSS for readability
-
-**Decision**: Recommend **Option B (Hugo Book)** - simplest path to working docs.
+- [x] Astro + Starlight with `starlight-theme-black`, chosen 2026-09-24 over Hugo with Hextra or a Black port
 
 ### 1.5 - Local Build Verification
 
 - [ ] `task build:docgen` succeeds
 - [ ] `task generate:schema` produces JSON files in `site/data/schema/`
-- [ ] `task generate:cli` produces markdown files in `site/content/reference/cli/`
-- [ ] `task build` produces complete site in `public/`
-- [ ] Manual verification: browse `public/index.html` locally
+- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/`
+- [x] `task build` produces the complete site in `site/dist/`
+- [x] Manual verification: `task preview`, browse http://localhost:4321/
 
 ---
 
@@ -151,18 +134,18 @@ Documentation site implementation status and roadmap.
 - [ ] Resolve cross-references between modules
 - [ ] Generate module dependency graph visualization
 
-### 2.2 - Custom Hugo Shortcodes
+### 2.2 - Definition Components
 
-Create `site/layouts/shortcodes/`:
+Create Astro components in `site/src/components/`:
 
-- [ ] `def-fields.html` - Definition fields table
+- [ ] `DefFields.astro` - Definition fields table
   - [ ] Render field name, type, constraint, required/optional, default
   - [ ] Type badge styling (string, int, struct, etc.)
   - [ ] Constraint rendering (disjunctions, bounds)
-- [ ] `def-ref.html` - Cross-reference links
+- [ ] `DefRef.astro` - Cross-reference links
   - [ ] Link to related definitions (FQN resolution)
   - [ ] Hover preview with description
-- [ ] `cue-source.html` - CUE source view
+- [ ] `CueSource.astro` - CUE source view
   - [ ] Link to catalog repository file
   - [ ] Optional inline source display with syntax highlighting
 
@@ -221,12 +204,12 @@ Create `site/layouts/shortcodes/`:
     - [ ] Checkout opmodel.dev repo
     - [ ] Checkout catalog repo (submodule or separate checkout)
     - [ ] Set up Go
-    - [ ] Set up Hugo
+    - [ ] Build the site image (`task image`)
     - [ ] Build docgen tool
     - [ ] Generate schema docs
     - [ ] Generate CLI docs
-    - [ ] Build Hugo site
-    - [ ] Upload artifact (public/)
+    - [ ] Build the site (`task build`)
+    - [ ] Upload artifact (`site/dist/`)
 
 ### 3.2 - Deployment
 
@@ -272,13 +255,12 @@ Create `site/layouts/shortcodes/`:
 
 ### 3.4 - Versioning
 
-- [ ] Decide on versioning strategy:
-  - [ ] Single "latest" version (simplest)
-  - [ ] Multi-version (e.g., v0.1, v0.2) using Docsy/Book versioning
-- [ ] If multi-version:
-  - [ ] Create version selector UI
+- [x] Multi-version: one build per version under `/<version>/`, driven by `site/versions.config.mjs`
+  - [x] Version selector UI that keeps the reader on the same page
+  - [x] Outdated-version banner, `/latest/` alias, per-version search
+  - [ ] Read real versions from the source repositories at the tags the CLI pins (0021:OQ15); replace the demo v0.1 entry
   - [ ] Build multiple versions in CI
-  - [ ] Archive old versions
+  - [ ] Component reference archive (every published core and catalog version)
 
 ---
 
@@ -315,8 +297,6 @@ Create `site/layouts/shortcodes/`:
 
 | Issue | Status | Blocker? | Notes |
 |-------|--------|----------|-------|
-| Docsy i18n format incompatibility | Open | No | Can use Hugo Book instead |
-| No Hugo layouts yet | Open | Yes | Blocks Phase 1.4 |
 | CUE extraction not implemented | Open | Yes | Blocks Phase 1.1 |
 | CLI doc generation not implemented | Open | Yes | Blocks Phase 1.2 |
 | Catalog access in CI | Open | No | Submodule strategy for Phase 3 |
@@ -332,7 +312,7 @@ Create `site/layouts/shortcodes/`:
 
 **Next Immediate Steps**:
 1. Implement `internal/cuedoc` CUE extraction (Phase 1.1)
-2. Choose and integrate Hugo theme (Phase 1.4)
+2. Astro content loader for the schema JSON (Phase 1.3)
 3. Test with `core` module only
 
 ---
@@ -341,7 +321,7 @@ Create `site/layouts/shortcodes/`:
 
 - [RFC-0006: Documentation Generation](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md)
 - [CUE Go API - Walking Schemas](https://cuelang.org/docs/howto/walk-schemas-using-go-api/)
-- [Hugo Content Adapters](https://gohugo.io/content-management/content-adapters/)
+- [Astro Content Loader API](https://docs.astro.build/en/reference/content-loader-reference/)
 - [cobra/doc package](https://pkg.go.dev/github.com/spf13/cobra/doc)
-- [Hugo Book Theme](https://github.com/alex-shpak/hugo-book)
-- [Docsy Theme](https://www.docsy.dev/)
+- [Starlight](https://starlight.astro.build/)
+- [Starlight Black theme](https://github.com/adrian-ub/starlight-theme-black)

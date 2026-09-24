@@ -1,6 +1,7 @@
 ---
 title: Guides
-weight: 2
+sidebar:
+  order: 2
 ---
 
 Practical guides for working with the Open Platform Model.

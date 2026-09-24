@@ -33,15 +33,10 @@ go.work.sum
 
 # Build artifacts
 bin/
-public/
 
-# Hugo generated files
-site/resources/
-site/.hugo_build.lock
-
-# Generated documentation
+# Generated documentation (site build output is ignored in site/.gitignore)
 site/data/schema/*.json
-site/content/reference/cli/opm*.md
+site/content/docs/reference/cli/opm*.md
 
 # macOS
 .DS_Store

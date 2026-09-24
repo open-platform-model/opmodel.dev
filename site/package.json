@@ -1,0 +1,22 @@
+{
+  "name": "opmodel-dev-site",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The opmodel.dev documentation site: Astro, Starlight and the Black theme",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/prepare-versions.mjs && node scripts/stage-version.mjs && astro dev",
+    "build": "node scripts/build-versions.mjs",
+    "preview": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.4",
+    "astro": "^7.3.5",
+    "sharp": "^0.35.4",
+    "starlight-theme-black": "^0.7.1",
+    "yaml": "^2.9.1"
+  }
+}

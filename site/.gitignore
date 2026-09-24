@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.astro/
+# Generated per build by scripts/prepare-versions.mjs and stage-version.mjs.
+.versions/
+src/content/docs/
+src/generated/

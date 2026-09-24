@@ -1,5 +1,19 @@
 version: '3'
 
+vars:
+  IMAGE: opmodel-dev-site:local
+  UID:
+    sh: id -u
+  GID:
+    sh: id -g
+  # Runs a command in the site's build image with the repository mounted, as
+  # the calling user so files written to site/ stay owned by them. Declared
+  # after UID and GID because Task resolves vars in order.
+  SITE_RUN: >-
+    docker run --rm --init
+    --user {{.UID}}:{{.GID}}
+    --volume {{.ROOT_DIR}}:/work/repo
+
 tasks:
   default:
     desc: Show available tasks
@@ -7,10 +21,14 @@ tasks:
       - task --list
 
   deps:
-    desc: Install dependencies
+    desc: Install Go dependencies (the site's live in its build image)
     cmds:
       - go mod download
-      - cd site && hugo mod get
+
+  image:
+    desc: Build the site's build image (Node, git and the npm packages)
+    cmds:
+      - docker build --quiet --tag {{.IMAGE}} site
 
   build:docgen:
     desc: Build the docgen tool
@@ -38,31 +56,36 @@ tasks:
     desc: Generate CLI reference markdown
     deps: [build:docgen]
     cmds:
-      - ./bin/docgen cli --output ./site/content/reference/cli/
+      - ./bin/docgen cli --output ./site/content/docs/reference/cli/
     generates:
-      - site/content/reference/cli/*.md
+      - site/content/docs/reference/cli/*.md
 
   generate:
     desc: Generate all documentation
     deps: [generate:schema, generate:cli]
 
   serve:
-    desc: Run Hugo development server
-    dir: site
+    desc: Run the dev server for the latest version on http://localhost:4321/
+    deps: [image]
     cmds:
-      - hugo server --buildDrafts --buildFuture
+      - '{{.SITE_RUN}} --publish 127.0.0.1:4321:4321 {{.IMAGE}} npm run dev -- --host 0.0.0.0 --port 4321'
 
   build:
-    desc: Build the Hugo site
-    deps: [generate]
-    dir: site
+    desc: Build every site version into site/dist/
+    deps: [image]
     cmds:
-      - hugo --minify --destination ../public
+      - '{{.SITE_RUN}} {{.IMAGE}} npm run build'
+
+  preview:
+    desc: Serve the built site, every version, on http://localhost:4321/
+    deps: [build]
+    cmds:
+      - '{{.SITE_RUN}} --publish 127.0.0.1:4321:4321 {{.IMAGE}} npm run preview'
 
   clean:
     desc: Clean generated files
     cmds:
-      - rm -rf bin/ public/ site/data/schema/ site/content/reference/cli/opm*.md site/resources/
+      - rm -rf bin/ site/dist/ site/.astro/ site/.versions/ site/src/content/docs/ site/src/generated/ site/data/schema/ site/content/docs/reference/cli/opm*.md
 
   fmt:
     desc: Format Go code

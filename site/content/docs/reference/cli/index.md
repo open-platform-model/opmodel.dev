@@ -1,6 +1,7 @@
 ---
 title: CLI Reference
-weight: 2
+sidebar:
+  order: 2
 ---
 
 Complete reference for the `opm` CLI, auto-generated from cobra command definitions.

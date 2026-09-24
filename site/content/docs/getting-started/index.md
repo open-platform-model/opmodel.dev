@@ -1,6 +1,7 @@
 ---
 title: Getting Started
-weight: 1
+sidebar:
+  order: 1
 ---
 
 Welcome to the Open Platform Model documentation.

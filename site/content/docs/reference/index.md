@@ -1,6 +1,7 @@
 ---
 title: Reference
-weight: 3
+sidebar:
+  order: 3
 ---
 
 Complete reference documentation for OPM definitions and CLI commands.

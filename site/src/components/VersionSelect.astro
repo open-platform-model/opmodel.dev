@@ -1,0 +1,39 @@
+---
+// Version switch. Reuses Starlight's Select so the Black theme styles it like
+// its other header controls.
+import Select from '@astrojs/starlight/components/Select.astro'
+import { versionLinks } from '../versions'
+
+const links = versionLinks(Astro.locals.starlightRoute.id)
+---
+
+<opm-version-select>
+  <Select
+    icon="list-format"
+    label="Documentation version"
+    width="8.5em"
+    options={links.map((link) => ({
+      label: link.isLatest ? `${link.name} (latest)` : link.name,
+      value: link.href,
+      selected: link.isCurrent,
+    }))}
+  />
+</opm-version-select>
+
+<script>
+  class OpmVersionSelect extends HTMLElement {
+    constructor() {
+      super()
+      const select = this.querySelector('select')
+      select?.addEventListener('change', () => {
+        window.location.pathname = select.value
+      })
+      // Restore the selection when the page comes back from the bfcache.
+      window.addEventListener('pageshow', (event) => {
+        if (!event.persisted || !select) return
+        select.selectedIndex = select.querySelector<HTMLOptionElement>('option[selected]')?.index ?? 0
+      })
+    }
+  }
+  customElements.define('opm-version-select', OpmVersionSelect)
+</script>

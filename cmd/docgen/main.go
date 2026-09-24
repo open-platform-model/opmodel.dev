@@ -11,7 +11,7 @@ var rootCmd = &cobra.Command{
 	Use:   "docgen",
 	Short: "Documentation generator for Open Platform Model",
 	Long: `docgen extracts high-fidelity schema information from CUE definitions
-and generates structured JSON for Hugo consumption. It also generates
+and generates structured JSON for the documentation site. It also generates
 CLI reference documentation from cobra command trees.`,
 }
 
@@ -35,7 +35,7 @@ var cliCmd = &cobra.Command{
 	Use:   "cli",
 	Short: "Generate CLI reference markdown from cobra commands",
 	Long: `Generate markdown reference documentation for the OPM CLI
-using cobra's built-in doc generation with Hugo front matter.`,
+using cobra's built-in doc generation with Starlight front matter.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputDir, _ := cmd.Flags().GetString("output")
 
@@ -62,7 +62,7 @@ func init() {
 	schemaCmd.Flags().StringP("catalog-dir", "c", "../catalog", "Path to catalog repository")
 	schemaCmd.Flags().StringP("output", "o", "./site/data/schema", "Output directory for JSON files")
 
-	cliCmd.Flags().StringP("output", "o", "./site/content/reference/cli", "Output directory for markdown files")
+	cliCmd.Flags().StringP("output", "o", "./site/content/docs/reference/cli", "Output directory for markdown files")
 
 	allCmd.Flags().StringP("catalog-dir", "c", "../catalog", "Path to catalog repository")
 	allCmd.Flags().StringP("output", "o", "./site", "Output directory")

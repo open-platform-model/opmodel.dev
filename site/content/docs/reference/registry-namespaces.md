@@ -1,6 +1,7 @@
 ---
 title: Registry Namespaces
-weight: 6
+sidebar:
+  order: 6
 ---
 
 OPM artifacts live at CUE module paths, and the path's prefix decides who publishes there and what the tooling asserts about it. This page is the reference for every prefix OPM owns: what each means, who may publish to it, and where the rule is enforced. Rules are cited to the enhancement decisions that define them.

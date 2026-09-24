@@ -1,0 +1,18 @@
+---
+// Adds an outdated-version notice above the page on every version but the
+// latest, then renders a page's own banner as usual.
+import Default from '@astrojs/starlight/components/Banner.astro'
+import { currentVersion, latestVersion, versionLinks } from '../versions'
+
+const latest = versionLinks(Astro.locals.starlightRoute.id).find((link) => link.isLatest)!
+---
+
+{
+  currentVersion !== latestVersion && (
+    <div class="sl-banner" data-pagefind-ignore>
+      You are reading the documentation for {currentVersion}. The latest version is{' '}
+      <a href={latest.href}>{latestVersion}</a>.
+    </div>
+  )
+}
+<Default />

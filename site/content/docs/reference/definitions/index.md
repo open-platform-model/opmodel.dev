@@ -1,6 +1,7 @@
 ---
 title: Definitions
-weight: 1
+sidebar:
+  order: 1
 ---
 
 Complete reference for all OPM definition types, auto-generated from CUE schemas in the catalog.
