@@ -1,5 +1,6 @@
 ---
 title: Registry Namespaces
+type: reference
 sidebar:
   order: 6
 ---

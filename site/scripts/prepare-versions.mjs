@@ -9,6 +9,10 @@
 //
 // Root-relative links in pages gain the version's base path, because Astro
 // does not rewrite links inside content.
+//
+// Pages marked `draft: true` are left out unless OPM_DOCS_DRAFTS=1, which the
+// dev server sets. A draft never reaches a build, its sidebar or the page
+// count the build checks.
 
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -21,6 +25,7 @@ import versions from '../versions.config.mjs'
 const siteDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoDir = resolve(siteDir, '..')
 const versionsDir = join(siteDir, '.versions')
+const includeDrafts = process.env.OPM_DOCS_DRAFTS === '1'
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -75,9 +80,10 @@ function prepare(version) {
     const rel = relative(source, file)
     if (!/\.mdx?$/.test(rel) || (version.exclude ?? []).includes(rel)) continue
     const text = readFileSync(file, 'utf8')
+    const { title, sidebar, draft } = frontMatter(text)
+    if (draft && !includeDrafts) continue
     mkdirSync(dirname(join(out, 'content', rel)), { recursive: true })
     writeFileSync(join(out, 'content', rel), rebaseLinks(text, `/${version.name}`))
-    const { title, sidebar } = frontMatter(text)
     const slug = rel.replace(/\.mdx?$/, '').replace(/(^|\/)index$/, '')
     pages.push({ slug, title: title ?? slug, order: sidebar?.order ?? Infinity })
   }

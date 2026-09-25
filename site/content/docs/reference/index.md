@@ -1,7 +1,7 @@
 ---
 title: Reference
 sidebar:
-  order: 3
+  order: 7
 ---
 
 Complete reference documentation for OPM definitions and CLI commands.

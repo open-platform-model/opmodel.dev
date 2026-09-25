@@ -1,5 +1,6 @@
 ---
 title: Definitions
+type: reference
 sidebar:
   order: 1
 ---

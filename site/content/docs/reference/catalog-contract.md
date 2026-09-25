@@ -1,5 +1,6 @@
 ---
 title: The Catalog Contract
+type: reference
 sidebar:
   order: 5
 ---

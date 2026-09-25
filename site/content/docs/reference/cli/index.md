@@ -1,5 +1,6 @@
 ---
 title: CLI Reference
+type: reference
 sidebar:
   order: 2
 ---
