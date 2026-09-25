@@ -2,16 +2,14 @@
 
 Documentation site implementation status and roadmap.
 
-> **2026-09-24: the site moved from Hugo to Astro + Starlight with the Black theme.** The Hugo scaffold in Phase 0 is history; the plan below is written for Astro. The site builds only in its Docker build image (`site/Dockerfile`).
+> **The site is Astro + Starlight with the Black theme.** It builds only in its Docker build image (`site/Dockerfile`).
 
 ## ✅ Completed (Phase 0: Scaffold)
 
 ### Repository & Structure
 - [x] Repository created at `open-platform-model/opmodel.dev`
 - [x] Go module initialized (`go.mod`)
-- [x] Hugo site structure created (`site/`)
-- [x] Directory structure for content, layouts, data
-- [x] `.gitignore` configured for Hugo and generated files
+- [x] `.gitignore` configured for build output and generated files
 - [x] `README.md` with architecture overview
 - [x] `AGENTS.md` with standards and patterns
 - [x] `Taskfile.yml` with build automation
@@ -22,18 +20,7 @@ Documentation site implementation status and roadmap.
 - [x] `internal/cobradoc/generator.go` - Package stub
 - [x] Cobra dependency added (`github.com/spf13/cobra`)
 
-### Hugo Site Scaffold
-- [x] `site/hugo.toml` - Hugo configuration with module support
-- [x] Basic content pages:
-  - [x] Home page (`_index.md`)
-  - [x] Getting Started section
-  - [x] Guides section
-  - [x] Reference section structure
-- [x] Content adapter template (`reference/definitions/_content.gotmpl`) - commented out
-- [x] Hugo modules initialized
-- [x] Site builds successfully (no layouts yet)
-
-### Astro Site (replaced the Hugo scaffold, 2026-09-24)
+### Astro Site
 - [x] Astro 7 + Starlight + `starlight-theme-black`, content in `site/content/`
 - [x] Docker build image; `task serve`, `task build`, `task preview` run in it
 - [x] Versioned builds from `site/versions.config.mjs`: version switch, outdated-version banner, `/latest/` alias, per-version search, page-count check
@@ -102,7 +89,7 @@ Documentation site implementation status and roadmap.
 
 ### 1.4 - Theme Selection & Integration
 
-- [x] Astro + Starlight with `starlight-theme-black`, chosen 2026-09-24 over Hugo with Hextra or a Black port
+- [x] Astro + Starlight with `starlight-theme-black`, chosen 2026-09-24
 
 ### 1.5 - Local Build Verification
 
