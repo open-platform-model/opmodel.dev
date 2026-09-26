@@ -61,11 +61,15 @@ export default defineConfig({
         Banner: './src/components/Banner.astro',
         LanguageSelect: './src/components/LanguageSelect.astro',
       },
-      sidebar: [{ label: 'Documentation', items: sidebar }],
+      // Each section is a top-level group. Black's mobile menu lists only
+      // top-level groups and their direct links, so wrapping the sections in
+      // one group would hide every page on a phone.
+      sidebar,
       plugins: [
         starlightThemeBlack({
-          // Black writes nav links as given, so they carry the base path.
-          navLinks: [{ label: 'Docs', link: `${base}/docs/` }],
+          // Black passes a relative link through Astro's getRelativeLocaleUrl,
+          // which adds the base path, so the link must not carry it.
+          navLinks: [{ label: 'Docs', link: '/docs/' }],
         }),
       ],
     }),
