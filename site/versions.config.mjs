@@ -2,9 +2,10 @@
 // /<name>/ from a snapshot of its content.
 //
 // `ref` is a git ref of this repository, or null for the working tree.
-// `path` is the content directory at that ref; `exclude` lists pages under it
-// to leave out. The site's real versions will be read from the five source
-// repositories at the tags the CLI pins (0021:OQ15).
+// `path` is the content directory at that ref; `exclude` lists pages to leave
+// out. A working-tree version also reads every source repository's
+// docs/site/ (scripts/sources.mjs). The site's real versions will be read from
+// the source repositories at the tags the CLI pins (0021:OQ15).
 //
 // No version has been released yet. v0.1 is a demo entry so the version
 // switch has something to switch to: the working tree without the two newest

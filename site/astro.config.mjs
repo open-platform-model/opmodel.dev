@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import starlightThemeBlack from 'starlight-theme-black'
+import { sourceDirs } from './scripts/sources.mjs'
 import { stage } from './scripts/stage-version.mjs'
 import versions from './versions.config.mjs'
 
@@ -16,17 +17,20 @@ const base = `/${version}`
 const sidebar = JSON.parse(readFileSync(new URL(`./.versions/${version}/sidebar.json`, import.meta.url), 'utf8'))
 
 // The dev server reads the staged copy in src/content/docs, so an edit under
-// content/ re-prepares and re-stages it. The sidebar is read once at startup:
-// adding, removing or retitling a page needs a server restart.
+// content/ or a source repository's docs/site/ re-prepares and re-stages it.
+// The sidebar is read once at startup: adding, removing or retitling a page
+// needs a server restart.
 function restageOnEdit() {
   const contentDir = fileURLToPath(new URL('./content/', import.meta.url))
+  const sourceDirsWatched = sourceDirs().map(({ dir }) => `${dir}/`)
   const prepare = fileURLToPath(new URL('./scripts/prepare-versions.mjs', import.meta.url))
   return {
     name: 'opm-restage-on-edit',
     hooks: {
       'astro:server:setup': ({ server }) => {
+        server.watcher.add(sourceDirsWatched)
         server.watcher.on('all', (_event, path) => {
-          if (!path.startsWith(contentDir)) return
+          if (![contentDir, ...sourceDirsWatched].some((dir) => path.startsWith(dir))) return
           execFileSync('node', [prepare])
           stage(version)
         })

@@ -1,6 +1,10 @@
 // Materialises every version's content from its source into .versions/<name>/
 // and writes the manifest the version switch reads.
 //
+// A version's pages are this repository's content plus, for a working-tree
+// version, every source repository's docs/site/ under docs/ (sources.mjs).
+// Two repositories publishing the same address fail the run (0018:D8).
+//
 // Per version it writes:
 //   .versions/<name>/content/**   the version's pages
 //   .versions/<name>/sidebar.json
@@ -9,10 +13,6 @@
 //
 // Root-relative links in pages gain the version's base path, because Astro
 // does not rewrite links inside content.
-//
-// Pages marked `draft: true` are left out unless OPM_DOCS_DRAFTS=1, which the
-// dev server sets. A draft never reaches a build, its sidebar or the page
-// count the build checks.
 
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -21,11 +21,11 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse } from 'yaml'
 import versions from '../versions.config.mjs'
+import { sourceDirs } from './sources.mjs'
 
 const siteDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoDir = resolve(siteDir, '..')
 const versionsDir = join(siteDir, '.versions')
-const includeDrafts = process.env.OPM_DOCS_DRAFTS === '1'
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -75,17 +75,26 @@ function prepare(version) {
   const out = join(versionsDir, version.name)
   rmSync(out, { recursive: true, force: true })
 
+  const roots = [{ repo: 'opmodel.dev', dir: source, prefix: '' }]
+  if (version.ref === null) roots.push(...sourceDirs().map((s) => ({ ...s, prefix: 'docs' })))
+
+  const owners = new Map()
   const pages = []
-  for (const file of walk(source)) {
-    const rel = relative(source, file)
-    if (!/\.mdx?$/.test(rel) || (version.exclude ?? []).includes(rel)) continue
-    const text = readFileSync(file, 'utf8')
-    const { title, sidebar, draft } = frontMatter(text)
-    if (draft && !includeDrafts) continue
-    mkdirSync(dirname(join(out, 'content', rel)), { recursive: true })
-    writeFileSync(join(out, 'content', rel), rebaseLinks(text, `/${version.name}`))
-    const slug = rel.replace(/\.mdx?$/, '').replace(/(^|\/)index$/, '')
-    pages.push({ slug, title: title ?? slug, order: sidebar?.order ?? Infinity })
+  for (const root of roots) {
+    for (const file of walk(root.dir)) {
+      const rel = join(root.prefix, relative(root.dir, file))
+      if (!/\.mdx?$/.test(rel) || (version.exclude ?? []).includes(rel)) continue
+      if (owners.has(rel)) {
+        throw new Error(`${version.name}: ${rel} is published by both ${owners.get(rel)} and ${root.repo}`)
+      }
+      owners.set(rel, root.repo)
+      const text = readFileSync(file, 'utf8')
+      const { title, sidebar } = frontMatter(text)
+      mkdirSync(dirname(join(out, 'content', rel)), { recursive: true })
+      writeFileSync(join(out, 'content', rel), rebaseLinks(text, `/${version.name}`))
+      const slug = rel.replace(/\.mdx?$/, '').replace(/(^|\/)index$/, '')
+      pages.push({ slug, title: title ?? slug, order: sidebar?.order ?? Infinity })
+    }
   }
   cleanup()
 

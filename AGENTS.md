@@ -210,4 +210,4 @@ Rationale: `[x]`/`[ ]` are 3 ASCII chars wide, easy table alignment. `OK`/`FAIL`
 - Don't edit generated content (`site/data/schema/*`, `site/content/docs/reference/cli/*`) — regenerate via `task generate`.
 - Schema source lives upstream in `core/` (and `catalog/`); CLI command source lives in `cli/`. Doc bugs that trace to source — fix upstream, not by patching generated output.
 - Personas to keep in mind when writing docs: **Module Author** (writes CUE defs, primary audience for ref docs), **Platform Operator** (deploys modules, needs deployment guides + CLI ref), **End-user** (consumes modules, needs getting started + conceptual guides), **Contributor** (extends OPM, needs architecture + design docs).
-- For OPM-specific terms, link to the [canonical glossary in opm/](https://github.com/open-platform-model/opm/blob/main/docs/glossary.md) — don't duplicate definitions here.
+- For OPM-specific terms, link to the [canonical glossary in opm/](https://github.com/open-platform-model/opm/blob/main/docs/legacy/glossary.md) — don't duplicate definitions here.

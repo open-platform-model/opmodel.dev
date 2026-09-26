@@ -7,12 +7,16 @@ vars:
   GID:
     sh: id -g
   # Runs a command in the site's build image with the repository mounted, as
-  # the calling user so files written to site/ stay owned by them. Declared
-  # after UID and GID because Task resolves vars in order.
+  # the calling user so files written to site/ stay owned by them. The
+  # workspace is mounted read-only so the site can read each source
+  # repository's docs/site/ (site/scripts/sources.mjs). Declared after UID and
+  # GID because Task resolves vars in order.
   SITE_RUN: >-
     docker run --rm --init
     --user {{.UID}}:{{.GID}}
     --volume {{.ROOT_DIR}}:/work/repo
+    --volume {{.ROOT_DIR}}/..:/work/workspace:ro
+    --env OPM_DOCS_WORKSPACE=/work/workspace
 
 tasks:
   default:
