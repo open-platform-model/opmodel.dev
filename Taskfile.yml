@@ -9,10 +9,13 @@ vars:
   # Runs a command in the site's build image with the repository mounted, as
   # the calling user so files written to site/ stay owned by them. The
   # workspace is mounted read-only so the site can read each source
-  # repository's docs/site/ (site/scripts/sources.mjs). Declared after UID and
-  # GID because Task resolves vars in order.
+  # repository's docs/site/ (site/scripts/sources.mjs). TINI_KILL_PROCESS_GROUP
+  # makes the init process pass Ctrl+C to npm's whole process group, so the
+  # node process under `npm run` stops too and the container exits. Declared
+  # after UID and GID because Task resolves vars in order.
   SITE_RUN: >-
     docker run --rm --init
+    --env TINI_KILL_PROCESS_GROUP=1
     --user {{.UID}}:{{.GID}}
     --volume {{.ROOT_DIR}}:/work/repo
     --volume {{.ROOT_DIR}}/..:/work/workspace:ro
