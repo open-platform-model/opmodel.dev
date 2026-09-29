@@ -1,0 +1,81 @@
+---
+// Figure: how a component becomes objects (Start here overview, figure 3).
+// The web component of the standard template against four transformers of
+// the opmodel.dev/catalogs/opm@v4 catalog (v4.4.0): each row lists what the
+// transformer requires, ticked where web has it, and what it emits.
+// The frame and the visual language are Figure.astro and figure.css.
+import Figure from './Figure.astro'
+
+const claim =
+  'A transformer matches a component that has every resource, trait and label it requires. Every ' +
+  'transformer that matches runs, so web becomes a Deployment and a Service. The HPA transformer also ' +
+  'matches, but emits nothing, because web sets no autoscaling. The StatefulSet transformer does not ' +
+  'match, because it requires the stateful label.'
+
+// One row per transformer: its name, its second requirement (all four also
+// require the container), whether web meets it, and what the row emits.
+const rows = [
+  { name: 'Deployment transformer', req: 'workload-type: stateless', met: true, out: 'Deployment', kind: 'obj' },
+  { name: 'Service transformer', req: 'expose', met: true, out: 'Service', kind: 'obj' },
+  { name: 'HPA transformer', req: 'scaling', met: true, out: 'nothing', kind: 'none' },
+  { name: 'StatefulSet transformer', req: 'workload-type: stateful', met: false, out: 'no match', kind: 'nomatch' },
+]
+const charWidth = 6 // Geist Mono at 10px, per character
+---
+
+<Figure id="cto" title="How a component becomes objects" claim={claim} width={360} height={496}>
+  <!-- The component and what it has -->
+  <g class="card author">
+    <rect x="12" y="8" width="336" height="128" rx="8"></rect>
+    <text class="role" x="24" y="28">MODULE AUTHOR</text>
+    <text class="title" x="24" y="50">Component <tspan class="mono">web</tspan></text>
+    <text class="body" x="24" y="70">stateless workload blueprint + expose trait</text>
+    <g class="tag">
+      <rect x="24" y="80" width="72" height="18" rx="4"></rect>
+      <text x="60" y="93" text-anchor="middle">container</text>
+      <rect x="102" y="80" width="60" height="18" rx="4"></rect>
+      <text x="132" y="93" text-anchor="middle">scaling</text>
+      <rect x="168" y="80" width="56" height="18" rx="4"></rect>
+      <text x="196" y="93" text-anchor="middle">expose</text>
+      <rect x="24" y="104" width="170" height="18" rx="4"></rect>
+      <text x="109" y="117" text-anchor="middle">workload-type: stateless</text>
+    </g>
+  </g>
+
+  <g class="flow">
+    <line x1="180" y1="136" x2="180" y2="170" marker-end="url(#cto-arrow)"></line>
+    <text class="label" x="188" y="157">matched against</text>
+  </g>
+
+  <!-- The platform's transformers, one row each -->
+  <g class="card team">
+    <rect x="12" y="172" width="336" height="316" rx="8"></rect>
+    <text class="role" x="24" y="192">PLATFORM TEAM</text>
+    <text class="title" x="24" y="214">Transformers on the platform</text>
+    {
+      rows.map((row, i) => {
+        const y = 228 + i * 64
+        const reqWidth = (row.req.length + 2) * charWidth + 12
+        return (
+          <g>
+            <rect class="chip" x="24" y={y} width="312" height="56" rx="6"></rect>
+            <text class="chip-text" x="36" y={y + 20}>{row.name}</text>
+            {row.kind !== 'nomatch' && <text class="label" x="230" y={y + 22} text-anchor="end">emits</text>}
+            <g class={row.kind}>
+              <rect x="236" y={y + 7} width="88" height="22" rx="5"></rect>
+              <text x="280" y={y + 22} text-anchor="middle">{row.out}</text>
+            </g>
+            <g class="req">
+              <rect x="36" y={y + 32} width="80" height="16" rx="4"></rect>
+              <text x="76" y={y + 44} text-anchor="middle">container ✓</text>
+            </g>
+            <g class={row.met ? 'req' : 'req miss'}>
+              <rect x="122" y={y + 32} width={reqWidth} height="16" rx="4"></rect>
+              <text x={122 + reqWidth / 2} y={y + 44} text-anchor="middle">{row.req} {row.met ? '✓' : '✗'}</text>
+            </g>
+          </g>
+        )
+      })
+    }
+  </g>
+</Figure>
