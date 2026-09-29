@@ -159,6 +159,7 @@ Read these on entry:
 - `task serve` — dev server for the latest version on http://localhost:4321/ (live reload).
 - `task build` — build every site version (output: `site/dist/`).
 - `task preview` — serve the built site, every version, on http://localhost:4321/.
+- `task shots` — build the site, then screenshot every figure in light, dark, both theme-switch/OS mismatches and at phone width into `site/.shots/`; fails when a figure's text drops below 9 px on a phone. Check figures with it before committing them.
 - `task clean` — remove build artifacts.
 - `task fmt` — format Go code.
 - `task vet` — run `go vet`.

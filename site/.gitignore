@@ -5,3 +5,5 @@ dist/
 .versions/
 src/content/docs/
 src/generated/
+# Screenshots written by task shots.
+.shots/

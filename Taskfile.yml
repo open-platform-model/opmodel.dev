@@ -2,6 +2,7 @@ version: '3'
 
 vars:
   IMAGE: opmodel-dev-site:local
+  SHOTS_IMAGE: opmodel-dev-shots:local
   UID:
     sh: id -u
   GID:
@@ -92,6 +93,18 @@ tasks:
     deps: [build]
     cmds:
       - '{{.SITE_RUN}} --publish 127.0.0.1:4321:4321 {{.IMAGE}} npm run preview'
+
+  shots:image:
+    desc: Build the screenshot image (Playwright with Chromium)
+    cmds:
+      - docker build --quiet --tag {{.SHOTS_IMAGE}} site/shots
+
+  shots:
+    desc: Screenshot every figure on the built site, in both themes and at phone width, into site/.shots/
+    deps: [build, shots:image]
+    cmds:
+      - rm -rf site/.shots && mkdir -p site/.shots
+      - docker run --rm --user {{.UID}}:{{.GID}} --env HOME=/tmp --volume {{.ROOT_DIR}}/site:/site:ro --volume {{.ROOT_DIR}}/site/.shots:/out {{.SHOTS_IMAGE}} python3 /site/shots/shoot.py
 
   clean:
     desc: Clean generated files
