@@ -1,0 +1,129 @@
+/*
+ * The visual language every figure shares (enhancements 0018:D14).
+ * Colours are Starlight/Black tokens only, so figures follow the site's
+ * light/dark switch. One colour per role: blue = module author, green =
+ * deployer, orange = platform team; published and Kubernetes things stay
+ * neutral. Figures are drawn top to bottom on a 360-unit-wide grid.
+ */
+.opm-fig {
+  max-width: 26rem;
+  margin-inline: auto;
+}
+.opm-fig svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--sl-color-gray-3);
+  font-family: var(--sl-font);
+}
+.opm-fig figcaption {
+  margin-top: 0.75rem;
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}
+
+.opm-fig .author {
+  --role-fill: var(--sl-color-blue-low);
+  --role-stroke: var(--sl-color-blue);
+  --role-text: var(--sl-color-blue-high);
+}
+.opm-fig .deployer {
+  --role-fill: var(--sl-color-green-low);
+  --role-stroke: var(--sl-color-green);
+  --role-text: var(--sl-color-green-high);
+}
+.opm-fig .team {
+  --role-fill: var(--sl-color-orange-low);
+  --role-stroke: var(--sl-color-orange);
+  --role-text: var(--sl-color-orange-high);
+}
+.opm-fig .neutral {
+  --role-fill: var(--sl-color-gray-7);
+  --role-stroke: var(--sl-color-gray-5);
+  --role-text: var(--sl-color-gray-3);
+}
+
+/* A card: its first rect is the frame. Black's -low tints differ in strength
+   between hues in dark mode, so the fill is blended toward the background. */
+.opm-fig .card > rect:first-child {
+  fill: color-mix(in oklab, var(--role-fill) 60%, var(--sl-color-bg));
+  stroke: var(--role-stroke);
+  stroke-width: 1.5;
+}
+.opm-fig .neutral > rect:first-child {
+  fill: var(--role-fill);
+}
+.opm-fig .role {
+  fill: var(--role-text);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.opm-fig .title {
+  fill: var(--sl-color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.opm-fig .body {
+  fill: var(--sl-color-gray-3);
+  font-size: 12px;
+}
+.opm-fig .mono {
+  font-family: var(--sl-font-mono);
+}
+/* What changes, and when: the bottom line of a card. */
+.opm-fig .rule {
+  stroke: var(--role-stroke);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.opm-fig .change {
+  fill: var(--role-text);
+  font-family: var(--sl-font-mono);
+  font-size: 10.5px;
+}
+
+.opm-fig .chip {
+  fill: var(--sl-color-bg);
+  stroke: var(--role-stroke);
+  stroke-width: 1.25;
+}
+.opm-fig .chip-text {
+  fill: var(--sl-color-text);
+  font-size: 11.5px;
+}
+
+/* Kubernetes objects. */
+.opm-fig .obj rect {
+  fill: var(--sl-color-gray-7);
+  stroke: var(--sl-color-gray-5);
+  stroke-width: 1.25;
+}
+.opm-fig .obj text {
+  fill: var(--sl-color-text);
+  font-size: 12px;
+}
+
+/* Arrows and their verbs. */
+.opm-fig .flow line {
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.opm-fig .label {
+  fill: var(--sl-color-gray-3);
+  font-size: 11px;
+}
+
+/* A place, such as the cluster. */
+.opm-fig .zone {
+  fill: none;
+  stroke: var(--sl-color-gray-4);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+.opm-fig .zone-label {
+  fill: var(--sl-color-gray-3);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}

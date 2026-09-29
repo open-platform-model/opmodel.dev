@@ -1,0 +1,32 @@
+---
+// The frame every figure shares (enhancements 0018:D14): a <figure> whose
+// caption states the figure's one point, an <svg> that carries the same text
+// as its accessible label, and an arrowhead marker named after the figure, so
+// two figures on one page never share an id. Draw the figure in the slot on
+// the viewBox grid, with the classes in figure.css; reference the arrowhead
+// as marker-end="url(#<id>-arrow)".
+import './figure.css'
+
+interface Props {
+  id: string
+  title: string
+  claim: string
+  width: number
+  height: number
+}
+
+const { id, title, claim, width, height } = Astro.props
+---
+
+<figure class="opm-fig">
+  <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={claim}>
+    <title>{title}</title>
+    <defs>
+      <marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+      </marker>
+    </defs>
+    <slot />
+  </svg>
+  <figcaption>{claim}</figcaption>
+</figure>

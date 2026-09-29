@@ -1,23 +1,16 @@
 ---
 // Figure: from module to running objects (Start here overview, figure 1).
 // Drawn top to bottom on a 360-unit grid so it stays legible at phone width.
-// Every colour is a Starlight/Black token, so the figure follows the site's
-// light/dark switch. Role colours: blue = module author, green = deployer,
-// orange = platform team; Kubernetes objects stay neutral.
+// The frame and the visual language are Figure.astro and figure.css.
+import Figure from './Figure.astro'
+
 const claim =
   'A module never names Kubernetes objects. An instance of it is rendered against a platform, ' +
   'whose transformers decide which objects each component becomes. The opm CLI or the OPM ' +
   'operator applies them and records what it applied.'
 ---
 
-<figure class="mtc">
-  <svg viewBox="0 0 360 622" role="img" aria-label={claim}>
-    <title>From module to running objects</title>
-    <defs>
-      <marker id="mtc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
-      </marker>
-    </defs>
+<Figure id="mtc" title="From module to running objects" claim={claim} width={360} height={622}>
 
     <!-- Row 1: what the author and the deployer write -->
     <g class="card author">
@@ -100,109 +93,5 @@ const claim =
       <rect x="24" y="572" width="312" height="30" rx="6"></rect>
       <text x="180" y="591" text-anchor="middle">ModuleInstance · records what was applied</text>
     </g>
-  </svg>
-  <figcaption>{claim}</figcaption>
-</figure>
+</Figure>
 
-<style>
-  .mtc {
-    max-width: 26rem;
-    margin-inline: auto;
-  }
-  .mtc svg {
-    display: block;
-    width: 100%;
-    height: auto;
-    color: var(--sl-color-gray-3);
-    font-family: var(--sl-font);
-  }
-  .mtc figcaption {
-    margin-top: 0.75rem;
-    font-size: var(--sl-text-sm);
-    color: var(--sl-color-gray-3);
-  }
-
-  .author {
-    --role-fill: var(--sl-color-blue-low);
-    --role-stroke: var(--sl-color-blue);
-    --role-text: var(--sl-color-blue-high);
-  }
-  .deployer {
-    --role-fill: var(--sl-color-green-low);
-    --role-stroke: var(--sl-color-green);
-    --role-text: var(--sl-color-green-high);
-  }
-  .team {
-    --role-fill: var(--sl-color-orange-low);
-    --role-stroke: var(--sl-color-orange);
-    --role-text: var(--sl-color-orange-high);
-  }
-
-  .card > rect:first-child {
-    /* Black's -low tints differ in strength between hues in dark mode
-       (orange is much lighter than blue or green); blending them toward the
-       page background evens the three role cards out. */
-    fill: color-mix(in oklab, var(--role-fill) 60%, var(--sl-color-bg));
-    stroke: var(--role-stroke);
-    stroke-width: 1.5;
-  }
-  .role {
-    fill: var(--role-text);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
-  .title {
-    fill: var(--sl-color-text);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .body {
-    fill: var(--sl-color-gray-3);
-    font-size: 12px;
-  }
-  .mono {
-    font-family: var(--sl-font-mono);
-  }
-  .chip {
-    fill: var(--sl-color-bg);
-    stroke: var(--role-stroke);
-    stroke-width: 1.25;
-  }
-  .chip-text {
-    fill: var(--sl-color-text);
-    font-size: 11.5px;
-  }
-
-  .obj rect {
-    fill: var(--sl-color-gray-7);
-    stroke: var(--sl-color-gray-5);
-    stroke-width: 1.25;
-  }
-  .obj text {
-    fill: var(--sl-color-text);
-    font-size: 12px;
-  }
-
-  .flow line {
-    stroke: currentColor;
-    stroke-width: 1.5;
-  }
-  .label {
-    fill: var(--sl-color-gray-3);
-    font-size: 11px;
-  }
-
-  .zone {
-    fill: none;
-    stroke: var(--sl-color-gray-4);
-    stroke-width: 1.25;
-    stroke-dasharray: 5 4;
-  }
-  .zone-label {
-    fill: var(--sl-color-gray-3);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
-</style>
