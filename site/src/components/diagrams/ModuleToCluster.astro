@@ -1,0 +1,208 @@
+---
+// Figure: from module to running objects (Start here overview, figure 1).
+// Drawn top to bottom on a 360-unit grid so it stays legible at phone width.
+// Every colour is a Starlight/Black token, so the figure follows the site's
+// light/dark switch. Role colours: blue = module author, green = deployer,
+// orange = platform team; Kubernetes objects stay neutral.
+const claim =
+  'A module never names Kubernetes objects. An instance of it is rendered against a platform, ' +
+  'whose transformers decide which objects each component becomes. The opm CLI or the OPM ' +
+  'operator applies them and records what it applied.'
+---
+
+<figure class="mtc">
+  <svg viewBox="0 0 360 622" role="img" aria-label={claim}>
+    <title>From module to running objects</title>
+    <defs>
+      <marker id="mtc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+      </marker>
+    </defs>
+
+    <!-- Row 1: what the author and the deployer write -->
+    <g class="card author">
+      <rect x="12" y="8" width="162" height="92" rx="8"></rect>
+      <text class="role" x="24" y="28">MODULE AUTHOR</text>
+      <text class="title" x="24" y="50">Module</text>
+      <text class="body" x="24" y="70">component <tspan class="mono">web</tspan></text>
+      <text class="body" x="24" y="88">configuration schema</text>
+    </g>
+    <g class="card deployer">
+      <rect x="186" y="8" width="162" height="92" rx="8"></rect>
+      <text class="role" x="198" y="28">DEPLOYER</text>
+      <text class="title" x="198" y="50">Values</text>
+      <text class="body mono" x="198" y="70">replicas: 2</text>
+      <text class="body" x="198" y="88">image, port, …</text>
+    </g>
+
+    <g class="flow">
+      <line x1="93" y1="100" x2="93" y2="146" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="99" y="127">imported</text>
+      <line x1="267" y1="100" x2="267" y2="146" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="261" y="127" text-anchor="end">set</text>
+    </g>
+
+    <!-- Row 2: the instance -->
+    <g class="card deployer">
+      <rect x="48" y="148" width="264" height="70" rx="8"></rect>
+      <text class="role" x="60" y="168">DEPLOYER</text>
+      <text class="title" x="60" y="190">Module instance</text>
+      <text class="body" x="60" y="208">name · namespace</text>
+    </g>
+
+    <g class="flow">
+      <line x1="180" y1="218" x2="180" y2="262" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="188" y="244">rendered against</text>
+    </g>
+
+    <!-- Row 3: the platform and its transformers -->
+    <g class="card team">
+      <rect x="12" y="264" width="336" height="120" rx="8"></rect>
+      <text class="role" x="24" y="284">PLATFORM TEAM</text>
+      <text class="title" x="24" y="306">Platform</text>
+      <text class="body" x="24" y="324">catalogs supply the transformers</text>
+      <rect class="chip" x="24" y="338" width="150" height="32" rx="6"></rect>
+      <text class="chip-text" x="99" y="358" text-anchor="middle">Deployment transformer</text>
+      <rect class="chip" x="186" y="338" width="150" height="32" rx="6"></rect>
+      <text class="chip-text" x="261" y="358" text-anchor="middle">Service transformer</text>
+    </g>
+
+    <g class="flow">
+      <line x1="99" y1="370" x2="99" y2="420" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="105" y="402">emits</text>
+      <line x1="261" y1="370" x2="261" y2="420" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="267" y="402">emits</text>
+    </g>
+
+    <!-- Row 4: the rendered objects -->
+    <g class="obj">
+      <rect x="24" y="422" width="150" height="32" rx="6"></rect>
+      <text x="99" y="442" text-anchor="middle">Deployment</text>
+      <rect x="186" y="422" width="150" height="32" rx="6"></rect>
+      <text x="261" y="442" text-anchor="middle">Service</text>
+    </g>
+
+    <g class="flow">
+      <line x1="99" y1="454" x2="99" y2="530" marker-end="url(#mtc-arrow)"></line>
+      <line x1="261" y1="454" x2="261" y2="530" marker-end="url(#mtc-arrow)"></line>
+      <text class="label" x="180" y="480" text-anchor="middle">applied by the opm CLI</text>
+      <text class="label" x="180" y="494" text-anchor="middle">or the OPM operator</text>
+    </g>
+
+    <!-- Row 5: the cluster -->
+    <rect class="zone" x="12" y="506" width="336" height="108" rx="10"></rect>
+    <text class="zone-label" x="24" y="524">CLUSTER</text>
+    <g class="obj">
+      <rect x="24" y="532" width="150" height="30" rx="6"></rect>
+      <text x="99" y="551" text-anchor="middle">Deployment</text>
+      <rect x="186" y="532" width="150" height="30" rx="6"></rect>
+      <text x="261" y="551" text-anchor="middle">Service</text>
+      <rect x="24" y="572" width="312" height="30" rx="6"></rect>
+      <text x="180" y="591" text-anchor="middle">ModuleInstance · records what was applied</text>
+    </g>
+  </svg>
+  <figcaption>{claim}</figcaption>
+</figure>
+
+<style>
+  .mtc {
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+  .mtc svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    color: var(--sl-color-gray-3);
+    font-family: var(--sl-font);
+  }
+  .mtc figcaption {
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+
+  .author {
+    --role-fill: var(--sl-color-blue-low);
+    --role-stroke: var(--sl-color-blue);
+    --role-text: var(--sl-color-blue-high);
+  }
+  .deployer {
+    --role-fill: var(--sl-color-green-low);
+    --role-stroke: var(--sl-color-green);
+    --role-text: var(--sl-color-green-high);
+  }
+  .team {
+    --role-fill: var(--sl-color-orange-low);
+    --role-stroke: var(--sl-color-orange);
+    --role-text: var(--sl-color-orange-high);
+  }
+
+  .card > rect:first-child {
+    /* Black's -low tints differ in strength between hues in dark mode
+       (orange is much lighter than blue or green); blending them toward the
+       page background evens the three role cards out. */
+    fill: color-mix(in oklab, var(--role-fill) 60%, var(--sl-color-bg));
+    stroke: var(--role-stroke);
+    stroke-width: 1.5;
+  }
+  .role {
+    fill: var(--role-text);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  .title {
+    fill: var(--sl-color-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .body {
+    fill: var(--sl-color-gray-3);
+    font-size: 12px;
+  }
+  .mono {
+    font-family: var(--sl-font-mono);
+  }
+  .chip {
+    fill: var(--sl-color-bg);
+    stroke: var(--role-stroke);
+    stroke-width: 1.25;
+  }
+  .chip-text {
+    fill: var(--sl-color-text);
+    font-size: 11.5px;
+  }
+
+  .obj rect {
+    fill: var(--sl-color-gray-7);
+    stroke: var(--sl-color-gray-5);
+    stroke-width: 1.25;
+  }
+  .obj text {
+    fill: var(--sl-color-text);
+    font-size: 12px;
+  }
+
+  .flow line {
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+  .label {
+    fill: var(--sl-color-gray-3);
+    font-size: 11px;
+  }
+
+  .zone {
+    fill: none;
+    stroke: var(--sl-color-gray-4);
+    stroke-width: 1.25;
+    stroke-dasharray: 5 4;
+  }
+  .zone-label {
+    fill: var(--sl-color-gray-3);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+</style>
