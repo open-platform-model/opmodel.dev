@@ -1,0 +1,73 @@
+---
+// Figure: three ways to deploy (Start here overview, figure 5).
+// One row per way, read left to right: what the deployer starts from, what
+// applies it, and where the applied objects are recorded. The CLI runs on
+// your machine; the operator runs in the cluster.
+// The frame and the visual language are Figure.astro and figure.css.
+import Figure from './Figure.astro'
+
+const claim =
+  'Every deployment has exactly one manager, which applies its objects and records them. ' +
+  'opm instance apply manages the instances it creates, recorded in a ModuleInstance with owner cli. ' +
+  'The OPM operator manages a ModuleInstance written with kubectl or Git, and a ModulePackage that ' +
+  'points at an instance package in a Flux source; each records its own objects. The operator only ' +
+  'marks a CLI-owned instance, and the CLI only edits the module and values of an operator-owned one.'
+
+// Columns: what it starts as, what applies it, where it is recorded.
+const rows = [
+  {
+    start: ['Instance package', 'on your machine'],
+    by: ['opm CLI', 'instance apply'],
+    rec: ['ModuleInstance', 'owner: cli'],
+  },
+  {
+    start: ['ModuleInstance', 'from Git or kubectl'],
+    by: ['OPM operator', 'in the cluster'],
+    rec: ['ModuleInstance', 'owner: operator'],
+  },
+  {
+    start: ['ModulePackage', 'an instance package', 'from a Flux source'],
+    by: ['OPM operator', 'in the cluster'],
+    rec: ['ModulePackage', 'its status'],
+  },
+]
+---
+
+<Figure id="ttd" title="Three ways to deploy" claim={claim} width={360} height={232}>
+  <text class="zone-label" x="8" y="18">STARTS AS</text>
+  <text class="zone-label" x="144" y="18">APPLIED BY</text>
+  <text class="zone-label" x="248" y="18">RECORDED IN</text>
+  {
+    rows.map((row, i) => {
+      const y = 30 + i * 68
+      const mid = y + 29
+      return (
+        <g>
+          <g class="card deployer">
+            <rect x="8" y={y} width="124" height="58" rx="6"></rect>
+            <text class="chip-text" x="16" y={y + 21}>{row.start[0]}</text>
+            {row.start.slice(1).map((line, j) => (
+              <text class="body small" x="16" y={y + 37 + j * 14}>{line}</text>
+            ))}
+          </g>
+          <g class="flow">
+            <line x1="132" y1={mid} x2="142" y2={mid} marker-end="url(#ttd-arrow)"></line>
+          </g>
+          <g class="tool">
+            <rect x="144" y={y} width="92" height="58" rx="6"></rect>
+            <text x="190" y={y + 25} text-anchor="middle">{row.by[0]}</text>
+            <text class={i === 0 ? 'sub mono' : 'sub'} x="190" y={y + 42} text-anchor="middle">{row.by[1]}</text>
+          </g>
+          <g class="flow">
+            <line x1="236" y1={mid} x2="246" y2={mid} marker-end="url(#ttd-arrow)"></line>
+          </g>
+          <g class="obj">
+            <rect x="248" y={y} width="104" height="58" rx="6"></rect>
+            <text x="300" y={y + 25} text-anchor="middle">{row.rec[0]}</text>
+            <text class="note small" x="300" y={y + 42} text-anchor="middle">{row.rec[1]}</text>
+          </g>
+        </g>
+      )
+    })
+  }
+</Figure>
