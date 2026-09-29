@@ -71,6 +71,10 @@ tasks:
     desc: Generate all documentation
     deps: [generate:schema, generate:cli]
 
+  # The dev script deletes .astro/dev.json first: Astro records its dev
+  # server's PID there to refuse a second server, but each run is a new
+  # container whose own processes reuse low PIDs, so a lock left by an earlier
+  # run always looks alive and blocks the next start.
   serve:
     desc: Run the dev server for the latest version on http://localhost:4321/
     deps: [image]
