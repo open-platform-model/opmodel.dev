@@ -177,3 +177,10 @@
   font-size: 11.5px;
   font-weight: 600;
 }
+
+/* A command on an arrow. */
+.opm-fig .cmd {
+  fill: var(--sl-color-text);
+  font-family: var(--sl-font-mono);
+  font-size: 10.5px;
+}
