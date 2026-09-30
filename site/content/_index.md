@@ -25,7 +25,7 @@ layout: hextra-home
 </div>
 
 <div class="opm-hero-actions">
-{{< hextra/hero-button text="Get started" link="docs/" >}}
+{{< hextra/hero-button text="Get started" link="docs/start/" >}}
 {{< hextra/hero-button text="Reference" link="docs/reference/" style="background:transparent;color:inherit;box-shadow:inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent)" >}}
 </div>
 
