@@ -4,7 +4,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
 
 ## 1. Spike, the manifest and the resolver
 
-- [ ] 1.1 Read A's merged `main` against design.md Context and Decisions 3, 5, 6, 7, 10 and 12. Confirm or refute each of these:
+- [x] 1.1 Read A's merged `main` against design.md Context and Decisions 3, 5, 6, 7, 10 and 12. Confirm or refute each of these:
   - `build` and `serve` run `versions:prepare` first;
   - `build`, `serve` and `test:site` leave `OPM_VERSIONS` unset unless a caller sets it, and whether a host `OPM_VERSIONS` reaches the container;
   - which Taskfile variables hold the six host source roots and `OPM_WS`;
@@ -17,14 +17,14 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - whether A's ignore and `clean` rules cover `site/config/<env>/`.
 
   Write the six S merge SHAs the supervisor handed over into design.md Decision 4. Write the six test SHAs into design.md Decision 11: the S merge SHAs, unless A's merge needed source fixes after the S merges. In that case use the buildable post-S SHAs the supervisor names, for example the `site-src` `HEAD`s that A merged against, and ask for them if none were handed over. Anything that contradicts design.md is a deviation: stop and report it (`orchestration.md` section 7, step 5). A fixture build that A runs or documents without `OPM_VERSIONS` is a deviation too: report where it is, and the supervisor rules on the edit.
-- [ ] 1.2 Spike, on scratch edits that you revert before 1.7. The question is Decision 7: which form of the generated versions config Hugo 0.167.0 honours.
+- [x] 1.2 Spike, on scratch edits that you revert before 1.7. The question is Decision 7: which form of the generated versions config Hugo 0.167.0 honours.
   - Build two versions in the image: `v1.0` from `/src`, and `v0.9` from a copy of A's fixture workspace placed under `site/.versions/v0.9/`.
   - Try the three candidate forms, in both `build` and `serve` (`SITE_PORT=1314`, one SIGINT).
   - A form passes when both `/v1.0/` and `/v0.9/` publish every expected page (the Q2 check is green) and `/latest/` points at `v1.0`. That also shows whether Hugo keeps pages mounted from under the dot-directory `site/.versions/`.
 
   Record the chosen form and that finding in design.md "Research & Decisions" ("Hugo's versions config").
-- [ ] 1.3 Add `site/versions.conf` in the design.md Decision 1 form: a header comment, the six `[repo "..."] floor` lines from 1.1, and `v1.0` with `source = main` and the O3 comment.
-- [ ] 1.4 Add `site/scripts/resolve-versions.sh`: POSIX `sh`, `git` and `awk`, run on the host, with a usage header. It carries:
+- [x] 1.3 Add `site/versions.conf` in the design.md Decision 1 form: a header comment, the six `[repo "..."] floor` lines from 1.1, and `v1.0` with `source = main` and the O3 comment.
+- [x] 1.4 Add `site/scripts/resolve-versions.sh`: POSIX `sh`, `git` and `awk`, run on the host, with a usage header. It carries:
   - the grammar checks from Decision 1, including the character rule for `label` and the override reason;
   - the root checks from Decision 3, run first, naming `OPM_SRC_<REPO>` (and `OPM_VERSIONS` for a root that is not a git top level);
   - the resolution and three checks from Decision 3, reporting every failure as `<version>: <repo> <ref>: <reason>` and exiting 1;
@@ -34,14 +34,14 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `OPM_VERSIONS_MANIFEST`.
 
   Verify: `OPM_SRC_WORKTREE=site-src sh site/scripts/resolve-versions.sh --check` prints six `v1.0` rows with `how` = `head`, each SHA equal to `git -C WS/<repo>/.claude/worktrees/site-src rev-parse HEAD`.
-- [ ] 1.5 Add `site/tests/versions/test-resolve.sh`, with every Decision 11 resolver case:
+- [x] 1.5 Add `site/tests/versions/test-resolve.sh`, with every Decision 11 resolver case:
   - fixture repositories created under `site/.check/versions-test/repos/`, the only directory the test removes and recreates;
   - the two root cases: a missing root, and a fixture root that sits inside another repository;
   - the resolver-only test at cli `v1.0.0-alpha.25` (library `v1.0.0-alpha.35`, core `v2.0.0-alpha.12`, opm-operator `v1.0.0-alpha.19`);
   - the negative `--check` anchored at cli `v1.0.0-alpha.25`, whose output must name `cli v1.0.0-alpha.25` (older than the floor) and `opm-operator v1.0.0-alpha.19` (no `docs/site`).
 
   Verify: it prints one line per case and exits 0. Change one expected pin on a scratch edit and it exits 1. Restore it.
-- [ ] 1.6 `Taskfile.yml`, `versions:*` tasks only (Decision 12).
+- [x] 1.6 `Taskfile.yml`, `versions:*` tasks only (Decision 12).
   - Add `versions:check` and `versions:test`, passing A's host source roots and `OPM_WS`.
   - Set the body of `versions:prepare` to `resolve-versions.sh --check` for now, skipped when `OPM_VERSIONS` is set. Section 2 switches it to writing and materialising.
 
@@ -51,7 +51,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `OPM_VERSIONS=v1.0=/src OPM_WS=<wt>/site/tests/fixtures/ws task build` passes, and the same build without `OPM_VERSIONS` fails before `docker run`, naming `OPM_SRC_<REPO>` and `OPM_VERSIONS`.
 
   The hand-written `[versions]` block stays in `hugo.toml` until section 2, which removes the duplicate.
-- [ ] 1.7 Revert the 1.2 scratch edits (`git -C <wt> status` shows only the files of 1.1 and 1.3-1.6). Then run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test` and `OPM_SRC_WORKTREE=site-src task ci`. When all are green, commit `feat(site): resolve each version's source refs from a manifest`.
+- [x] 1.7 Revert the 1.2 scratch edits (`git -C <wt> status` shows only the files of 1.1 and 1.3-1.6). Then run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test` and `OPM_SRC_WORKTREE=site-src task ci`. When all are green, commit `feat(site): resolve each version's source refs from a manifest`.
 
 ## 2. Materialise anchored versions and generate the versions config
 

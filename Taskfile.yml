@@ -56,13 +56,43 @@ tasks:
     cmds:
       - sh site/scripts/run-in-image.sh image
 
-  # Host-side preparation that build and serve run first; nothing to prepare
-  # for one version built from the source roots.
+  # The site versions (site/versions.conf), resolved on the host, where git
+  # works in a worktree; build and serve run versions:prepare first. The
+  # scripts read OPM_VERSIONS and OPM_VERSIONS_MANIFEST from the environment
+  # (never Taskfile vars, which would shadow it); the env map hands on the CLI
+  # form, and the source roots resolve in run-in-image.sh as for a build.
   versions:prepare:
-    desc: Prepare the site versions on the host (no-op for one version)
+    desc: Resolve the site versions from site/versions.conf on the host (build and serve run it first)
+    env: &versions-env
+      OPM_WS: '{{.OPM_WS}}'
+      OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
+      OPM_SRC_OPM: '{{.OPM_SRC_OPM}}'
+      OPM_SRC_CORE: '{{.OPM_SRC_CORE}}'
+      OPM_SRC_CATALOG_OPM: '{{.OPM_SRC_CATALOG_OPM}}'
+      OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
+      OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
+      OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_VERSIONS: '{{.OPM_VERSIONS}}'
+      OPM_VERSIONS_MANIFEST: '{{.OPM_VERSIONS_MANIFEST}}'
     cmds:
-      - cmd: 'true'
-        silent: true
+      - |
+        if [ -n "${OPM_VERSIONS:-}" ]; then
+          echo "versions:prepare: OPM_VERSIONS is set (explicit mode); nothing to resolve"
+        else
+          sh site/scripts/resolve-versions.sh --check
+        fi
+
+  versions:check:
+    desc: Resolve every site version and print its refs (site/versions.conf, or OPM_VERSIONS_MANIFEST); writes nothing
+    env: *versions-env
+    cmds:
+      - sh site/scripts/resolve-versions.sh --check
+
+  versions:test:
+    desc: Resolver regression tests on fixture repositories and the real pins (host git)
+    env: *versions-env
+    cmds:
+      - sh site/tests/versions/test-resolve.sh
 
   build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
