@@ -68,18 +68,18 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
 
 ## 2. The static figures: roles-and-artifacts and where-things-live
 
-- [ ] 2.1 Port RolesAndArtifacts:
+- [x] 2.1 Port RolesAndArtifacts:
   - add `site/layouts/_partials/opm/figures/roles-and-artifacts.html`: the `2207ba1` body, verbatim, with every HTML comment as a Go template comment, as in 1.5;
   - replace the stub in `site/layouts/_shortcodes/opm/roles-and-artifacts.html` with the frame call (id `raa`, title `Three roles, three artifacts`, 360 x 420).
-- [ ] 2.2 Port WhereThingsLive the same way:
+- [x] 2.2 Port WhereThingsLive the same way:
   - `site/layouts/_partials/opm/figures/where-things-live.html`: its six comments, such as `<!-- The registry -->`, none starting with "Row", become Go template comments too;
   - `site/layouts/_shortcodes/opm/where-things-live.html` (id `wtl`, title `Where things live`, 360 x 492).
-- [ ] 2.3 Fidelity on `<wt>/site/public/v1.0/docs/start/index.html`:
+- [x] 2.3 Fidelity on `<wt>/site/public/v1.0/docs/start/index.html`:
   - `Three roles, three artifacts` has 33 drawn elements and `Where things live` has 45, identical to the `2207ba1` bodies;
   - each `aria-label` equals its `figcaption`;
   - the markers are `raa-arrow` and `wtl-arrow`;
   - the page has no duplicate `id`.
-- [ ] 2.4 Screenshots. On the Start here page, read the six PNGs each of figures `2-*` (RolesAndArtifacts) and `3-*` (WhereThingsLive). ComponentToObjects, between them on the page, is still a stub and takes no number. Check:
+- [x] 2.4 Screenshots. On the Start here page, read the six PNGs each of figures `2-*` (RolesAndArtifacts) and `3-*` (WhereThingsLive). ComponentToObjects, between them on the page, is still a stub and takes no number. Check:
   - the neutral Catalogs card and the three role cards;
   - the `→` in each change line;
   - the dashed zones;
@@ -89,7 +89,7 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
   - no label crosses its box (`~/.opm, or pulled`, `ModuleInstance`), and no ligature.
 
   Also check that figure `1-*` (ModuleToCluster) is unchanged against the baseline.
-- [ ] 2.5 The gates green, PNGs read, then commit `feat(site): port the roles and where-things-live figures`.
+- [x] 2.5 The gates green, PNGs read, then commit `feat(site): port the roles and where-things-live figures`.
   - Stage `site/layouts/_partials/opm/figures/roles-and-artifacts.html`, `site/layouts/_partials/opm/figures/where-things-live.html`, `site/layouts/_shortcodes/opm/roles-and-artifacts.html`, `site/layouts/_shortcodes/opm/where-things-live.html`, `site/assets/css/opm/figures.css` if it changed, `<cd>/tasks.md`, and `<cd>/design.md` if it changed.
   - Then copy `<wt>/site/.shots` to `<scratch>/shots-s2`.
 
