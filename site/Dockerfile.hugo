@@ -23,8 +23,12 @@ RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}
  && tar -xzf pagefind.tgz pagefind \
  && ./hugo version && ./pagefind --version
 
+# git dates the pages (scripts/gen-lastmod.sh). busybox-extras brings the
+# static httpd that serves site/public/ for preview; it is pinned to the
+# busybox build the base image carries, so a newer Alpine package fails the
+# image build instead of floating.
 FROM ${ALPINE}
-RUN apk add --no-cache git \
+RUN apk add --no-cache git busybox-extras=1.37.0-r31 \
  && git config --system --add safe.directory '*'
 COPY --from=fetch /dl/hugo /dl/pagefind /usr/local/bin/
 ENTRYPOINT ["hugo"]

@@ -1,0 +1,20 @@
+{{- /* Hextra hook (v0.13.0), end of <head>. */ -}}
+{{- partial "opm/check-front-matter.html" . -}}
+<link rel="preload" href="{{ "fonts/Geist-Variable.woff2" | relURL }}" as="font" type="font/woff2" crossorigin>
+{{- /* OPM styles: every assets/css/opm/*.css, concatenated in lexical file-name
+       order, minified and fingerprinted into one stylesheet after Hextra's.
+       Add a file to add styles; there is no list to edit. */ -}}
+{{- $parts := sort (resources.Match "css/opm/*.css") "Name" -}}
+{{- with $parts -}}
+  {{- $css := . | resources.Concat "css/opm.css" | minify | fingerprint -}}
+  <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+{{- end -}}
+{{- /* /latest/<path>/ stubs (a meta refresh, noindex) for every page of the
+       default version, published at the root outside the version prefix, for
+       hosts that ignore public/_redirects (scripts/build-all.sh writes it). */ -}}
+{{- if and .Site.Version.IsDefault .File (eq .Kind "page" "section" "home") -}}
+  {{- $rel := strings.TrimPrefix .Site.Home.RelPermalink .RelPermalink -}}
+  {{- $to := .RelPermalink -}}
+  {{- $html := printf `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s"><link rel="canonical" href="%s"><title>Redirecting</title><a href="%s">%s</a>` $to .Permalink $to .Permalink -}}
+  {{- (resources.FromString (printf "latest/%sindex.html" $rel) $html).Publish -}}
+{{- end -}}

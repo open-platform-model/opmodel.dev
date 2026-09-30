@@ -25,6 +25,7 @@ done
 sh "$SCRIPTS/lint-sources.sh" $dirs
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
+sh "$SCRIPTS/gen-stamp.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-mounts.sh" config/development/module.toml $VERSIONS
 port=${SITE_PORT:-1313}

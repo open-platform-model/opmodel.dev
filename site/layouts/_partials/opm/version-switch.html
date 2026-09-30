@@ -1,0 +1,40 @@
+{{- /* The version next to the site title. With one version it is a plain
+       label ("v1.0 (beta)", from params.opm.versions). With two or more it is
+       a menu built from Hextra's own navbar dropdown markup
+       (.hextra-nav-menu-toggle, .hextra-nav-menu-items), so Hextra's
+       nav-menu.js opens it, handles the keyboard and closes it. Version names
+       are compared as strings. */ -}}
+{{- $page := . -}}
+{{- $labels := dict -}}
+{{- range site.Params.opm.versions -}}{{- $labels = merge $labels (dict .name (.label | default .name)) -}}{{- end -}}
+{{- $current := site.Version.Name -}}
+{{- $label := index $labels $current | default $current -}}
+{{- $links := partial "opm/version-links.html" $page -}}
+{{- if le (len $links) 1 -}}
+<span class="opm-version-label" title="Documentation version">{{ $label }}</span>
+{{- else -}}
+<div class="opm-version hx:relative hx:inline-block">
+  <button type="button" data-state="closed" aria-haspopup="menu" aria-expanded="false"
+    aria-label="{{ printf "Documentation version: %s" $label }}"
+    class="hextra-nav-menu-toggle opm-version-toggle hx:cursor-pointer hx:flex hx:items-center hx:gap-1 hx:whitespace-nowrap">
+    <span>{{ $label }}</span>
+    {{- partial "utils/icon.html" (dict "name" "chevron-down" "attributes" "height=12 class=\"hx:transition-transform hx:duration-200 hx:ease-in-out\"") -}}
+  </button>
+  <ul role="menu" style="min-width: 11rem;"
+    class="hextra-nav-menu-items hx:hidden hx:z-20 hx:max-h-64 hx:overflow-auto hx:rounded-lg hx:border hx:border-gray-200 hx:bg-white hx:p-1 hx:text-sm hx:shadow-lg hx:dark:border-neutral-700 hx:dark:bg-neutral-900">
+    {{- range $links }}
+    <li role="none" class="hextra-nav-menu-item hx:flex hx:flex-col">
+      <a role="menuitem" href="{{ .href }}"{{ if .isCurrent }} aria-current="true"{{ end }}{{ if not .exact }} title="Not in {{ .name }}: opens the nearest parent page"{{ end }}
+        class="opm-version-item hx:text-gray-600 hx:hover:text-gray-800 hx:dark:text-gray-400 hx:dark:hover:text-gray-200 hx:relative hx:cursor-pointer hx:whitespace-nowrap hx:rounded-sm hx:py-1.5 hx:transition-colors hx:ltr:pl-3 hx:ltr:pr-9 hx:rtl:pr-3 hx:rtl:pl-9 hx:flex hx:items-center hx:gap-1 hx:hover:bg-gray-100 hx:dark:hover:bg-neutral-800">
+        <span>{{ index $labels .name | default .name }}</span>
+        {{- if .isLatest }}<span class="opm-version-tag">latest</span>{{ end -}}
+        {{- if not .exact }}<span class="opm-version-hint">parent page</span>{{ end -}}
+        {{- if .isCurrent -}}
+          <span class="hx:absolute hx:inset-y-0 hx:flex hx:items-center hx:ltr:right-3 hx:rtl:left-3">{{ partial "utils/icon" (dict "name" "check" "attributes" "height=1em width=1em") }}</span>
+        {{- end -}}
+      </a>
+    </li>
+    {{- end }}
+  </ul>
+</div>
+{{- end -}}

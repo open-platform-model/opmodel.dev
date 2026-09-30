@@ -103,7 +103,7 @@ if [ $rc -eq 0 ]; then
   s=$P/docs/start/index.html
   raw=$(find "$P" -name '*.html' -exec grep -l '{{<' {} + 2>/dev/null)
   if [ "$(count '<figure class="?opm-fig' "$s")" = 1 ] && [ "$(count 'role="?img"? aria-label=' "$s")" -ge 1 ] &&
-     [ "$(count 'Figure pending' "$s")" = 5 ] &&
+     [ "$(count 'Figure pending' "$s")" = 5 ] && [ "$(count 'The figure <em>[^<]+</em> is being redrawn' "$s")" = 5 ] &&
      [ "$(count '\{\{&lt; opm/helm-and-opm &gt;\}\}' "$s")" = 1 ] && [ "$(count '\{\{&lt;' "$s")" = 1 ] && [ -z "$raw" ]; then
     ok "dialect/shortcodes" "six opm/ shortcodes render (1 figure, 5 stubs); the escaped one shows as text; no raw {{< left"
   else bad "dialect/shortcodes" "figure shortcodes did not render as expected${raw:+ (raw {{< in: $raw)}"; fi

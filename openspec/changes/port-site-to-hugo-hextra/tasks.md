@@ -73,7 +73,7 @@ Paths and names used below:
 
 Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestration.md` section 5). Every build here runs as `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build`. The Astro code stays in the tree, and it is not a gate. This section has no visual gate; browser QA lands in section 4.
 
-- [ ] 2.1 Complete `site/config/_default/hugo.toml` from P `site/config/_default/hugo.toml` (design decisions 11 and 13):
+- [x] 2.1 Complete `site/config/_default/hugo.toml` from P `site/config/_default/hugo.toml` (design decisions 11 and 13):
   - neutral skin only, with no skin switch;
   - `params.search.type = 'pagefind'`;
   - navbar logo params with `displayTitle`;
@@ -81,7 +81,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - the `params.opm` github and repos keys;
   - the menus Docs, Reference, Search, GitHub and Theme;
   - Mermaid, KaTeX, MathJax, asciinema, PhotoSwipe and medium-zoom explicitly off.
-- [ ] 2.2 Port the remaining P overrides, each copy with its `site/overrides.sha256` line:
+- [x] 2.2 Port the remaining P overrides, each copy with its `site/overrides.sha256` line:
   - `layouts/_partials/navbar-title.html`. It keeps upstream's `params.navbar.displayTitle` switch and the logo `alt` text (`cond $displayTitle ...`) and adds the version label. It keeps P's class hooks `opm-brand` (the wrapper), `opm-title-long` and `opm-title-short` (the two title spans), which the brand-marks change's `brand.css` selects.
   - `layouts/_partials/banner.html`;
   - `layouts/_partials/components/last-updated.html`. It links "Edit" to `edit/main` and shows the git date. "View source" appears only when `viewURL` is set.
@@ -91,7 +91,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - `layouts/robots.txt`, `layouts/sitemap.xml` and `layouts/_partials/custom/content-begin.html`.
 
   Verify: the build's drift-guard line reports every pinned file unchanged. `grep -rniE 'flexsearch|passthrough|skin-default|opm.skin' <wt>/site/config <wt>/site/layouts <wt>/site/assets` prints nothing.
-- [ ] 2.3 Add the OPM partials (design decisions 8, 9 and 11):
+- [x] 2.3 Add the OPM partials (design decisions 8, 9 and 11):
   - `opm/source.html` maps a source file by its `<repo>/docs/site/` path segment (`/src/<repo>/docs/site/` in a normal build), and any other content file to `opmodel.dev` `site/content/` (design decisions 11 and 15);
   - `opm/version-links.html`;
   - `opm/version-switch.html` shows a plain "v1.0 (beta)" label with one version;
@@ -100,27 +100,27 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - `opm/check-front-matter.html`, through `custom/head-end.html`, only for pages backed by a content file (`with .File`) of kind `page`, `section` or `home`. The 404 page, taxonomy and term pages, and a section with no `_index.md` also render `head-end` but have no front matter to check.
 
   Verify on the build: the header shows "v1.0 (beta)". The build is green with `site/public/v1.0/404.html` present. `/v1.0/docs/reference/` lists its child pages. A cli page's "Edit this page" link is `https://github.com/open-platform-model/cli/edit/main/docs/site/<path>`.
-- [ ] 2.4 Split P `site/assets/css/custom.css` and `skin-neutral.css` into `site/assets/css/opm/*.css` (design decision 13). `custom/head-end.html` concatenates them in lexical order, minifies and fingerprints them, and keeps only the font preload and the `/latest/` stubs from P. It no longer publishes `_redirects`: P's version writes `/ <home RelPermalink> 302`, which comes out as `/ /v1.0/ 302`, and `build-all.sh` owns that file (2.6). Add `site/static/fonts/` (Geist 1.4.2 and `GEIST-LICENSE.txt`), P's placeholder `site/static/favicon.svg` and `site/static/images/{opm-mark.svg,opm-mark-dark.svg,og-default.png}`, and `site/NOTICE`. Verify: the built HTML links exactly one fingerprinted stylesheet from `css/opm`, and Geist Mono ligatures are off for `code` and `pre` in the built CSS.
-- [ ] 2.5 Port the figure: `layouts/_partials/opm/figure.html`, `layouts/_partials/opm/figures/module-to-cluster.html`, and the `--opm-fig-*` tokens in `assets/css/opm/figures.css`, following `html.dark`. The `module-to-cluster` shortcode renders it; the other five stay stubs. Verify: `/v1.0/docs/start/` holds a `figure` with `svg[role=img]` whose `aria-label` equals its caption, and one "Figure pending" stub per other figure that the page uses.
-- [ ] 2.6 Publish the root files and version outputs from the version list (design decision 11): `_redirects` (`/ /latest/ 302`, `/latest/* /v1.0/:splat 302`), a root `index.html` refresh to `/latest/`, the `/latest/` stubs, a root `404.html`, `robots.txt`, and Pagefind once per version name, with no `v*/` glob. Verify:
+- [x] 2.4 Split P `site/assets/css/custom.css` and `skin-neutral.css` into `site/assets/css/opm/*.css` (design decision 13). `custom/head-end.html` concatenates them in lexical order, minifies and fingerprints them, and keeps only the font preload and the `/latest/` stubs from P. It no longer publishes `_redirects`: P's version writes `/ <home RelPermalink> 302`, which comes out as `/ /v1.0/ 302`, and `build-all.sh` owns that file (2.6). Add `site/static/fonts/` (Geist 1.4.2 and `GEIST-LICENSE.txt`), P's placeholder `site/static/favicon.svg` and `site/static/images/{opm-mark.svg,opm-mark-dark.svg,og-default.png}`, and `site/NOTICE`. Verify: the built HTML links exactly one fingerprinted stylesheet from `css/opm`, and Geist Mono ligatures are off for `code` and `pre` in the built CSS.
+- [x] 2.5 Port the figure: `layouts/_partials/opm/figure.html`, `layouts/_partials/opm/figures/module-to-cluster.html`, and the `--opm-fig-*` tokens in `assets/css/opm/figures.css`, following `html.dark`. The `module-to-cluster` shortcode renders it; the other five stay stubs. Verify: `/v1.0/docs/start/` holds a `figure` with `svg[role=img]` whose `aria-label` equals its caption, and one "Figure pending" stub per other figure that the page uses.
+- [x] 2.6 Publish the root files and version outputs from the version list (design decision 11): `_redirects` (`/ /latest/ 302`, `/latest/* /v1.0/:splat 302`), a root `index.html` refresh to `/latest/`, the `/latest/` stubs, a root `404.html`, `robots.txt`, and Pagefind once per version name, with no `v*/` glob. Verify:
   - `site/public/{_redirects,index.html,404.html,robots.txt}` and `site/public/v1.0/pagefind/` exist;
   - `site/public/_redirects` holds exactly the two lines `/ /latest/ 302` and `/latest/* /v1.0/:splat 302`, and no `/ /v1.0/` line;
   - the root `site/public/index.html` refreshes to `/latest/`;
   - `site/public/latest/docs/index.html` refreshes to `/v1.0/docs/`.
-- [ ] 2.7 Build stamp: the host resolves `OPM_BUILD_REFS`, and `build-all.sh` writes `site/data/opm/build.json` and `site/public/build-stamp.json`. Verify: the six SHAs in `build-stamp.json` equal `git -C /var/home/emil/dev/open-platform-model/<repo>/.claude/worktrees/site-src rev-parse HEAD` for each repo, and the footer shows their short forms.
-- [ ] 2.8 Complete the checks and the rest (design decision 12):
+- [x] 2.7 Build stamp: the host resolves `OPM_BUILD_REFS`, and `build-all.sh` writes `site/data/opm/build.json` and `site/public/build-stamp.json`. Verify: the six SHAs in `build-stamp.json` equal `git -C /var/home/emil/dev/open-platform-model/<repo>/.claude/worktrees/site-src rev-parse HEAD` for each repo, and the footer shows their short forms.
+- [x] 2.8 Complete the checks and the rest (design decision 12):
   - checks 3, 7, 8, 9, 11, 12 and 13;
   - the build summary with the page count per version and the total file count;
   - the per-version `site/.gen/<v>/` mount when present;
   - a `hugo:preview` task, which serves `site/public/` on `SITE_PORT` and publishes nothing on 4321.
 
   Verify: `curl -sf http://127.0.0.1:1313/v1.0/docs/` answers during `task -d <wt> hugo:preview`.
-- [ ] 2.9 Check the build against the real sources:
+- [x] 2.9 Check the build against the real sources:
   - the lint reports no finding, and `check-pages` reports OK;
   - the `v1.0` page count equals the `.md` files in the six `site-src` `docs/site` trees plus the 10 site-owned pages. Count both at build time; the source repos keep adding pages, so no fixed number is the target;
   - `/v1.0/llms.txt` and every text output hold no planning comment;
   - `task -d <wt> hugo:test:site` is still green.
-- [ ] 2.10 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `feat(site): build the docs with hugo and hextra beside astro`.
+- [x] 2.10 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `feat(site): build the docs with hugo and hextra beside astro`.
 
 ## 3. Checks and their regression tests
 

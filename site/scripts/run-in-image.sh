@@ -7,6 +7,7 @@
 #   run-in-image.sh tag      print that tag
 #   run-in-image.sh build    build-all.sh in the image, --network none -> site/public/
 #   run-in-image.sh serve    serve.sh in the image, published on 127.0.0.1:${SITE_PORT:-1313} only
+#   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh lint     the source lint over the six source roots, --network none
 #   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only, mounts no source root
 #
@@ -116,6 +117,13 @@ case "$mode" in
     run --env TINI_KILL_PROCESS_GROUP=1 --env "SITE_PORT=$port" --env "OPM_BUILD_REFS=$REFS" \
       --publish "127.0.0.1:$port:1313" $MOUNTS \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/serve.sh </dev/null ;;
+  preview)
+    [ -f site/public/index.html ] || die "site/public/ holds no build; run the build task first"
+    image >/dev/null
+    port=$(envval SITE_PORT); port=${port:-1313}
+    echo "run-in-image: previewing site/public/ on http://127.0.0.1:$port/ (Ctrl+C stops it)"
+    run --env TINI_KILL_PROCESS_GROUP=1 --publish "127.0.0.1:$port:1313" \
+      --entrypoint sh "$(tag)" -c 'printf "E404:404.html\n" > /tmp/httpd.conf && exec httpd -f -p 1313 -h /work/repo/site/public -c /tmp/httpd.conf' </dev/null ;;
   lint)
     sources; image >/dev/null
     dirs=""; for r in $REPOS; do dirs="$dirs /src/$r/docs/site"; done
@@ -124,5 +132,5 @@ case "$mode" in
   test)
     image >/dev/null
     run --network none --entrypoint sh "$(tag)" /work/repo/site/scripts/test-site.sh ;;
-  *) sed -n '2,10p' "$0" >&2; exit 2 ;;
+  *) sed -n '2,11p' "$0" >&2; exit 2 ;;
 esac

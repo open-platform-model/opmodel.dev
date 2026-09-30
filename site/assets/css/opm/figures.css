@@ -1,0 +1,90 @@
+/*
+ * Figures (layouts/_partials/opm/figure.html and opm/figures/*), the port of
+ * the Astro site's figure.css. Figure tokens --opm-fig-* are set from
+ * Hextra's palette for light and re-set under html.dark, the class Hextra's
+ * theme toggle sets, so a figure follows the site toggle, not the OS.
+ * One colour per role: blue = module author, green = deployer, orange =
+ * platform team; published and Kubernetes things stay neutral.
+ */
+:root {
+  --opm-fig-text: var(--hx-color-gray-900);
+  --opm-fig-muted: var(--hx-color-gray-600);
+  --opm-fig-strong: var(--hx-color-gray-700);
+  --opm-fig-bg: #fff;
+  --opm-fig-subtle: var(--hx-color-gray-100);
+  --opm-fig-line: var(--hx-color-gray-300);
+  --opm-fig-line-2: var(--hx-color-gray-400);
+  --opm-fig-blue-low: oklch(93.2% .032 255.585);
+  --opm-fig-blue: oklch(54.6% .245 262.881);
+  --opm-fig-blue-high: oklch(37.9% .146 265.522);
+  --opm-fig-green-low: oklch(96.2% .044 156.743);
+  --opm-fig-green: oklch(62.7% .194 149.214);
+  --opm-fig-green-high: oklch(44.8% .119 151.328);
+  --opm-fig-orange-low: oklch(95.4% .038 75.164);
+  --opm-fig-orange: oklch(64.6% .222 41.116);
+  --opm-fig-orange-high: oklch(47% .157 37.304);
+  --opm-fig-red: oklch(57.7% .245 27.325);
+  --opm-fig-red-high: oklch(50.5% .213 27.518);
+}
+html.dark {
+  --opm-fig-text: var(--hx-color-gray-100);
+  --opm-fig-muted: var(--hx-color-gray-400);
+  --opm-fig-strong: var(--hx-color-gray-300);
+  --opm-fig-bg: var(--hx-color-dark);
+  --opm-fig-subtle: var(--hx-color-neutral-800);
+  --opm-fig-line: var(--hx-color-neutral-600);
+  --opm-fig-line-2: var(--hx-color-neutral-500);
+  --opm-fig-blue-low: oklch(28.2% .091 267.935);
+  --opm-fig-blue: oklch(70.7% .165 254.624);
+  --opm-fig-blue-high: oklch(88.2% .059 254.128);
+  --opm-fig-green-low: oklch(26.6% .065 152.934);
+  --opm-fig-green: oklch(72.3% .219 149.579);
+  --opm-fig-green-high: oklch(92.5% .084 155.995);
+  --opm-fig-orange-low: oklch(26.6% .079 36.259);
+  --opm-fig-orange: oklch(75% .183 55.934);
+  --opm-fig-orange-high: oklch(90.1% .076 70.697);
+  --opm-fig-red: oklch(70.4% .191 22.216);
+  --opm-fig-red-high: oklch(80.8% .114 19.571);
+}
+.opm-fig { max-width: 26rem; margin: 2rem auto; }
+.opm-fig svg { display: block; width: 100%; height: auto; color: var(--opm-fig-muted); font-family: var(--hx-font-sans); }
+.opm-fig figcaption { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.4; color: var(--opm-fig-muted); }
+.opm-fig .author { --role-fill: var(--opm-fig-blue-low); --role-stroke: var(--opm-fig-blue); --role-text: var(--opm-fig-blue-high); }
+.opm-fig .deployer { --role-fill: var(--opm-fig-green-low); --role-stroke: var(--opm-fig-green); --role-text: var(--opm-fig-green-high); }
+.opm-fig .team { --role-fill: var(--opm-fig-orange-low); --role-stroke: var(--opm-fig-orange); --role-text: var(--opm-fig-orange-high); }
+.opm-fig .neutral { --role-fill: var(--opm-fig-subtle); --role-stroke: var(--opm-fig-line); --role-text: var(--opm-fig-muted); }
+.opm-fig .card > rect:first-child { fill: color-mix(in oklab, var(--role-fill) 60%, var(--opm-fig-bg)); stroke: var(--role-stroke); stroke-width: 1.5; }
+.opm-fig .neutral > rect:first-child { fill: var(--role-fill); }
+.opm-fig .role { fill: var(--role-text); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; }
+.opm-fig .title { fill: var(--opm-fig-text); font-size: 14px; font-weight: 600; }
+.opm-fig .body { fill: var(--opm-fig-muted); font-size: 12px; }
+.opm-fig .mono { font-family: var(--hx-font-mono); }
+.opm-fig .rule { stroke: var(--role-stroke); stroke-width: 1; opacity: 0.5; }
+.opm-fig .change { fill: var(--role-text); font-family: var(--hx-font-mono); font-size: 10.5px; }
+.opm-fig .chip { fill: var(--opm-fig-bg); stroke: var(--role-stroke); stroke-width: 1.25; }
+.opm-fig .chip-text { fill: var(--opm-fig-text); font-size: 11.5px; }
+.opm-fig .obj rect { fill: var(--opm-fig-subtle); stroke: var(--opm-fig-line); stroke-width: 1.25; }
+.opm-fig .obj text { fill: var(--opm-fig-text); font-size: 12px; }
+.opm-fig .flow line { stroke: currentColor; stroke-width: 1.5; }
+.opm-fig .label { fill: var(--opm-fig-muted); font-size: 11px; }
+.opm-fig .zone { fill: none; stroke: var(--opm-fig-line-2); stroke-width: 1.25; stroke-dasharray: 5 4; }
+.opm-fig .zone-label { fill: var(--opm-fig-muted); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; }
+.opm-fig .tag rect { fill: var(--opm-fig-bg); stroke: var(--role-stroke); stroke-width: 1; }
+.opm-fig .tag text { fill: var(--role-text); font-family: var(--hx-font-mono); font-size: 10.5px; }
+.opm-fig .req rect { fill: none; stroke: var(--opm-fig-line); stroke-width: 1; }
+.opm-fig .req text { fill: var(--opm-fig-strong); font-family: var(--hx-font-mono); font-size: 10px; }
+.opm-fig .req.miss rect { stroke: var(--opm-fig-red); }
+.opm-fig .req.miss text { fill: var(--opm-fig-red-high); }
+.opm-fig .none rect { fill: none; stroke: var(--opm-fig-line-2); stroke-width: 1.25; stroke-dasharray: 3 3; }
+.opm-fig .none text { fill: var(--opm-fig-muted); font-size: 11.5px; }
+.opm-fig .nomatch rect { fill: none; stroke: none; }
+.opm-fig .nomatch text { fill: var(--opm-fig-red-high); font-size: 11.5px; font-weight: 600; }
+.opm-fig .cmd { fill: var(--opm-fig-text); font-family: var(--hx-font-mono); font-size: 10.5px; }
+.opm-fig .tool rect { fill: var(--opm-fig-bg); stroke: var(--opm-fig-strong); stroke-width: 1.5; }
+.opm-fig .tool text { fill: var(--opm-fig-text); font-size: 12px; font-weight: 600; }
+.opm-fig .tool text.mono { font-size: 11px; }
+.opm-fig .pill { fill: var(--opm-fig-bg); }
+.opm-fig .obj text.note { fill: var(--opm-fig-muted); font-family: var(--hx-font-mono); font-size: 10.5px; }
+.opm-fig .body.small { font-size: 10.5px; }
+.opm-fig .tool text.sub { fill: var(--opm-fig-muted); font-size: 10.5px; font-weight: 400; }
+.opm-fig .obj text.note.small { font-size: 10px; }

@@ -71,6 +71,8 @@ Every container runs `--rm --init --user <uid>:<gid>` with no `--name`. Build, l
 
 `qa:image` is a task name that `orchestration.md` section 6 does not list, and trap 18 names only `task image` as needing the network. The final report names both under `deviations`.
 
+Refinement accepted after section 1 (supervisor, 2026-09-30): `build`, `serve`, `lint:sources` and `test:site` run the `image` step first (`run-in-image.sh` calls it), so they build the image when its tag is missing, as the Astro `build` does through `deps: [image]`. They reach the network only then; with the tag present every container they start runs `--network none`, except `serve`, which publishes its port.
+
 ### 5. Host side: workspace, sources and refs
 
 ```text
@@ -147,7 +149,7 @@ Section 1 picks one mechanism and records the result here:
 
 Either way, check 10 scans every `*.html`, `*.txt`, `*.md`, `*.xml` and `*.json` under `public/`. `test:site` carries a brief-only fixture page whose brief contains `>=` and `->`.
 
-**Section 1 result (2026-09-30): mechanism (b).** On the fixture build no `*.html`, `*.txt`, `*.md`, `*.xml` or `*.json` under `public/` holds `<!--` or the brief's unique word, `/v1.0/llms.txt` included, and the ModuleToCluster figure keeps `component <tspan`. Hugo's HTML minifier passes inline SVG through untouched once `disableSVG = true` (the alert icons keep their quoted attributes too). Two mutations prove the settings are load-bearing: with `minifyOutput = false`, check 10 fails the build on the docs home and the brief-only page; with `disableSVG = false`, the figure renders `component<tspan`. The comments inside layout partials (the figure body) never reach the output either way: Go's `html/template` drops comments in template text. One premise above did not reproduce: with Hextra's stock `llms.txt`, Hugo 0.167.0 printed an empty summary for the brief-only page and the first real paragraph for a page with a brief before its text, so `plainify` leaked nothing. The `llms.txt` override stays as planned: it prints the one-line description every page must carry, instead of an empty or truncated summary.
+**Section 1 result (2026-09-30): mechanism (b).** On the fixture build no `*.html`, `*.txt`, `*.md`, `*.xml` or `*.json` under `public/` holds `<!--` or the brief's unique word, `/v1.0/llms.txt` included, and the ModuleToCluster figure keeps `component <tspan`. Hugo's HTML minifier passes inline SVG through untouched once `disableSVG = true` (the alert icons keep their quoted attributes too). Two mutations prove the settings are load-bearing: with `minifyOutput = false`, check 10 fails the build on the docs home and the brief-only page; with `disableSVG = false`, the figure renders `component<tspan`. The comments inside layout partials (the figure body) never reach the output either way: Go's `html/template` drops comments in template text. One premise above did not reproduce: with Hextra's stock `llms.txt`, Hugo 0.167.0 printed an empty summary for the brief-only page and the first real paragraph for a page with a brief before its text, so `plainify` leaked nothing. The `llms.txt` override stays as planned (supervisor ruling 2026-09-30): it prints the one-line description every page must carry, deterministically, instead of an empty or truncated summary.
 
 ### 11. Versions, redirects and the stamp
 
@@ -214,6 +216,8 @@ defaultContentVersionInSubdir = true
 | `clean` (extended) | `clean` | removes generated paths only |
 
 `serve` keeps `docker run --init` with `TINI_KILL_PROCESS_GROUP=1`, has no `-it`, and runs with no TTY. One SIGINT stops the container. `task check` is unchanged (`fmt`, `vet`, `openspec:check`, `test`).
+
+Refinements accepted after section 1 (supervisor, 2026-09-30): `lint:sources` runs the byte-fixed lint inside the build image (busybox awk, `--network none`, the six roots at `/src/<repo>`), so it judges pages with the same awk as the build. A variable set both in the environment and as a task CLI var resolves to the environment's value, because Task never overrides an exported variable with a task `env:` entry; either form alone wins over the default (spike item 8).
 
 ### 15. Tests
 
@@ -346,3 +350,13 @@ Names refined during implementation are reported under `deviations` and need the
 None for the owner. Settled while implementing, recorded here, and reported only if they touch the interface:
 - The static server behind `preview`. Prefer one already in the build image. If none exists, add a pinned package to the Dockerfile.
 - The file names of A's own CSS files. The owners' files (`figures.css`, `versions.css`, `typography.css`, `toc.css`, `cards.css`, `landing.css`, `brand.css`) are fixed by the interface, and A's own files take none of those names.
+
+**Settled in section 2 (2026-09-30):**
+- The static server behind `preview` is BusyBox `httpd`. Alpine's base BusyBox has no `httpd`, so `site/Dockerfile.hugo` adds `busybox-extras`, pinned to the base image's BusyBox build (`1.37.0-r31`); a newer Alpine package fails the image build instead of floating. `preview` serves `site/public/` with the root `404.html` as the not-found page, on `127.0.0.1:${SITE_PORT:-1313}` only. The image tag moved with the Dockerfile hash (`opmodel-dev-hugo:a655bffa27af`).
+- A's own CSS files are `base.css` (fonts, code ligatures), `chrome.css` (type badge, page meta, build stamp, 404, contrast fixes), `sidebar.css` and `skin.css` (the neutral skin). A's rules that belong to other owners start in their files: `brand.css` (the long and short title), `versions.css` (the version label and switch, the outdated bar), `landing.css` (the hero), `cards.css` (the section child list) and `figures.css` (the figure tokens and classes). A carries no rules for `typography.css` or `toc.css`, so they do not exist yet.
+
+**Refinements in section 2**, inside this change's files and not in `orchestration.md` section 6:
+- `site/scripts/gen-stamp.sh` writes `data/opm/build.json` (`{"sources": {"<repo>": "<sha>|none"}}`) from `OPM_BUILD_REFS`, so `build-all.sh` and `serve.sh` share one writer; `build-all.sh` copies it to `public/build-stamp.json`. It refuses a value that is neither a hex SHA nor `none`.
+- `site/layouts/docs/list.html` renders section pages (the docs home and every `_index.md`, which declare no type) through `opm/docs-main.html`, which calls `opm/section-children.html` on section pages. Hextra's `docs/list.html` was already pinned behind `docs-main.html`.
+- The figure-pending stubs pass their text to Hextra's alert partial as HTML (`safeHTML`); as plain strings they rendered escaped, and `test-site.sh` now checks the stub text.
+- Hextra has no on or off switch for Mermaid, asciinema or PhotoSwipe. They load only for a mermaid code fence or Hextra's asciinema and gallery shortcodes; the source lint rejects those shortcodes, a mermaid fence fails the network-less build at `resources.GetRemote`, and check 11 fails on any CDN URL. The config switches off what has a switch (`imageZoom`, remote icons), and math stays off because Goldmark's delimiter extension that Hextra's math needs is off by default.

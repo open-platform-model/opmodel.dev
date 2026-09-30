@@ -1,0 +1,55 @@
+/* One sidebar tree (layouts/_partials/sidebar.html), shown on desktop and in
+   the mobile menu, with short opm-sb-* classes instead of per-entry utilities. */
+.opm-sb { --menu-height: 0px; }
+.opm-sb .opm-sb-sub.opm-sb-toc { display: none; }
+@media (max-width: 47.99rem) { .opm-sb .opm-sb-sub.opm-sb-toc { display: flex; } }
+.opm-sb .opm-sb-list, .opm-sb .opm-sb-sub { display: flex; flex-direction: column; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
+.opm-sb .opm-sb-mobile .opm-sb-list { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--hx-color-gray-200); }
+html.dark .opm-sb .opm-sb-mobile .opm-sb-list { border-color: var(--hx-color-neutral-800); }
+.opm-sb .opm-sb-sub { position: relative; margin-inline-start: 0.75rem; padding-inline-start: 0.75rem; }
+.opm-sb .opm-sb-sub::before { content: ""; position: absolute; inset-block: 0.25rem; inset-inline-start: 0; width: 1px; background: var(--hx-color-gray-200); }
+html.dark .opm-sb .opm-sb-sub::before { background: var(--hx-color-neutral-800); }
+.opm-sb .hextra-sidebar-item { position: relative; display: flex; align-items: center; }
+.opm-sb .hextra-sidebar-children { overflow: hidden; }
+.opm-sb .opm-sb-link {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  word-break: break-word;
+  color: var(--hx-color-gray-500);
+  transition: color .15s, background-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.opm-sb .opm-sb-group > .hextra-sidebar-item > .opm-sb-link { padding-inline-end: 2rem; }
+.opm-sb .opm-sb-link:hover { background: var(--hx-color-gray-100); color: var(--hx-color-gray-900); }
+.opm-sb .opm-sb-link:focus-visible, .opm-sb .hextra-sidebar-collapsible-button:focus-visible { outline: 2px solid var(--hx-color-primary-500); outline-offset: -2px; }
+.opm-sb .opm-sb-root { font-weight: 600; color: var(--hx-color-gray-900); }
+.opm-sb .hextra-sidebar-active-item { background: var(--hx-color-primary-100); color: var(--hx-color-primary-800); font-weight: 600; }
+html.dark .opm-sb .opm-sb-link { color: var(--hx-color-neutral-400); }
+html.dark .opm-sb .opm-sb-link:hover { background: color-mix(in srgb, var(--hx-color-primary-100) 5%, transparent); color: var(--hx-color-gray-50); }
+html.dark .opm-sb .opm-sb-root { color: var(--hx-color-gray-100); }
+/* Hextra uses primary-600 here, which fails WCAG AA contrast in dark mode; 400 passes. */
+html.dark .opm-sb .hextra-sidebar-active-item { background: color-mix(in srgb, var(--hx-color-primary-400) 10%, transparent); color: var(--hx-color-primary-400); }
+.opm-sb .opm-sb-toc .opm-sb-link::before { content: "#"; opacity: .25; margin-inline-end: 0.5rem; }
+.opm-sb .hextra-sidebar-collapsible-button {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 0.5rem;
+  transform: translateY(-50%);
+  padding: 0;
+  cursor: pointer;
+  color: var(--hx-color-gray-500);
+  background: none;
+  border: 0;
+  border-radius: 0.125rem;
+}
+.opm-sb .hextra-sidebar-collapsible-button svg { height: 18px; min-width: 18px; padding: 2px; }
+.opm-sb .hextra-sidebar-collapsible-button path { transform-origin: center; transition: transform .15s; }
+.opm-sb .hextra-sidebar-item:hover .hextra-sidebar-collapsible-button { color: var(--hx-color-gray-900); }
+html.dark .opm-sb .hextra-sidebar-collapsible-button { color: var(--hx-color-neutral-400); }
+html.dark .opm-sb .hextra-sidebar-item:hover .hextra-sidebar-collapsible-button { color: var(--hx-color-gray-50); }

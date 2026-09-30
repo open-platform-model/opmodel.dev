@@ -1,0 +1,18 @@
+{{- /* OPM override of Hextra's 404.html (v0.13.0, pinned in
+       overrides.sha256). Hextra's is a bare page outside the site chrome;
+       this one keeps the navbar, search and theme toggle. scripts/build-all.sh
+       copies the default version's 404 to the root, where hosts look for it. */ -}}
+{{ define "main" }}
+  <div class="hx:mx-auto hx:flex hextra-max-page-width">
+    {{ partial "sidebar.html" (dict "context" . "disableSidebar" true) }}
+    <main id="content" class="opm-404 hx:w-full hx:min-w-0 hx:px-6 hx:pt-4">
+      <p class="opm-404-code">404</p>
+      <h1>{{ (T "notFound") | default "Page not found" }}</h1>
+      <p>This page does not exist in {{ site.Version.Name }}. It may have moved, or it may exist only in another version.</p>
+      <div class="opm-404-actions">
+        <a class="opm-button" href="{{ (site.GetPage "/docs").RelPermalink }}">Go to the docs</a>
+        <button type="button" class="opm-button opm-button-secondary" data-search-open aria-haspopup="dialog" aria-controls="hextra-search-dialog">Search {{ site.Version.Name }}</button>
+      </div>
+    </main>
+  </div>
+{{ end }}

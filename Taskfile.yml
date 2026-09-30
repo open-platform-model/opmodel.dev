@@ -152,6 +152,13 @@ tasks:
     cmds:
       - sh site/scripts/run-in-image.sh serve
 
+  hugo:preview:
+    desc: Serve the built site/public/ on http://127.0.0.1:${SITE_PORT:-1313}/ (run hugo:build first)
+    env:
+      SITE_PORT: '{{.SITE_PORT}}'
+    cmds:
+      - sh site/scripts/run-in-image.sh preview
+
   hugo:lint:sources:
     desc: Lint the six source repos' docs/site pages against the page dialect
     env: *hugo-env

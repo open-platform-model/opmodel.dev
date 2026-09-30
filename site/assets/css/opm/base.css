@@ -1,0 +1,32 @@
+/*
+ * OPM base styles on Hextra v0.13.0: fonts. Every assets/css/opm/*.css file
+ * is concatenated in file-name order into one stylesheet after Hextra's
+ * (layouts/_partials/custom/head-end.html). Everything uses Hextra's CSS
+ * variables (--hx-*, --primary-*) or opm tokens, and keys dark mode on
+ * html.dark, the class Hextra's theme toggle sets. Hextra's utility CSS is
+ * precompiled and purged, so OPM markup is styled with opm-* classes.
+ */
+
+/* Geist and Geist Mono (OFL-1.1), npm geist 1.4.2, vendored in static/fonts. */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  --hx-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --hx-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --hx-default-font-family: var(--hx-font-sans);
+  --hx-default-mono-font-family: var(--hx-font-mono);
+}
+body { font-feature-settings: "rlig" 1, "calt" 1; -webkit-font-smoothing: antialiased; }
+
+/* Geist Mono's ligatures draw >= as one glyph; CUE readers must see the operator they type. */
+code, pre, kbd { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }

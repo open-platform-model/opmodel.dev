@@ -1,0 +1,14 @@
+{{- /* Hugo's sitemap, per version, plus <lastmod> from data/opm/lastmod.json
+       (Hugo's own .Lastmod is empty: GitInfo cannot see the mounted repos).
+       Hextra ships no sitemap template, so this copies nothing. */ -}}
+{{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  {{- range where .Pages "Sitemap.Disable" "ne" true }}
+  <url>
+    <loc>{{ .Permalink }}</loc>
+    {{- with (partial "opm/source.html" .).key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- with index . site.Version.Name }}
+    <lastmod>{{ (time .).Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
+    {{- end -}}{{- end -}}{{- end }}
+  </url>
+  {{- end }}
+</urlset>

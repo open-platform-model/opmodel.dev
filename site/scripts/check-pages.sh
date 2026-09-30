@@ -1,14 +1,17 @@
 #!/bin/sh
 # Page-set checks.
 #
-#   check-pages.sh pre  VERSION=ROOT [...]   before hugo build: A1
-#   check-pages.sh post VERSION=ROOT [...]   after it: A1, Q2, stray files, nav order
+#   check-pages.sh pre  VERSION=ROOT [...]   before hugo build: A1, reserved prefixes
+#   check-pages.sh post VERSION=ROOT [...]   after it: A1, reserved prefixes, Q2, stray files, nav order
 #
 # Lists the URL every page should publish at: the site-owned content/ at /,
-# and each source repo's ROOT/<repo>/docs/site/ at /docs/ (x/_index.md is
-# /x/, x.md is /x/). Then:
+# a version's generated reference in .gen/<version>/ at /, and each source
+# repo's ROOT/<repo>/docs/site/ at /docs/ (x/_index.md is /x/, x.md is /x/).
+# Then:
 #   A1     fails when two files publish one URL, x.md against x/_index.md
 #          included (Hugo lets the first mount win, silently);
+#   RESERVED  fails when a source repo publishes under /docs/reference/cli/ or
+#          /docs/reference/definitions/: both are site-owned and generated;
 #   Q2     fails when a listed URL has no index.html under public/<version>/,
 #          or public/<version>/ holds a page nobody listed (a section with no
 #          _index.md, a swallowed page);
@@ -37,15 +40,20 @@ for pair in "$@"; do
   v=${pair%%=*}; root=${pair#*=}
   {
     urls content / site
+    urls ".gen/$v" / generated
     for r in $REPOS; do urls "$root/$r/docs/site" /docs/ "$r"; done
   } > "$tmp/$v.src"
+  reserved=$(awk -F'\t' '$2 !~ /^(site|generated)\// && $1 ~ /^\/docs\/reference\/(cli|definitions)\// { print "  " $2 " publishes " $1 }' "$tmp/$v.src")
+  if [ -n "$reserved" ]; then
+    rc=1; echo "RESERVED FAIL $v: docs/reference/cli/ and docs/reference/definitions/ are site-owned; a source page may not publish there:"; echo "$reserved"
+  fi
   awk -F'\t' -v v="$v" '
     { n[$1]++; src[$1] = src[$1] " " $2 }
     END { for (u in n) { if (n[u] > 1) print "A1 FAIL " v ": " u " is published by:" src[u] > "/dev/stderr"; print u } }
   ' "$tmp/$v.src" 2> "$tmp/$v.a1" | sort > "$tmp/$v.want"
   if [ -s "$tmp/$v.a1" ]; then cat "$tmp/$v.a1"; rc=1; fi
   if [ "$mode" != post ]; then
-    echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $( [ $rc -eq 0 ] && echo 'no collisions' || echo 'COLLISIONS')"
+    echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected"
     continue
   fi
 

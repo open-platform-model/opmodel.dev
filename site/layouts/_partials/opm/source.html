@@ -1,0 +1,23 @@
+{{- /* Where a page's source lives: {key, repo, path, editURL, viewURL}, or an
+       empty dict for a page with no content file. A file under
+       <root>/<repo>/docs/site/<path> (in a normal build
+       /src/<repo>/docs/site/<path>) belongs to that repo, found from the
+       <repo>/docs/site/ path segment, so fixture roots and test copies map
+       the same way. Any other content file is site-owned: opmodel.dev,
+       site/content/<path>. The key matches data/opm/lastmod.json.
+       "Edit" goes to main. viewURL stays empty until a version maps to a git
+       ref; a version name is never used as a ref. */ -}}
+{{- $out := dict -}}
+{{- with .File -}}
+  {{- $fn := replace .Filename "\\" "/" -}}
+  {{- $repo := "opmodel.dev" -}}
+  {{- $path := printf "site/content/%s" (replace .Path "\\" "/") -}}
+  {{- with findRESubmatch `/(opm|core|catalog_opm|cli|library|opm-operator)/docs/site/(.+)$` $fn 1 -}}
+    {{- $repo = index (index . 0) 1 -}}
+    {{- $path = printf "docs/site/%s" (index (index . 0) 2) -}}
+  {{- end -}}
+  {{- $base := printf "%s/%s" site.Params.opm.github $repo -}}
+  {{- $out = dict "key" (printf "%s/%s" $repo $path) "repo" $repo "path" $path
+        "editURL" (printf "%s/edit/main/%s" $base $path) "viewURL" "" -}}
+{{- end -}}
+{{- return $out -}}

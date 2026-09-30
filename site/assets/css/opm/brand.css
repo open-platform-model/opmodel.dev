@@ -1,0 +1,7 @@
+/* The navbar title (layouts/_partials/navbar-title.html): the short title
+   replaces the long one on a phone, so the header does not overflow. */
+.opm-title-short { display: none; }
+@media (max-width: 30rem) {
+  .opm-title-long { display: none; }
+  .opm-title-short { display: inline; }
+}

@@ -1,0 +1,24 @@
+{{- /* CUE code blocks: a workaround for a Chroma lexer bug. Chroma 2.27.0,
+       bundled in every Hugo release up to 0.167.0, opens a CUE string on the
+       pattern #*"+ (lexers/embedded/cue.xml), so an empty string ""
+       opens a string that swallows the rest of the block (silent, exit 0).
+       This highlights the block with every lone "" replaced by a placeholder
+       string, then removes the placeholder. The wrapper is Hextra's
+       render-codeblock.html (v0.13.0, pinned in overrides.sha256), with its
+       components/codeblock partial. Delete this file once a Hugo release
+       bundles a Chroma whose CUE lexer handles "" (site/tests/dialect/
+       fails without it). */ -}}
+{{- $filename := .Attributes.filename | default "" -}}
+{{- $base_url := .Attributes.base_url | default "" -}}
+{{- $ph := "OPMEMPTYSTRING0" -}}
+{{- $src := replaceRE `(^|[^"#])""([^"]|$)` (printf `${1}"%s"${2}` $ph) .Inner -}}
+{{- $src = replaceRE `(^|[^"#])""([^"]|$)` (printf `${1}"%s"${2}` $ph) $src -}}
+{{- $html := partial "components/codeblock" (dict "filename" $filename "lang" "cue" "base_url" $base_url "content" $src "options" .Options) -}}
+
+<div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+  {{- replace (string $html) $ph "" | safeHTML -}}
+
+  {{- if or (eq site.Params.highlight.copy.enable nil) (site.Params.highlight.copy.enable) -}}
+    {{- partialCached "components/codeblock-copy-button" (dict "filename" $filename) $filename -}}
+  {{- end -}}
+</div>

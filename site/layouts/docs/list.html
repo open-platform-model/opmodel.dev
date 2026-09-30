@@ -1,0 +1,5 @@
+{{- /* Section pages (the docs home and every _index.md overview, which
+       declare no type) render the docs layout body with their child list
+       (see _partials/opm/docs-main.html). Hextra's docs/list.html is pinned in
+       overrides.sha256. */ -}}
+{{ define "main" }}{{ partial "opm/docs-main.html" . }}{{ end }}

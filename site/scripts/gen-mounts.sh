@@ -8,7 +8,9 @@
 # version; each repo's docs/site/ is mounted at content/docs for its own
 # version. Version names are listed exactly: in a version glob, * does not
 # cross ".". There is no file filter and no index.md remap: the source lint
-# has already rejected every form Hugo would misread.
+# has already rejected every form Hugo would misread. A version's generated
+# reference, when SITE_DIR/.gen/<version>/ exists, is mounted at content for
+# that version (its tree starts at docs/reference/...).
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 REPOS="opm core catalog_opm cli library opm-operator"
@@ -28,6 +30,9 @@ mkdir -p "$(dirname "$out")"
   printf '[[mounts]]\n  source = "content"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = [%s]\n' "$names"
   for pair in "$@"; do
     v=${pair%%=*}; root=${pair#*=}
+    if [ -d ".gen/$v" ]; then
+      printf '[[mounts]]\n  source = ".gen/%s"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$v" "$v"
+    fi
     for r in $REPOS; do
       [ -d "$root/$r/docs/site" ] || { echo "gen-mounts: $root/$r/docs/site is missing (version $v)" >&2; exit 1; }
       printf '[[mounts]]\n  source = "%s/%s/docs/site"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$root" "$r" "$v"
