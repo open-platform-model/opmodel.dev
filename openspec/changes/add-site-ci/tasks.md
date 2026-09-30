@@ -55,15 +55,15 @@ Section 2 also runs `OPM_SRC_WORKTREE=site-src task -d <wt> qa`, the command its
 
 ## 2. Browser job (CI, README)
 
-- [ ] 2.1 Add job `browser` to `<wt>/.github/workflows/site.yml` per design.md decision 7 and the 1.3 finding.
+- [x] 2.1 Add job `browser` to `<wt>/.github/workflows/site.yml` per design.md decision 7 and the 1.3 finding.
   - Default: its own concurrency group suffixed `-browser`; `defaults: run: working-directory: opmodel.dev`, as in `build`; the same seven checkouts as `build`; setup-task at the same version; `task qa`; and the `site-shots` upload of `opmodel.dev/site/.shots`, with `if: always()`, `include-hidden-files: true`, `if-no-files-found: warn` and 7 days' retention.
   - If 1.3 found that `qa` does not build `site/public`: `needs: build`, and download `site-public` into `opmodel.dev/site/public` with `actions/download-artifact` (pin it by commit SHA at apply time and add it to decision 9), then run `task qa`.
     - Check out opmodel.dev alone only if 1.3 also found that `qa` reads no source root. Otherwise keep all seven checkouts.
   - Verify: `task -d <wt> ci:lint` is green.
   - Verify: the `site-shots` upload step's `with:` block has exactly `name: site-shots`, `path: opmodel.dev/site/.shots`, `include-hidden-files: true`, `if-no-files-found: warn` and `retention-days: 7`, and the step has `if: always()`.
   - Verify: wherever `browser` has the seven checkouts, they are identical to `build`'s, line for line.
-- [ ] 2.2 Add the browser job to `README.md` `## CI`: what `task qa` checks in CI, and that the `site-shots` artifact holds the screenshots of every run that got as far as taking them, including a failed run's. Say also that the upload needs `include-hidden-files: true` because `.shots` is a hidden directory.
-- [ ] 2.3 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `task -d <wt> ci:lint` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green. `qa` is the command the new job runs; afterwards `<wt>/site/.shots/` holds PNGs. Then commit `ci: smoke-test the site in a browser`.
+- [x] 2.2 Add the browser job to `README.md` `## CI`: what `task qa` checks in CI, and that the `site-shots` artifact holds the screenshots of every run that got as far as taking them, including a failed run's. Say also that the upload needs `include-hidden-files: true` because `.shots` is a hidden directory.
+- [x] 2.3 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `task -d <wt> ci:lint` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green. `qa` is the command the new job runs; afterwards `<wt>/site/.shots/` holds PNGs. Then commit `ci: smoke-test the site in a browser`.
 
 ## 3. Pull request titles (CI, README)
 
