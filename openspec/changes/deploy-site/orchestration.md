@@ -445,7 +445,7 @@ A may refine names only by reporting them under `deviations` and getting the sup
 | `OPM_REQUIRE_DATES` | `1` fails the build when a page has no git date (CI sets it) | `0` |
 | `OPM_BUILD_REFS` | `repo=sha ...`, resolved on the host by the Taskfile (`git rev-parse HEAD` works in worktrees there) | set by the Taskfile; never set by hand |
 | `OPM_VERSIONS` | Internal seam: `name=root ...`, where each root holds `<repo>/docs/site`. B's resolver feeds it. `run-in-image.sh` passes it into the container only when the caller set it. After B merges, a fixture build (a source root that is not its own git top level) must set `OPM_VERSIONS=v1.0=/src` explicitly | `v1.0=/src` |
-| `OPM_VERSIONS_MANIFEST` | Added by B: path to an alternative versions manifest (tests) | `site/versions.yaml` (B) |
+| `OPM_VERSIONS_MANIFEST` | Added by B: path to an alternative versions manifest (tests) | `site/versions.conf` (B) |
 | `SITE_DIR` | Container path of the site tree the scripts act on; `test:site` points it at per-case copies under `site/.check/tests/<case>/site/` | `/work/repo/site` |
 
 **Container paths.** The opmodel.dev worktree is mounted at `/work/repo` (read-write). Each source root is mounted read-only at `/src/<repo>`, with no `:z`.
