@@ -6,11 +6,11 @@ Paths and names used below:
 
 ## 1. Spike on fixtures, then the theme
 
-- [ ] 1.1 Add `site/Dockerfile.hugo` from P `Dockerfile` with the same pins (Alpine 3.24.2 by digest, Hugo 0.167.0, Pagefind 1.5.2, git, every download SHA-256-checked). Add a `hugo:image` task that builds it with no context (`docker build -t <tag> - < site/Dockerfile.hugo`) as `opmodel-dev-hugo:<first 12 hex of sha256 of the file>`, only when that tag is missing. Verify: `docker image inspect` finds the tag, and `docker run --rm --network none <tag> version` prints `v0.167.0`.
-- [ ] 1.2 Write `site/scripts/vendor-hextra.sh` (design decision 2) and run it for v0.13.0. Verify: `site/themes/hextra.COMMIT` names `adf732f8d97cb8e149d4aba232a449d41cd9e38c`. `ls -A site/themes/hextra` lists only `assets data hugo.toml i18n layouts LICENSE static theme.toml`. `find site/themes/hextra \( -name CLAUDE.md -o -name AGENTS.md -o -name 'package*.json' -o -name go.mod \)` prints nothing.
-- [ ] 1.3 Write the host side (design decision 5): `site/scripts/run-in-image.sh`, plus the tasks `hugo:versions:prepare` (a no-op), `hugo:build`, `hugo:serve` and `hugo:lint:sources`. The tasks resolve `OPM_WS`, `OPM_SRC_<REPO>`, `OPM_SRC_WORKTREE`, `SITE_PORT`, `OPM_REQUIRE_DATES` and `OPM_BUILD_REFS`, with the environment winning over the defaults. `run-in-image.sh` passes `OPM_VERSIONS` into the container only when the caller set it (the internal seam in `orchestration.md` section 6, which B feeds); otherwise it leaves it unset, and `build-all.sh` falls back to `v1.0=/src`. Before any `docker run`, they check every source root. Containers mount `<wt>` at `/work/repo` and each root read-only at `/src/<repo>`, never with `:z`. They run `--rm --init --user <uid>:<gid>` with no `--name`, and `--network none` except `hugo:serve`, which publishes only `127.0.0.1:${SITE_PORT:-1313}`. Verify: `OPM_WS=/nonexistent task -d <wt> hugo:build` and `task -d <wt> hugo:build OPM_WS=/nonexistent` both fail naming `OPM_SRC_OPM` before any container starts, and `/nonexistent` still does not exist afterwards.
-- [ ] 1.4 Add `site/scripts/lint-sources.sh` as the lint in `orchestration.md` section 4.1, written byte for byte. Verify: `sha256sum site/scripts/lint-sources.sh` prints `dae9717af0c43fc3bdc29a9e730fd171fe7541dab35a9625a35efb1682973c6b`.
-- [ ] 1.5 Port P `scripts/{build-all,gen-mounts,gen-lastmod,check-pages,check-overrides,serve}.sh` into `site/scripts/`, per design decisions 3, 7 and 12:
+- [x] 1.1 Add `site/Dockerfile.hugo` from P `Dockerfile` with the same pins (Alpine 3.24.2 by digest, Hugo 0.167.0, Pagefind 1.5.2, git, every download SHA-256-checked). Add a `hugo:image` task that builds it with no context (`docker build -t <tag> - < site/Dockerfile.hugo`) as `opmodel-dev-hugo:<first 12 hex of sha256 of the file>`, only when that tag is missing. Verify: `docker image inspect` finds the tag, and `docker run --rm --network none <tag> version` prints `v0.167.0`.
+- [x] 1.2 Write `site/scripts/vendor-hextra.sh` (design decision 2) and run it for v0.13.0. Verify: `site/themes/hextra.COMMIT` names `adf732f8d97cb8e149d4aba232a449d41cd9e38c`. `ls -A site/themes/hextra` lists only `assets data hugo.toml i18n layouts LICENSE static theme.toml`. `find site/themes/hextra \( -name CLAUDE.md -o -name AGENTS.md -o -name 'package*.json' -o -name go.mod \)` prints nothing.
+- [x] 1.3 Write the host side (design decision 5): `site/scripts/run-in-image.sh`, plus the tasks `hugo:versions:prepare` (a no-op), `hugo:build`, `hugo:serve` and `hugo:lint:sources`. The tasks resolve `OPM_WS`, `OPM_SRC_<REPO>`, `OPM_SRC_WORKTREE`, `SITE_PORT`, `OPM_REQUIRE_DATES` and `OPM_BUILD_REFS`, with the environment winning over the defaults. `run-in-image.sh` passes `OPM_VERSIONS` into the container only when the caller set it (the internal seam in `orchestration.md` section 6, which B feeds); otherwise it leaves it unset, and `build-all.sh` falls back to `v1.0=/src`. Before any `docker run`, they check every source root. Containers mount `<wt>` at `/work/repo` and each root read-only at `/src/<repo>`, never with `:z`. They run `--rm --init --user <uid>:<gid>` with no `--name`, and `--network none` except `hugo:serve`, which publishes only `127.0.0.1:${SITE_PORT:-1313}`. Verify: `OPM_WS=/nonexistent task -d <wt> hugo:build` and `task -d <wt> hugo:build OPM_WS=/nonexistent` both fail naming `OPM_SRC_OPM` before any container starts, and `/nonexistent` still does not exist afterwards.
+- [x] 1.4 Add `site/scripts/lint-sources.sh` as the lint in `orchestration.md` section 4.1, written byte for byte. Verify: `sha256sum site/scripts/lint-sources.sh` prints `dae9717af0c43fc3bdc29a9e730fd171fe7541dab35a9625a35efb1682973c6b`.
+- [x] 1.5 Port P `scripts/{build-all,gen-mounts,gen-lastmod,check-pages,check-overrides,serve}.sh` into `site/scripts/`, per design decisions 3, 7 and 12:
   - paths are `/work/repo/site` and `/src`, and the versions come from `OPM_VERSIONS` (default `v1.0=/src`);
   - the site directory is `SITE_DIR` (default `/work/repo/site`), and every script writes only below it, so `test-site.sh` can run the pipeline on a copy (design decision 15);
   - `site/content` is mounted once;
@@ -20,12 +20,12 @@ Paths and names used below:
   - A1 covers `x.md` against `x/_index.md`;
   - `check-pages.sh post` writes `site/.check/<v>/nav-order.txt`;
   - Hugo runs as `hugo build --gc --cleanDestinationDir --panicOnWarning --logLevel warn`, never `--quiet`.
-- [ ] 1.6 Add `site/config/_default/hugo.toml` with only what the fixture needs:
+- [x] 1.6 Add `site/config/_default/hugo.toml` with only what the fixture needs:
   - `baseURL = 'https://opmodel.dev/'`, `theme = 'hextra'`, and `v1.0` with `defaultContentVersionInSubdir = true` plus the label param (design decision 11);
   - outputs: home html and llms, page and section html and markdown;
   - `refLinksErrorLevel = 'error'` and `enableGitInfo = false`;
   - no passthrough extension, and every CDN-loaded feature off.
-- [ ] 1.7 Add the first overrides, each with its `site/overrides.sha256` line:
+- [x] 1.7 Add the first overrides, each with its `site/overrides.sha256` line:
   - `layouts/_markup/render-link.html`, with the v0.13.0 hunk (#1037/#1039) merged;
   - `layouts/_partials/sidebar.html`, ordered by `weight` then title, with unweighted pages last and `sidebar.exclude` kept;
   - `layouts/_partials/opm/docs-main.html` with `layouts/{tutorial,how-to,explanation,reference}/all.html`;
@@ -33,23 +33,23 @@ Paths and names used below:
   - the six `layouts/_shortcodes/opm/<name>.html`, as "Figure pending" stubs.
 
   Verify: the drift guard first fails on `render-link.html` against v0.13.0. After the hunk is merged and the file re-pinned, it passes. Write that diff's gist into design.md decision 3.
-- [ ] 1.8 Move the site-owned pages to Hugo form (design decision 6):
+- [x] 1.8 Move the site-owned pages to Hugo form (design decision 6):
   - `git mv` the nine `site/content/docs/**/index.md` to `_index.md`;
   - each gets `weight` equal to its old `sidebar.order`, and `reference`, `reference/cli` and `reference/definitions` get a `description`;
   - remove every `sidebar:` block and every `type:`, and the four hand links in `reference/_index.md`;
   - replace `site/content/index.mdx` with `site/content/_index.md` (hextra-home, today's landing text, from P `site/content/_index.md`).
 
   Verify: `find site/content -name 'index.md*'` prints nothing, and `grep -rn 'sidebar:\|type:' site/content` prints nothing.
-- [ ] 1.9 In `site/.gitignore`, ignore `public/`, `resources/`, `.hugo_build.lock`, `data/opm/`, `config/production/`, `config/development/`, `.gen/` and `.check/`. `.versions/` and `.shots/` are already listed. Add the same paths to `task clean`. Verify: after a fixture build, `git -C <wt> status --short` shows no generated file.
-- [ ] 1.10 Add the fixture workspace `site/tests/fixtures/ws/{opm,core,catalog_opm,cli,library,opm-operator}/docs/site/`, in the dialect (design decision 15). It holds:
+- [x] 1.9 In `site/.gitignore`, ignore `public/`, `resources/`, `.hugo_build.lock`, `data/opm/`, `config/production/`, `config/development/`, `.gen/` and `.check/`. `.versions/` and `.shots/` are already listed. Add the same paths to `task clean`. Verify: after a fixture build, `git -C <wt> status --short` shows no generated file.
+- [x] 1.10 Add the fixture workspace `site/tests/fixtures/ws/{opm,core,catalog_opm,cli,library,opm-operator}/docs/site/`, in the dialect (design decision 15). It holds:
   - `opm`: the docs home `_index.md`; `start/_index.md` with the six `{{< opm/<name> >}}` lines and an escaped `{{</* opm/helm-and-opm */>}}` in a `text` fence; `start/zeta-first.md` (weight 1) and `start/alpha-second.md` (weight 2); `start/quickstart.md` (tutorial);
   - `start/quickstart.md` carries a `> [!TIP]` alert with a bold title line, a two-paragraph `> [!NOTE]` alert, an inline link `/docs/concepts/fixture-concept/#why`, a reference-style link, and a CUE block with `""`;
   - `core`: `concepts/fixture-concept.md`, plus `concepts/brief-only.md`, whose body is only a planning comment containing `>=` and `->`;
   - one page in each other repo, so that the four page types all occur.
 
   Verify: `sh <wt>/site/scripts/lint-sources.sh` over the six fixture `docs/site` trees prints `opm-dialect-lint: OK`.
-- [ ] 1.11 Keep planning comments out of the output with mechanism (b) (design decision 10): set `[minify] minifyOutput = true` and `disableSVG = true` in `site/config/_default/hugo.toml` (the build command in 1.5 has no `--minify`), keep P's comment stripping in `page.markdown.md` and `section.markdown.md`, and add the hash-guarded `layouts/llms.txt` override that prints `.Description`. Switch to (a) only if (b) leaves comment text in some output. Add check 10. Verify on the fixture build: no `*.html`, `*.txt`, `*.md`, `*.xml` or `*.json` under `site/public/` contains `<!--` or any word unique to the fixture brief, `/v1.0/llms.txt` included. Also verify the ModuleToCluster figure keeps the space before its `<tspan>`: the built HTML contains `component <tspan` (not `component<tspan`). Record the mechanism in design.md decision 10.
-- [ ] 1.12 Add a minimal `hugo:test:site` (`site/scripts/test-site.sh`, in the image, no network). It runs each case on a copy of the site under `site/.check/tests/<case>/` with `SITE_DIR` set to that copy, so in the worktree it writes only under `site/.check/tests/` (design decision 15).
+- [x] 1.11 Keep planning comments out of the output with mechanism (b) (design decision 10): set `[minify] minifyOutput = true` and `disableSVG = true` in `site/config/_default/hugo.toml` (the build command in 1.5 has no `--minify`), keep P's comment stripping in `page.markdown.md` and `section.markdown.md`, and add the hash-guarded `layouts/llms.txt` override that prints `.Description`. Switch to (a) only if (b) leaves comment text in some output. Add check 10. Verify on the fixture build: no `*.html`, `*.txt`, `*.md`, `*.xml` or `*.json` under `site/public/` contains `<!--` or any word unique to the fixture brief, `/v1.0/llms.txt` included. Also verify the ModuleToCluster figure keeps the space before its `<tspan>`: the built HTML contains `component <tspan` (not `component<tspan`). Record the mechanism in design.md decision 10.
+- [x] 1.12 Add a minimal `hugo:test:site` (`site/scripts/test-site.sh`, in the image, no network). It runs each case on a copy of the site under `site/.check/tests/<case>/` with `SITE_DIR` set to that copy, so in the worktree it writes only under `site/.check/tests/` (design decision 15).
   - Lint cases: one failing tree per O4 rule under `site/tests/lint/`: `.mdx`, a `:::` line, `import ... from`, `sidebar:`, `index.md`, a missing `title`, a missing `description`, a missing `type`, an invalid `type`, a `type` on an `_index.md`, an unknown `opm/` shortcode. Each must fail naming file and line.
   - Fixture-build assertions:
     - both alerts in `quickstart` render as Hextra alerts with the bold title, and no literal `[!` is left;
@@ -60,12 +60,12 @@ Paths and names used below:
     - `llms.txt` is clean.
 
   Verify: `task -d <wt> hugo:test:site` prints `ok` for every case.
-- [ ] 1.13 Run the spike items 1-8 in design.md "Unverified assumptions" and write each answer there. For item 6:
+- [x] 1.13 Run the spike items 1-8 in design.md "Unverified assumptions" and write each answer there. For item 6:
   - start `OPM_WS=<wt>/site/tests/fixtures/ws task -d <wt> hugo:serve </dev/null` in its own process group (`setsid`);
   - wait until `curl -sf http://127.0.0.1:1313/v1.0/docs/` answers;
   - send one SIGINT to that process group, as a terminal's Ctrl+C does;
   - verify it exits within 10 s, and `docker ps --filter ancestor=<hugo tag>` lists no container.
-- [ ] 1.14 Run `task -d <wt> check`, `OPM_WS=<wt>/site/tests/fixtures/ws task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `build(site): vendor hextra v0.13.0 and prove the hugo pipeline on fixtures`, with a body line saying that the site-owned pages move to Hugo form here (design decision 6).
+- [x] 1.14 Run `task -d <wt> check`, `OPM_WS=<wt>/site/tests/fixtures/ws task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `build(site): vendor hextra v0.13.0 and prove the hugo pipeline on fixtures`, with a body line saying that the site-owned pages move to Hugo form here (design decision 6).
 
 **Stop after section 1.** Report to the supervisor with the block in `orchestration.md` section 7 step 6, with `sections: 1/5`. Its `deviations` line names the move of the site-owned content into section 1: the change-set plan put it in section 2, and design decision 6 gives the reason. Add the spike answers and the dialect evidence from 1.12: bold-title alerts, parameterless shortcodes, a source `_index.md` ordered by `weight`, and root-absolute links through the hook. Then wait. The S PRs merge on this report. Section 2 starts only when the supervisor releases it.
 

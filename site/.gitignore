@@ -7,3 +7,14 @@ src/content/docs/
 src/generated/
 # Screenshots written by task shots.
 .shots/
+# Hugo site: build output, Hugo's own state, and inputs generated per build
+# (scripts/gen-lastmod.sh, gen-mounts.sh; .gen/<version>/ is reserved for the
+# generated reference). .check/ holds check output and test-site.sh copies.
+public/
+resources/
+.hugo_build.lock
+data/opm/
+config/production/
+config/development/
+.gen/
+.check/

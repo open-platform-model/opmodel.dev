@@ -1,0 +1,57 @@
+baseURL = 'https://opmodel.dev/'
+title = 'Open Platform Model'
+locale = 'en-US'
+# Hextra v0.13.0, vendored as files in themes/hextra (themes/hextra.COMMIT).
+theme = 'hextra'
+disableKinds = ['taxonomy', 'term', 'rss']
+# Hugo's GitInfo cannot see the source repos (directory mounts, not modules);
+# scripts/gen-lastmod.sh writes data/opm/lastmod.json instead.
+enableGitInfo = false
+# Every internal link goes through layouts/_markup/render-link.html, which
+# fails the build on a page that does not exist in the current version.
+refLinksErrorLevel = 'error'
+
+# One version, v1.0, under /v1.0/. The mounts that feed it are generated from
+# OPM_VERSIONS into config/{production,development}/module.toml (gitignored)
+# by scripts/gen-mounts.sh.
+defaultContentVersion = 'v1.0'
+defaultContentVersionInSubdir = true
+[versions]
+  [versions.'v1.0']
+    weight = 1
+
+[outputs]
+  home = ['html', 'llms']
+  page = ['html', 'markdown']
+  section = ['html', 'markdown']
+
+# The HTML minifier drops HTML comments, so the planning comments in source
+# pages never reach a published page. SVG minification stays off: it trims the
+# space before a <tspan> in the hand-drawn inline figures.
+[minify]
+  disableSVG = true
+  minifyOutput = true
+
+[markup]
+  [markup.highlight]
+    noClasses = false
+  [markup.goldmark.renderer]
+    # Source pages carry HTML planning comments; the minifier drops them.
+    unsafe = true
+
+[params]
+  description = 'A declarative platform model for describing applications and their infrastructure requirements.'
+  # Edit links point at the owning repo, not one editURL base.
+  [params.editURL]
+    enable = false
+  # Hextra's default search loads FlexSearch from a CDN; the build has no
+  # network and loads nothing from a CDN.
+  [params.search]
+    enable = false
+  [params.opm]
+    # Sidebar groups outside the current page's path start collapsed.
+    collapseInactive = true
+  # An array, so no param key contains a dot.
+  [[params.opm.versions]]
+    name = 'v1.0'
+    label = 'v1.0 (beta)'

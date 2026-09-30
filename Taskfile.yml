@@ -106,10 +106,68 @@ tasks:
       - rm -rf site/.shots && mkdir -p site/.shots
       - docker run --rm --user {{.UID}}:{{.GID}} --env HOME=/tmp --volume {{.ROOT_DIR}}/site:/site:ro --volume {{.ROOT_DIR}}/site/.shots:/out {{.SHOTS_IMAGE}} python3 /site/shots/shoot.py
 
+  # The Hugo site (change port-site-to-hugo-hextra). Until its cutover these
+  # carry the hugo: prefix, and the bare image, serve, build, preview, shots
+  # and shots:image above are the Astro site. Every step runs in Docker
+  # through site/scripts/run-in-image.sh, which resolves OPM_WS,
+  # OPM_SRC_<REPO> and OPM_SRC_WORKTREE (the environment or a task CLI var
+  # wins over the defaults) and checks every source root before any container
+  # starts. The env map below hands the CLI form (task hugo:build OPM_WS=...)
+  # to the script; an unset variable arrives empty and counts as unset.
+  hugo:image:
+    desc: Build the Hugo build image, opmodel-dev-hugo:<12 hex of sha256 of site/Dockerfile.hugo>, if the tag is missing
+    cmds:
+      - sh site/scripts/run-in-image.sh image
+
+  # Host-side preparation that build and serve run first; nothing to prepare
+  # for one version built from the source roots.
+  hugo:versions:prepare:
+    desc: Prepare the site versions on the host (no-op for one version)
+    cmds:
+      - cmd: 'true'
+        silent: true
+
+  hugo:build:
+    desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
+    deps: [hugo:versions:prepare]
+    env: &hugo-env
+      OPM_WS: '{{.OPM_WS}}'
+      OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
+      OPM_SRC_OPM: '{{.OPM_SRC_OPM}}'
+      OPM_SRC_CORE: '{{.OPM_SRC_CORE}}'
+      OPM_SRC_CATALOG_OPM: '{{.OPM_SRC_CATALOG_OPM}}'
+      OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
+      OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
+      OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_REQUIRE_DATES: '{{.OPM_REQUIRE_DATES}}'
+      OPM_VERSIONS: '{{.OPM_VERSIONS}}'
+      SITE_PORT: '{{.SITE_PORT}}'
+    cmds:
+      - sh site/scripts/run-in-image.sh build
+
+  hugo:serve:
+    desc: Run the dev server on http://127.0.0.1:${SITE_PORT:-1313}/, reading the sources in place
+    deps: [hugo:versions:prepare]
+    env: *hugo-env
+    cmds:
+      - sh site/scripts/run-in-image.sh serve
+
+  hugo:lint:sources:
+    desc: Lint the six source repos' docs/site pages against the page dialect
+    env: *hugo-env
+    cmds:
+      - sh site/scripts/run-in-image.sh lint
+
+  hugo:test:site:
+    desc: Prove the build checks on fixtures (site/tests), in Docker with no network
+    cmds:
+      - sh site/scripts/run-in-image.sh test
+
   clean:
     desc: Clean generated files
     cmds:
       - rm -rf bin/ site/dist/ site/.astro/ site/.versions/ site/src/content/docs/ site/src/generated/ site/data/schema/ site/content/docs/reference/cli/opm*.md
+      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.check/
 
   fmt:
     desc: Format Go code

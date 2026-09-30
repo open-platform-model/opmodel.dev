@@ -1,0 +1,39 @@
+---
+title: Start here
+description: The fixture start section, which shows every figure shortcode.
+weight: 1
+---
+
+Each figure the site draws, one shortcode each.
+
+## From module to running objects
+
+{{< opm/module-to-cluster >}}
+
+## Three roles, three artifacts
+
+{{< opm/roles-and-artifacts >}}
+
+## How a component becomes objects
+
+{{< opm/component-to-objects >}}
+
+## Where things live
+
+{{< opm/where-things-live >}}
+
+## Three ways to deploy
+
+{{< opm/three-ways-to-deploy >}}
+
+## Helm and OPM
+
+{{< opm/helm-and-opm >}}
+
+## Showing a shortcode as text
+
+A page escapes a shortcode it shows as an example, because Hugo expands shortcodes inside code fences too:
+
+```text
+{{</* opm/helm-and-opm */>}}
+```

@@ -1,0 +1,96 @@
+{{- /* OPM override of Hextra's sidebar (v0.13.0, pinned in overrides.sha256).
+  Hextra renders the page tree twice per page (a mobile tree from the home and
+  a desktop tree from the first section), which makes the output O(pages^2)
+  twice over. This renders ONE tree, shown on desktop and in the mobile menu:
+  - order: weight, then title; a page without a weight sorts after the
+    weighted ones;
+  - pages and sections with sidebar.exclude (set by a site-owned cascade, for
+    generated sections) are left out;
+  - groups outside the current path start collapsed (params.opm.collapseInactive);
+  - the current page's h2 headings sit under its entry on mobile only;
+  - no theme-toggle footer: the toggle is in the navbar at every width;
+  - short class names (opm-sb-*) instead of about 1 KB of utility classes per
+    entry.
+  The structural hooks Hextra's CSS and JS rely on are kept:
+  .hextra-sidebar-container, .hextra-scrollbar, .hextra-sidebar-item,
+  .hextra-sidebar-children, .hextra-sidebar-collapsible-button,
+  .hextra-sidebar-active-item, li.open. */ -}}
+{{- $context := .context -}}
+{{- $disableSidebar := .disableSidebar | default false -}}
+{{- $displayPlaceholder := .displayPlaceholder | default false -}}
+{{- $navRoot := cond (eq site.Home.Type "docs") site.Home $context.FirstSection -}}
+{{- if or $context.IsHome (not $navRoot) -}}{{ $navRoot = site.GetPage "/docs" }}{{- end -}}
+{{- if .context.Params.sidebar.hide -}}
+  {{- $disableSidebar = true -}}{{- $displayPlaceholder = false -}}
+{{- end -}}
+{{- $sidebarClass := "hx:md:sticky" -}}
+{{- if $disableSidebar -}}
+  {{- $sidebarClass = cond $displayPlaceholder "hx:md:hidden hx:xl:block" "hx:md:hidden" -}}
+{{- end -}}
+
+<aside class="hextra-sidebar-container opm-sb hx:flex hx:flex-col hx:print:hidden hx:md:top-[var(--hextra-navbar-height)] hx:md:shrink-0 hx:md:w-64 hx:md:self-start hx:max-md:[transform:translate3d(0,-100%,0)] {{ $sidebarClass }}" aria-label="{{ (T "navigation") | default "Documentation" }}">
+  <div class="hextra-scrollbar hx:overflow-y-auto hx:overflow-x-hidden hx:p-4 hx:grow hx:md:h-[calc(100vh-var(--hextra-navbar-height)-var(--menu-height))]">
+    {{- /* Mobile only: top-level links the navbar hides on a phone. */ -}}
+    <div class="opm-sb-mobile hx:md:hidden">
+      {{- /* Menu links outside the docs tree (the tree already holds Docs and Reference). */ -}}
+      {{- $extra := slice -}}
+      {{- range site.Menus.main -}}
+        {{- if or .Params.type .Params.icon -}}{{ continue }}{{- end -}}
+        {{- $p := .Page -}}{{- with .PageRef -}}{{- with site.GetPage . -}}{{ $p = . }}{{- end -}}{{- end -}}
+        {{- if and $p $navRoot (or (eq $p $navRoot) ($navRoot.IsAncestor $p)) -}}{{ continue }}{{- end -}}
+        {{- $link := .URL -}}{{- with $p -}}{{ $link = .RelPermalink }}{{- end -}}
+        {{- $extra = $extra | append (dict "title" .Name "link" $link) -}}
+      {{- end -}}
+      {{- with $extra -}}
+        <ul class="opm-sb-list">{{ range . }}<li>{{ template "opm-sb-link" dict "title" .title "link" .link }}</li>{{ end }}</ul>
+      {{- end -}}
+    </div>
+    <ul class="opm-sb-list{{ if $disableSidebar }} hx:md:hidden{{ end }}">
+      {{- with $navRoot -}}
+        <li>{{ template "opm-sb-link" dict "title" (partial "utils/title" .) "link" .RelPermalink "active" (eq . $context) "strong" true }}</li>
+        {{- template "opm-sb-tree" dict "section" . "page" $context "level" 0 -}}
+      {{- end -}}
+    </ul>
+    {{- if and $disableSidebar $displayPlaceholder }}<div class="hx:max-xl:hidden hx:h-0 hx:w-64 hx:shrink-0"></div>{{ end -}}
+  </div>
+</aside>
+
+{{- define "opm-sb-tree" -}}
+  {{- $page := .page -}}{{- $level := .level -}}
+  {{- $items := where (union .section.RegularPages .section.Sections) "Params.sidebar.exclude" "!=" true -}}
+  {{- $keyed := slice -}}
+  {{- range $items -}}
+    {{- $weight := cond (gt .Weight 0) .Weight 1000000 -}}
+    {{- $keyed = $keyed | append (dict "k" (printf "%07d %s" $weight (lower .LinkTitle)) "p" .) -}}
+  {{- end -}}
+  {{- range sort $keyed "k" -}}
+    {{- $p := .p -}}
+    {{- $active := eq $p $page -}}
+    {{- $kids := and $p.IsSection (lt $level 3) (where (union $p.RegularPages $p.Sections) "Params.sidebar.exclude" "!=" true) -}}
+    {{- $open := or $active ($p.IsAncestor $page) $p.Params.sidebar.open (not site.Params.opm.collapseInactive) -}}
+    <li class="{{ if $kids }}opm-sb-group{{ end }}{{ if $open }} open{{ end }}">
+      {{- template "opm-sb-link" dict "title" (partial "utils/title" $p) "link" $p.RelPermalink "active" $active "kids" $kids "open" $open -}}
+      {{- if and $active (not $p.IsSection) (ne $p.Params.toc false) -}}{{ template "opm-sb-toc" $p }}{{- end -}}
+      {{- if $kids -}}
+        <div class="hextra-sidebar-children"><ul class="opm-sb-sub">{{ template "opm-sb-tree" dict "section" $p "page" $page "level" (add $level 1) }}</ul></div>
+      {{- end -}}
+    </li>
+  {{- end -}}
+{{- end -}}
+
+{{- define "opm-sb-toc" -}}
+  {{- with .Fragments.Headings -}}{{- range . -}}{{- with .Headings -}}
+    <ul class="opm-sb-sub opm-sb-toc hx:md:hidden">
+      {{- range . }}<li><a class="opm-sb-link" href="#{{ .ID }}">{{ .Title | safeHTML | plainify | htmlUnescape }}</a></li>{{ end -}}
+    </ul>
+  {{- end -}}{{- end -}}{{- end -}}
+{{- end -}}
+
+{{- define "opm-sb-link" -}}
+  <div class="hextra-sidebar-item" data-active="{{ if .active }}true{{ else }}false{{ end }}">
+    <a class="opm-sb-link{{ if .active }} hextra-sidebar-active-item{{ end }}{{ if .strong }} opm-sb-root{{ end }}" href="{{ .link }}"{{ if .active }} aria-current="page"{{ end }}{{ if hasPrefix .link "http" }} target="_blank" rel="noreferrer"{{ end }}>{{ .title }}</a>
+    {{- if .kids -}}
+      <button type="button" class="hextra-sidebar-collapsible-button" aria-label="{{ (T "toggleSection") | default "Toggle section" }}: {{ .title }}" aria-expanded="{{ if .open }}true{{ else }}false{{ end }}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+    {{- end -}}
+  </div>
+{{- end -}}
