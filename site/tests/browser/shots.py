@@ -4,8 +4,10 @@ Every page of the default version that draws a figure (a <figure> holding an
 <svg role="img">) gets each drawn figure shot in six variants, into
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
-landing, a docs page, the 404 page and the open search palette) get a
-viewport shot per variant, into site/.shots/<page>/page-<variant>.png.
+landing, a docs page, the 404 page, the open search palette and two section
+pages with their child cards) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
+shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 site/.shots/ is replaced on every run.
 
 The variants: light and dark at desktop width, the two cases where the site's
@@ -37,6 +39,24 @@ VARIANTS = [
 ]
 
 FIGURES = 'figure:has(svg[role="img"])'
+
+# Viewport shots at a size of their own, one entry each, in light and dark,
+# into site/.shots/<page>/<name>-<theme>.png:
+#   (url under the version, name, width, height, phone, action before the shot)
+SIZED_EXTRAS = [
+    # Between 48rem and 80rem the rail is hidden and the current page's h2
+    # list sits under its sidebar entry.
+    ("/docs/start/quickstart/", "tablet", 1024, 768, False, None),
+    # The phone menu, opened: it starts at the section root.
+    ("/docs/start/quickstart/", "drawer", 390, 844, True, "drawer"),
+    # The landing on a wide desktop.
+    ("/", "wide", 1440, 900, False, None),
+]
+
+# The landing's first screen: at these desktop sizes the first feature card
+# starts inside the window, and the hero figure's smallest text stays at
+# MIN_TEXT_PX or more at its rendered size.
+LANDING_FOLD = [(1280, 900), (1440, 900)]
 
 # Sticky and fixed elements (the navbar) would cover the top of a tall figure
 # in an element screenshot. They are hidden, not made static: a static copy
@@ -72,6 +92,46 @@ def figure_pages(version):
     return pages
 
 
+def shoot_sized_extras(browser, base, version, errors):
+    """The SIZED_EXTRAS entries, each in light and dark."""
+    for path, name, width, height, phone, action in SIZED_EXTRAS:
+        url = f"/{version}{path}"
+        folder = OUT / slug(url)
+        folder.mkdir(parents=True, exist_ok=True)
+        for theme in ("light", "dark"):
+            page = new_page(browser, width, theme, theme, phone)
+            page.set_viewport_size({"width": width, "height": height})
+            page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
+            page.goto(base + url, wait_until="networkidle")
+            if action == "drawer":
+                page.locator(".hextra-hamburger-menu").click()
+                page.wait_for_timeout(400)
+            page.screenshot(path=str(folder / f"{name}-{theme}.png"))
+            page.context.close()
+        print(f"{url}: {name} {width}x{height} x 2 themes -> .shots/{slug(url)}/")
+
+
+def check_landing(browser, base, version):
+    """LANDING_FOLD on the landing; returns the failures as strings."""
+    failures = []
+    url = f"/{version}/"
+    for width, height in LANDING_FOLD:
+        page = new_page(browser, width, "light", "light")
+        page.set_viewport_size({"width": width, "height": height})
+        page.goto(base + url, wait_until="networkidle")
+        top = page.evaluate("() => document.querySelector('.hextra-feature-card').getBoundingClientRect().top")
+        figure = page.locator(FIGURES).first
+        px = figure.evaluate(MIN_TEXT) if figure.count() else None
+        page.context.close()
+        text = "no figure" if px is None else f"smallest figure text {px:.1f} px"
+        print(f"{url} at {width}x{height}: first feature card at y={top:.0f}, {text}")
+        if top >= height:
+            failures.append(f"{url} at {width}x{height}: the first feature card starts at y={top:.0f}, below the fold")
+        if px is not None and px < MIN_TEXT_PX:
+            failures.append(f"{url} at {width}x{height}: figure text {px:.1f} px, under {MIN_TEXT_PX} px")
+    return failures
+
+
 def main():
     version = default_version()
     base = serve()
@@ -83,6 +143,8 @@ def main():
         (f"/{version}/docs/start/quickstart/", "docs page", None),
         (f"/{version}/404.html", "404 page", None),
         (f"/{version}/docs/", "search", "search"),
+        (f"/{version}/docs/", "section cards", None),
+        (f"/{version}/docs/operating/", "section cards", None),
     ]
     too_small = []
     errors = []
@@ -125,9 +187,15 @@ def main():
                 page.screenshot(path=str(OUT / name / f"page-{variant}.png"))
                 page.context.close()
             print(f"{url}: {what} x {len(VARIANTS)} variants -> .shots/{name}/")
+        shoot_sized_extras(browser, base, version, errors)
+        landing = check_landing(browser, base, version)
         browser.close()
     for e in errors:
         print(f"page error: {e}")
+    for f in landing:
+        print(f"shots: FAILED, {f}")
+    if landing:
+        return 1
     if too_small:
         print(f"shots: FAILED, {len(too_small)} figure(s) with text under {MIN_TEXT_PX} px at phone width")
         return 1

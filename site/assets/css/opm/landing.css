@@ -3,3 +3,30 @@
 .opm-hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 3.5rem; }
 .opm-hero .hextra-feature-grid { width: 100%; }
 .opm-hero .hextra-feature-card { min-height: 10rem; }
+
+/* The hero's top: text and actions, then the ModuleToCluster figure; two
+   columns from 64rem. The feature grid stays below it, inside .opm-hero, so
+   it keeps the hero's width and centring. The space before the grid moves
+   from the actions to the two columns. */
+.opm-hero-main { display: grid; gap: 2.5rem 3rem; margin-bottom: 3.5rem; }
+.opm-hero-text .opm-hero-actions { margin-bottom: 0; }
+.opm-hero-figure .opm-fig { margin: 0 auto; }
+/* In two columns the figure is portrait, so its drawing is capped at 36rem
+   high (its width follows the viewBox) and the text sits at the top beside
+   it: the feature cards then start inside a 900 px-high window at 1280 px
+   wide (shots.py checks it). 36rem keeps ModuleToCluster's smallest label
+   at about 9.3 px; do not go below 35rem. On a phone the figure keeps the
+   full column width. */
+@media (min-width: 64rem) {
+  .opm-hero { padding-top: 0.5rem; }
+  .opm-hero-main { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; margin-bottom: 2.5rem; }
+  .opm-hero-figure .opm-fig svg { height: 36rem; width: auto; max-width: 100%; margin-inline: auto; }
+  .opm-hero-figure .opm-fig figcaption { text-align: center; }
+}
+
+/* Quieter feature cards: a smaller title and icon, the text in the body
+   grey. Their glow gradients are gone from content/_index.md. */
+.opm-hero .hextra-feature-card h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+.opm-hero .hextra-feature-card h3 svg { height: 1.125rem; width: auto; }
+.opm-hero .hextra-feature-card p { font-size: 0.875rem; line-height: 1.375rem; color: var(--hx-color-gray-600); text-wrap: pretty; }
+html.dark .opm-hero .hextra-feature-card p { color: var(--hx-color-gray-400); }
