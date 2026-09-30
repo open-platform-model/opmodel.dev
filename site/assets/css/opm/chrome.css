@@ -1,0 +1,33 @@
+/* Page chrome: the type badge, the page meta line (edit link, last updated),
+   the build stamp, the 404 page, and contrast fixes to stock Hextra. */
+
+.opm-type-badge { margin: -0.25rem 0 1.25rem; }
+.opm-page-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1.5rem; }
+.opm-edit { display: inline-flex; align-items: center; gap: 0.375rem; border-radius: 0.25rem; }
+.opm-edit:hover { color: var(--hx-color-gray-900); }
+html.dark .opm-edit:hover { color: var(--hx-color-gray-100); }
+
+.opm-build-stamp { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding-block: 1.5rem; font-size: 0.75rem; line-height: 1rem; color: var(--hx-color-gray-600); }
+html.dark .opm-build-stamp { color: var(--hx-color-gray-400); }
+.opm-build-stamp a { text-decoration: underline; text-underline-offset: 2px; }
+
+.opm-404 { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: calc(100vh - var(--hextra-navbar-height) - 12rem); }
+.opm-404-code { font-size: 0.875rem; font-weight: 600; letter-spacing: .1em; color: var(--hx-color-primary-600); margin: 0; }
+.opm-404 h1 { font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; letter-spacing: -0.025em; margin: 0.5rem 0 1rem; }
+.opm-404 p { color: var(--hx-color-gray-600); max-width: 32rem; }
+html.dark .opm-404 p { color: var(--hx-color-gray-400); }
+.opm-404-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 1.5rem; }
+.opm-button { display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; background: var(--hx-color-primary-600); color: #fff; border: 1px solid transparent; }
+.opm-button-secondary { background: transparent; color: inherit; border-color: var(--hx-color-gray-200); }
+html.dark .opm-button-secondary { border-color: var(--hx-color-neutral-700); }
+
+/* Contrast fixes found by axe-core. Chroma builtins, comments and strings in
+   Hextra's code theme fall under 4.5:1 on the tinted code background;
+   GitHub's own token colours pass. */
+html:not(.dark) .chroma .nb { color: #0550ae; }
+html:not(.dark) .chroma :is(.c, .c1, .cm, .ch, .cs) { color: #57606a; }
+html:not(.dark) .chroma :is(.s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx) { color: #b31d28; }
+html:not(.dark) .chroma :is(.m, .mb, .mf, .mh, .mi, .il, .mo) { color: #0550ae; }
+html.dark .chroma .nb { color: #79c0ff; }
+/* Links inside alerts: Hextra's primary-600 on the tinted alert is under 4.5:1. */
+.hextra-alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }

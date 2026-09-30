@@ -35,7 +35,7 @@ var cliCmd = &cobra.Command{
 	Use:   "cli",
 	Short: "Generate CLI reference markdown from cobra commands",
 	Long: `Generate markdown reference documentation for the OPM CLI
-using cobra's built-in doc generation with Starlight front matter.`,
+using cobra's built-in doc generation with Hugo front matter.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputDir, _ := cmd.Flags().GetString("output")
 

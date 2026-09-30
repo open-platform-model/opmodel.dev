@@ -1,0 +1,17 @@
+{{- /* Hextra hook (v0.13.0), after the page title:
+       - the page-type badge (0018:D7), with Hextra's own badge partial;
+       - Pagefind metadata: the breadcrumb, shown in the search palette. */ -}}
+{{- $types := dict
+  "tutorial" (dict "label" "Tutorial" "color" "green" "icon" "academic-cap")
+  "how-to" (dict "label" "How-to guide" "color" "blue" "icon" "clipboard-check")
+  "explanation" (dict "label" "Explanation" "color" "purple" "icon" "light-bulb")
+  "reference" (dict "label" "Reference" "color" "gray" "icon" "book-open")
+-}}
+{{- with index $types .Type -}}
+  {{- partial "shortcodes/badge" (dict "content" .label "color" .color "icon" .icon "border" true "class" "opm-type-badge") -}}
+{{- end -}}
+{{- if not .IsHome -}}
+  {{- $crumbs := slice -}}
+  {{- range .Ancestors.Reverse -}}{{- if not .IsHome -}}{{ $crumbs = $crumbs | append (partial "utils/title" .) }}{{- end -}}{{- end -}}
+  <span hidden data-pagefind-meta="crumbs:{{ delimit $crumbs " / " }}"></span>
+{{- end -}}

@@ -1,0 +1,36 @@
+{{- /* The body of Hextra's docs/single.html and docs/list.html (identical in
+       v0.13.0; both pinned in overrides.sha256), for pages whose 0018:D7
+       type (tutorial, how-to, explanation, reference) is also Hugo's layout
+       lookup key. Without it those pages fall back to Hextra's plain
+       single.html: no sidebar, breadcrumb or pager. The drift guard fails when
+       upstream changes either file, so this copy is re-synced then. The one
+       addition: a section page lists its children (opm/section-children.html),
+       so layouts/docs/list.html renders sections through this body too. */ -}}
+  <div class="hx:mx-auto hx:flex hextra-max-page-width">
+    {{ partial "sidebar.html" (dict "context" .) }}
+    {{ partial "toc.html" . }}
+    <article class="hx:w-full hx:break-words hx:flex hx:min-h-[calc(100vh-var(--hextra-navbar-height))] hx:min-w-0 hx:justify-center hx:pb-8 hx:pr-[calc(env(safe-area-inset-right)-1.5rem)]">
+      <main id="content" class="hx:w-full hx:min-w-0 hextra-max-content-width hx:px-6 hx:pt-4 hx:md:px-12">
+        {{ partial "custom/page-begin.html" . }}
+        {{ partial "breadcrumb.html" (dict "page" . "enable" true) }}
+        <div class="content">
+          {{ if .Title }}
+            <div class="hx:flex hx:flex-col hx:sm:flex-row hx:items-start hx:sm:items-center hx:sm:justify-between hx:gap-4 hx:mb-4">
+              <h1 class="hx:mb-0">{{ .Title }}</h1>
+              {{ partial "components/page-context-menu" . }}
+            </div>
+          {{ end }}
+          {{ partial "custom/content-begin.html" . }}
+          {{ .Content }}
+          {{- if .IsSection }}{{ partial "opm/section-children.html" . }}{{ end }}
+          {{ partial "custom/content-end.html" . }}
+        </div>
+        {{ partial "components/last-updated.html" . }}
+        {{- if (site.Params.page.displayPagination | default true) -}}
+          {{- partial "components/pager.html" . -}}
+        {{- end -}}
+        {{ partial "components/comments.html" . }}
+        {{ partial "custom/page-end.html" . }}
+      </main>
+    </article>
+  </div>

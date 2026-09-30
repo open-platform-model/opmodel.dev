@@ -2,7 +2,7 @@
 
 Documentation site implementation status and roadmap.
 
-> **The site is Astro + Starlight with the Black theme.** It builds only in its Docker build image (`site/Dockerfile`).
+> **The site is Hugo + Hextra v0.13.0 (neutral skin).** It builds, serves and is tested only in its Docker images (`site/Dockerfile`, `site/tests/browser/Dockerfile`).
 
 ## ✅ Completed (Phase 0: Scaffold)
 
@@ -20,10 +20,10 @@ Documentation site implementation status and roadmap.
 - [x] `internal/cobradoc/generator.go` - Package stub
 - [x] Cobra dependency added (`github.com/spf13/cobra`)
 
-### Astro Site
-- [x] Astro 7 + Starlight + `starlight-theme-black`, content in `site/content/`
-- [x] Docker build image; `task serve`, `task build`, `task preview` run in it
-- [x] Versioned builds from `site/versions.config.mjs`: version switch, outdated-version banner, `/latest/` alias, per-version search, page-count check
+### Hugo Site
+- [x] Hugo + Hextra v0.13.0 (vendored, neutral skin); site-owned pages in `site/content/`, the rest assembled from six source repos' `docs/site/`
+- [x] Docker build image; `task serve`, `task build`, `task preview` run in it, builds with no network
+- [x] One version, `v1.0` (beta), under `/v1.0/`: `/latest/` alias, per-version Pagefind search, page-set and output checks, source lint
 
 ---
 
@@ -67,10 +67,10 @@ Documentation site implementation status and roadmap.
   - [ ] Import CLI root command as dependency
     - [ ] Add `github.com/open-platform-model/cli` to `go.mod`
     - [ ] Import `github.com/open-platform-model/cli/cmd/opm` package
-  - [ ] Create Starlight front matter prepender function
+  - [ ] Create Hugo front matter prepender function (title, description, type, weight)
   - [ ] Create link handler for cross-references
   - [ ] Call `cobra/doc.GenMarkdownTreeCustom()`
-  - [ ] Output to `site/content/reference/cli/`
+  - [ ] Output to `site/.gen/<version>/docs/reference/cli/` (mounted per version); today `task generate:cli` still writes to `site/content/docs/reference/cli/`
 
 #### Testing
 - [ ] Unit test for front matter generation
@@ -80,24 +80,24 @@ Documentation site implementation status and roadmap.
 - [ ] Add `github.com/spf13/cobra/doc` dependency
 - [ ] Add `github.com/open-platform-model/cli` as dependency
 
-### 1.3 - Astro Content Loader for Schema JSON
+### 1.3 - Hugo Content Adapter for Schema JSON
 
-- [ ] Write a content loader that turns `site/data/schema/*.json` into definition pages
-- [ ] Include the generated pages in each version's prepared content and page count
+- [ ] Write a Hugo content adapter (`_content.gotmpl`) that turns `site/data/schema/*.json` into definition pages
+- [ ] Include the generated pages in each version's page-set check (`site/scripts/check-pages.sh`)
 - [ ] Verify pages are created correctly
 - [ ] Add error handling for missing data files
 
 ### 1.4 - Theme Selection & Integration
 
-- [x] Astro + Starlight with `starlight-theme-black`, chosen 2026-09-24
+- [x] Hugo + Hextra v0.13.0, neutral skin, chosen 2026-09-30 (it replaced Astro + Starlight with the Black theme, chosen 2026-09-24)
 
 ### 1.5 - Local Build Verification
 
 - [ ] `task build:docgen` succeeds
 - [ ] `task generate:schema` produces JSON files in `site/data/schema/`
-- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/`
-- [x] `task build` produces the complete site in `site/dist/`
-- [x] Manual verification: `task preview`, browse http://localhost:4321/
+- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/` (moving to `site/.gen/<version>/` with the generated-reference change)
+- [x] `task build` produces the complete site in `site/public/`
+- [x] Manual verification: `task preview`, browse http://127.0.0.1:1313/
 
 ---
 
@@ -123,16 +123,16 @@ Documentation site implementation status and roadmap.
 
 ### 2.2 - Definition Components
 
-Create Astro components in `site/src/components/`:
+Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
 
-- [ ] `DefFields.astro` - Definition fields table
+- [ ] `def-fields.html` - Definition fields table
   - [ ] Render field name, type, constraint, required/optional, default
   - [ ] Type badge styling (string, int, struct, etc.)
   - [ ] Constraint rendering (disjunctions, bounds)
-- [ ] `DefRef.astro` - Cross-reference links
+- [ ] `def-ref.html` - Cross-reference links
   - [ ] Link to related definitions (FQN resolution)
   - [ ] Hover preview with description
-- [ ] `CueSource.astro` - CUE source view
+- [ ] `cue-source.html` - CUE source view
   - [ ] Link to catalog repository file
   - [ ] Optional inline source display with syntax highlighting
 
@@ -196,7 +196,7 @@ Create Astro components in `site/src/components/`:
     - [ ] Generate schema docs
     - [ ] Generate CLI docs
     - [ ] Build the site (`task build`)
-    - [ ] Upload artifact (`site/dist/`)
+    - [ ] Upload artifact (`site/public/`)
 
 ### 3.2 - Deployment
 
@@ -242,22 +242,22 @@ Create Astro components in `site/src/components/`:
 
 ### 3.4 - Versioning
 
-- [x] Multi-version: one build per version under `/<version>/`, driven by `site/versions.config.mjs`
-  - [x] Version selector UI that keeps the reader on the same page
-  - [x] Outdated-version banner, `/latest/` alias, per-version search
-  - [ ] Read real versions from the source repositories at the tags the CLI pins (0021:OQ15); replace the demo v0.1 entry
+- [x] Every version under `/<version>/`; one version today, `v1.0` (beta), built from each source repo's `main`
+  - [x] `/latest/` alias and root redirect, per-version Pagefind search, a version label next to the title
+  - [ ] Versions built from release tags, listed in a manifest, with a version switch and an outdated-version banner (change `version-site-from-tags`; how versions map to releases is 0021:OQ15)
   - [ ] Build multiple versions in CI
-  - [ ] Component reference archive (every published core and catalog version)
+  - [ ] Component reference archive (every published core and catalog version; `/reference-archive/` is reserved)
 
 ---
 
 ## 🔮 Future Enhancements
 
 ### Documentation Quality
-- [ ] Search functionality (Algolia, Lunr.js, or built-in)
-- [ ] Dark mode support
-- [ ] Mobile-responsive layouts
-- [ ] Accessibility audit (WCAG 2.1 AA)
+- [x] Search functionality (Pagefind, per version, in Hextra's palette)
+- [x] Dark mode support (Hextra's theme toggle)
+- [x] Mobile-responsive layouts (checked by the phone-width screenshots)
+- [x] Accessibility smoke test (axe-core, WCAG 2.1 A and AA, `task qa`)
+- [ ] Full accessibility audit (WCAG 2.1 AA)
 
 ### Content
 - [ ] Video tutorials
@@ -268,8 +268,8 @@ Create Astro components in `site/src/components/`:
 ### Tooling
 - [ ] `docgen validate` - Validate docs coverage
 - [ ] `docgen diff` - Show doc changes between catalog versions
-- [ ] Link checker in CI
-- [ ] Broken reference detection
+- [x] Link checker (internal links fail the build; external links are not checked)
+- [x] Broken reference detection (the link render hook fails the build on a missing page)
 
 ### Advanced Features
 - [ ] Semantic search (vector embeddings)
@@ -299,7 +299,7 @@ Create Astro components in `site/src/components/`:
 
 **Next Immediate Steps**:
 1. Implement `internal/cuedoc` CUE extraction (Phase 1.1)
-2. Astro content loader for the schema JSON (Phase 1.3)
+2. Hugo content adapter for the schema JSON (Phase 1.3)
 3. Test with `core` module only
 
 ---
@@ -308,7 +308,7 @@ Create Astro components in `site/src/components/`:
 
 - [RFC-0006: Documentation Generation](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md)
 - [CUE Go API - Walking Schemas](https://cuelang.org/docs/howto/walk-schemas-using-go-api/)
-- [Astro Content Loader API](https://docs.astro.build/en/reference/content-loader-reference/)
+- [Hugo content adapters](https://gohugo.io/content-management/content-adapters/)
 - [cobra/doc package](https://pkg.go.dev/github.com/spf13/cobra/doc)
-- [Starlight](https://starlight.astro.build/)
-- [Starlight Black theme](https://github.com/adrian-ub/starlight-theme-black)
+- [Hugo](https://gohugo.io/)
+- [Hextra](https://github.com/imfing/hextra)

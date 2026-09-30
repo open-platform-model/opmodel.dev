@@ -1,0 +1,32 @@
+{{- /* OPM override of Hextra's components/last-updated.html (v0.13.0, pinned
+       in overrides.sha256). "Edit this page" points at the owning repo's file
+       on main (opm/source.html); "View source" appears only when the page's
+       version maps to a git ref (viewURL set). The date comes from
+       data/opm/lastmod.json (scripts/gen-lastmod.sh), because Hugo's GitInfo
+       cannot see directory mounts from other repos. */ -}}
+{{- $src := partial "opm/source.html" . -}}
+{{- $date := "" -}}
+{{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- $date = index . site.Version.Name -}}{{- end -}}{{- end -}}
+{{- $edit := and site.Version.IsDefault $src.editURL -}}
+{{- if or $edit $src.viewURL $date -}}
+  <div class="opm-page-meta hx:mt-12 hx:mb-8 hx:text-xs hx:text-gray-500 hx:dark:text-gray-400">
+    {{- with $edit -}}
+      <a class="opm-edit hx:hextra-focus-visible-inset" href="{{ . }}" target="_blank" rel="noreferrer">
+        {{- partial "utils/icon.html" (dict "name" "pencil" "attributes" "height=14 aria-hidden=true") -}}
+        <span>{{ (T "editThisPage") | default "Edit this page" }}</span>
+      </a>
+    {{- end -}}
+    {{- with $src.viewURL -}}
+      <a class="opm-edit hx:hextra-focus-visible-inset" href="{{ . }}" target="_blank" rel="noreferrer">
+        {{- partial "utils/icon.html" (dict "name" "code" "attributes" "height=14 aria-hidden=true") -}}
+        <span>View source at {{ site.Version.Name }}</span>
+      </a>
+    {{- end -}}
+    {{- with $date -}}
+      {{- $t := time . -}}
+      <span>{{ (T "lastUpdated") | default "Last updated on" }} <time datetime="{{ $t.Format "2006-01-02T15:04:05Z07:00" }}">{{ partial "utils/format-date" $t }}</time></span>
+    {{- end -}}
+  </div>
+{{- else -}}
+  <div class="hx:mt-16"></div>
+{{- end -}}

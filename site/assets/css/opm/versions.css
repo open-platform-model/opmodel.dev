@@ -1,0 +1,51 @@
+/* The version label or switch next to the site title
+   (layouts/_partials/opm/version-switch.html) and the outdated-version bar
+   (layouts/_partials/banner.html). */
+.opm-version-label,
+.opm-version-toggle {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--hx-color-gray-200);
+  color: var(--hx-color-gray-600);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.opm-version-toggle { transition: color .15s, border-color .15s, background-color .15s; }
+.opm-version-toggle:hover { color: var(--hx-color-gray-900); border-color: var(--hx-color-gray-300); }
+html.dark :is(.opm-version-label, .opm-version-toggle) { border-color: var(--hx-color-neutral-800); color: var(--hx-color-gray-400); }
+html.dark .opm-version-toggle:hover { color: var(--hx-color-gray-100); border-color: var(--hx-color-neutral-600); }
+.opm-version-toggle[data-state="open"] svg { transform: rotate(180deg); }
+.opm-version .hextra-nav-menu-items { left: 0 !important; transform: none !important; margin-top: 0.375rem; }
+.opm-version-tag, .opm-version-hint {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  padding: 0 0.375rem;
+  border-radius: 9999px;
+  margin-inline-start: 0.25rem;
+}
+.opm-version-tag { background: var(--hx-color-primary-100); color: var(--hx-color-primary-800); }
+html.dark .opm-version-tag { background: color-mix(in srgb, var(--hx-color-primary-400) 15%, transparent); color: var(--hx-color-primary-600); }
+.opm-version-hint { color: var(--hx-color-gray-500); border: 1px dashed var(--hx-color-gray-300); }
+html.dark .opm-version-hint { border-color: var(--hx-color-neutral-600); }
+.opm-version-item[aria-current] { color: var(--hx-color-gray-900); font-weight: 500; }
+html.dark .opm-version-item[aria-current] { color: var(--hx-color-gray-100); }
+
+.opm-outdated {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.5rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-align: center;
+  color: oklch(41.4% .112 45.904);
+  background: oklch(96.2% .059 95.617);
+  border-bottom: 1px solid oklch(92.4% .12 95.746);
+}
+.opm-outdated a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+html.dark .opm-outdated { color: oklch(92.4% .12 95.746); background: oklch(27.9% .077 45.635); border-color: oklch(41.4% .112 45.904); }

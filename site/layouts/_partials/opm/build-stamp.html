@@ -1,0 +1,23 @@
+{{- /* The footer stamp: the version label and the source commit of each repo
+       the build read, from data/opm/build.json (scripts/gen-stamp.sh writes
+       it from OPM_BUILD_REFS, resolved on the host). A root that is not its
+       own git checkout (the fixtures) shows "none". Called from the Hextra
+       hook custom/footer.html with the page. */ -}}
+{{- $label := site.Version.Name -}}
+{{- range site.Params.opm.versions -}}{{- if eq .name site.Version.Name -}}{{- $label = .label | default .name -}}{{- end -}}{{- end -}}
+{{- $sources := dict -}}
+{{- with hugo.Data.opm -}}{{- with .build -}}{{- $sources = .sources | default dict -}}{{- end -}}{{- end -}}
+<div class="opm-build-stamp" data-pagefind-ignore="all">
+  <span>{{ $label }}</span>
+  {{ with $sources -}}
+  <span>built from</span>
+  {{ range $repo := site.Params.opm.repos -}}
+    {{- $sha := index $sources $repo | default "none" -}}
+    <span class="opm-build-ref">{{ $repo }} {{ if findRE `^[0-9a-f]{40}$` $sha -}}
+      <a href="{{ printf "%s/%s/commit/%s" site.Params.opm.github $repo $sha }}"><code>{{ substr $sha 0 7 }}</code></a>
+    {{- else -}}
+      <code>{{ $sha }}</code>
+    {{- end }}</span>
+  {{ end -}}
+  {{- end }}
+</div>

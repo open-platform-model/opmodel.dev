@@ -1,0 +1,3 @@
++ SUPPLY FAIL: pages load from another host:
++ src=https://opmodel.dev.evil.example/x.js
++ src=https://github.com/open-platform-model.png

@@ -1,0 +1,32 @@
+{{- /* This page in every version. .Rotate "version" lists the versions that
+       have the page; for the others, walk up the path to the nearest parent
+       that exists there (GetPage also finds a section that exists only in
+       that version), else that version's home. Returns a slice of dicts
+       {name, href, exact, isLatest, isCurrent}, in version weight order,
+       cached per page in .Store. */ -}}
+{{- $page := . -}}
+{{- with $page.Store.Get "opmVersionLinks" -}}{{ return . }}{{- end -}}
+{{- $have := dict -}}
+{{- range $page.Rotate "version" -}}
+  {{- $have = merge $have (dict .Site.Version.Name .RelPermalink) -}}
+{{- end -}}
+{{- $out := slice -}}
+{{- range hugo.Sites -}}
+  {{- if or (ne .Language.Name $page.Site.Language.Name) (ne .Role.Name $page.Site.Role.Name) -}}{{ continue }}{{- end -}}
+  {{- $site := . -}}
+  {{- $href := index $have .Version.Name -}}
+  {{- $exact := true -}}
+  {{- if not $href -}}
+    {{- $exact = false -}}
+    {{- $p := $page.Path -}}
+    {{- range seq 12 -}}
+      {{- if $href -}}{{ break }}{{- end -}}
+      {{- $p = path.Dir $p -}}
+      {{- with $site.GetPage $p -}}{{ $href = .RelPermalink }}{{- end -}}
+      {{- if eq $p "/" -}}{{ $href = or $href $site.Home.RelPermalink }}{{ break }}{{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $out = $out | append (dict "name" .Version.Name "href" $href "exact" $exact "isLatest" .Version.IsDefault "isCurrent" (eq .Version.Name $page.Site.Version.Name)) -}}
+{{- end -}}
+{{- $page.Store.Set "opmVersionLinks" $out -}}
+{{- return $out -}}

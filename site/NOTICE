@@ -1,0 +1,21 @@
+The opmodel.dev site ships third-party software and fonts under these licences.
+
+Hextra v0.13.0 (adf732f8d97cb8e149d4aba232a449d41cd9e38c)
+  https://github.com/imfing/hextra
+  MIT License, site/themes/hextra/LICENSE. Vendored runtime files only, in
+  site/themes/hextra; site/layouts holds OPM's overrides of some of them.
+
+Tailwind CSS v4.3.0
+  https://tailwindcss.com
+  MIT License. Compiled into Hextra's stylesheet,
+  site/themes/hextra/assets/css/compiled/main.css.
+
+Geist and Geist Mono (npm geist 1.4.2)
+  https://github.com/vercel/geist-font
+  SIL Open Font License 1.1, site/static/fonts/GEIST-LICENSE.txt.
+
+Pagefind 1.5.2
+  https://github.com/Pagefind/pagefind
+  MIT License. Installed in the site's build image; the
+  search bundle it writes into each version (pagefind/) is published with
+  the site.

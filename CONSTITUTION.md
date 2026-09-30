@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the reader-friendly reference for the principles that shape the `opmodel.dev` documentation site. This repo builds the public-facing documentation for the Open Platform Model using Astro with Starlight and a custom Go `docgen` tool that generates reference documentation from CUE definitions and CLI commands.
+This document is the reader-friendly reference for the principles that shape the `opmodel.dev` documentation site. This repo builds the public-facing documentation for the Open Platform Model using Hugo with the Hextra theme and a custom Go `docgen` tool that generates reference documentation from CUE definitions and CLI commands.
 
 Documentation here serves four audiences: Module Authors writing CUE definitions, Platform Operators deploying modules, End-users consuming modules, and Contributors extending OPM.
 
@@ -27,7 +27,7 @@ This repo owns the full documentation pipeline from source to rendered output:
 
 - `docgen` extracts schema data from the catalog CUE modules
 - `docgen` generates CLI reference markdown from Cobra commands
-- Astro (Starlight) renders both generated and handwritten content into the final site
+- Hugo (Hextra theme) renders both generated and handwritten content, from this repo and from the source repositories' `docs/site/`, into the final site
 
 No external system should be required to produce correct documentation output. The pipeline must be reproducible from a clean checkout with `task generate && task build`.
 
@@ -50,10 +50,10 @@ Generated and handwritten content MUST NOT be mixed in the same file. Generated 
 The three layers of the documentation pipeline MUST remain independently replaceable:
 
 - `docgen` (Go tool) — source extraction and JSON/Markdown output
-- `site/` (Astro + Starlight) — static site generation and layout
+- `site/` (Hugo + Hextra) — static site generation and layout
 - `site/content/` — human-authored content
 
-Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/content/docs/reference/`.
+Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/.gen/<version>/`, which the build mounts per version. Until the generated-reference change lands, `task generate:cli` still writes to `site/content/docs/reference/cli/`.
 
 ---
 
@@ -99,7 +99,7 @@ Allowed commit types:
 Start simple. Complexity MUST be justified with clear rationale. Prefer:
 
 - Direct solutions over clever indirection
-- Starlight built-ins over custom components unless Starlight cannot support the use case
+- Theme built-ins over overrides; every override copy is hash-guarded
 - Fewer content types and layouts over many specialized templates
 - Explicit configuration over implicit convention
 
@@ -150,5 +150,5 @@ When principles appear to conflict, treat that as a design smell and document th
 
 - `AGENTS.md` — repository mechanics, commands, and coding guidance
 - `cmd/docgen/` — documentation generator source
-- `site/` — Astro site source
+- `site/` — Hugo site source
 - `README.md` — implementation status and next steps

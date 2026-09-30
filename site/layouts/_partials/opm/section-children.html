@@ -1,0 +1,25 @@
+{{- /* A section's child list: its pages and subsections, each with its
+       description, ordered by weight, then title (a child without a weight
+       comes after the weighted ones), leaving out sidebar.exclude. Called from
+       opm/docs-main.html on section pages, so an overview page needs no hand
+       links. */ -}}
+{{- $items := where (union .RegularPages .Sections) "Params.sidebar.exclude" "!=" true -}}
+{{- $keyed := slice -}}
+{{- range $items -}}
+  {{- $weight := cond (gt .Weight 0) .Weight 1000000 -}}
+  {{- $keyed = $keyed | append (dict "k" (printf "%07d %s" $weight (lower .LinkTitle)) "p" .) -}}
+{{- end -}}
+{{- with $keyed -}}
+<ul class="opm-children not-prose" data-pagefind-ignore="all">
+  {{- range sort . "k" -}}
+    {{- with .p }}
+  <li class="opm-child">
+    <a class="opm-child-link" href="{{ .RelPermalink }}">{{ partial "utils/title" . }}</a>
+    {{- with .Description }}
+    <p class="opm-child-description">{{ . }}</p>
+    {{- end }}
+  </li>
+    {{- end -}}
+  {{- end }}
+</ul>
+{{- end -}}

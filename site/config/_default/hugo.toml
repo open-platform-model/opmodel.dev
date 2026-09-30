@@ -1,0 +1,137 @@
+baseURL = 'https://opmodel.dev/'
+title = 'Open Platform Model'
+locale = 'en-US'
+# Hextra v0.13.0, vendored as files in themes/hextra (themes/hextra.COMMIT).
+theme = 'hextra'
+enableRobotsTXT = true
+disableKinds = ['taxonomy', 'term', 'rss']
+# Hugo's GitInfo cannot see the source repos (directory mounts, not modules);
+# scripts/gen-lastmod.sh writes data/opm/lastmod.json instead.
+enableGitInfo = false
+# Every internal link goes through layouts/_markup/render-link.html, which
+# fails the build on a page that does not exist in the current version.
+refLinksErrorLevel = 'error'
+
+# One version, v1.0, under /v1.0/. The mounts that feed it are generated from
+# OPM_VERSIONS into config/{production,development}/module.toml (gitignored)
+# by scripts/gen-mounts.sh.
+defaultContentVersion = 'v1.0'
+defaultContentVersionInSubdir = true
+[versions]
+  [versions.'v1.0']
+    weight = 1
+
+[outputs]
+  home = ['html', 'llms']
+  page = ['html', 'markdown']
+  section = ['html', 'markdown']
+
+[sitemap]
+  changeFreq = 'weekly'
+  filename = 'sitemap.xml'
+
+# The HTML minifier drops HTML comments, so the planning comments in source
+# pages never reach a published page. SVG minification stays off: it trims the
+# space before a <tspan> in the hand-drawn inline figures.
+[minify]
+  disableSVG = true
+  minifyOutput = true
+
+[markup]
+  [markup.highlight]
+    noClasses = false
+  [markup.goldmark.renderer]
+    # Source pages carry HTML planning comments; the minifier drops them.
+    unsafe = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+
+[params]
+  title = 'Open Platform Model'
+  description = 'A declarative platform model for describing applications and their infrastructure requirements.'
+  # Default Open Graph image (1200x630), a placeholder until the brand marks land.
+  images = ['/images/og-default.png']
+  displayUpdatedDate = true
+  dateFormat = 'January 2, 2006'
+  [params.navbar]
+    displayTitle = true
+    displayLogo = true
+    width = 'wide'
+    [params.navbar.logo]
+      path = 'images/opm-mark.svg'
+      dark = 'images/opm-mark-dark.svg'
+      width = 22
+      height = 22
+  [params.page]
+    width = 'wide'
+    [params.page.contextMenu]
+      # "Copy page" as Markdown (Hextra built-in; the markdown output format).
+      enable = true
+  [params.footer]
+    enable = true
+    displayCopyright = false
+    displayPoweredBy = false
+    width = 'wide'
+  [params.theme]
+    default = 'system'
+    displayToggle = true
+  # Edit links point at the owning repo (layouts/_partials/components/last-updated.html),
+  # not at one editURL base.
+  [params.editURL]
+    enable = false
+  # Pagefind, per version, through Hextra's own command palette
+  # (layouts/_partials/scripts/search.html, assets/js/opm-pagefind.js).
+  [params.search]
+    enable = true
+    type = 'pagefind'
+  [params.highlight.copy]
+    enable = true
+    display = 'hover'
+  # The build has no network and publishes no CDN URL. Hextra fetches these
+  # from jsDelivr or unpkg when they are on: image zoom (medium-zoom) and
+  # remote icons are switched off here. Math (KaTeX, MathJax) loads only
+  # through a Goldmark extension this site leaves off (Hugo's default).
+  # Mermaid, asciinema and PhotoSwipe load only for a mermaid code fence or
+  # Hextra's asciinema and gallery shortcodes: the source lint rejects every
+  # shortcode but the opm/ figures, a mermaid fence fails the network-less
+  # build, and check 11 fails on any CDN URL in the output.
+  [params.imageZoom]
+    enable = false
+  [params.icons.remote]
+    enable = false
+  [params.opm]
+    github = 'https://github.com/open-platform-model'
+    # Sidebar groups outside the current page's path start collapsed.
+    collapseInactive = true
+    repos = ['opm', 'core', 'catalog_opm', 'cli', 'library', 'opm-operator']
+  # An array, so no param key contains a dot.
+  [[params.opm.versions]]
+    name = 'v1.0'
+    label = 'v1.0 (beta)'
+
+[menus]
+  [[menus.main]]
+    name = 'Docs'
+    pageRef = 'docs'
+    weight = 1
+  [[menus.main]]
+    name = 'Reference'
+    pageRef = 'docs/reference'
+    weight = 2
+  [[menus.main]]
+    name = 'Search'
+    weight = 3
+    [menus.main.params]
+      type = 'search'
+  [[menus.main]]
+    name = 'GitHub'
+    weight = 4
+    url = 'https://github.com/open-platform-model'
+    [menus.main.params]
+      icon = 'github'
+  [[menus.main]]
+    name = 'Theme'
+    weight = 5
+    [menus.main.params]
+      type = 'theme-toggle'

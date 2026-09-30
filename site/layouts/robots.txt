@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+{{ range hugo.Sites }}Sitemap: {{ .Home.Permalink }}sitemap.xml
+{{ end -}}

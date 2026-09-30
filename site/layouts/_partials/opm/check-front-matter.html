@@ -1,0 +1,27 @@
+{{- /* Front-matter validation (check 3), for every page backed by a content
+       file, site-owned pages included (the source lint reads only the
+       source repos). Only kinds page, section and home are checked: the 404
+       page and a section with no _index.md render head-end too, but carry no
+       front matter. A bad type would otherwise make Hugo pick another layout,
+       silently. Rules (0018:D7, 0018:D7:R1): title and description are
+       required; a leaf page declares one of four types; a section overview
+       and the home declare none. */ -}}
+{{- with .File -}}
+  {{- if eq $.Kind "page" "section" "home" -}}
+    {{- $f := .Filename -}}
+    {{- if not (strings.TrimSpace ($.Params.title | default "")) -}}
+      {{- errorf "front matter: %s: missing title" $f -}}
+    {{- end -}}
+    {{- if not (strings.TrimSpace ($.Params.description | default "")) -}}
+      {{- errorf "front matter: %s: missing description" $f -}}
+    {{- end -}}
+    {{- $type := $.Params.type | default "" -}}
+    {{- if eq $.Kind "page" -}}
+      {{- if not (in (slice "tutorial" "how-to" "explanation" "reference") $type) -}}
+        {{- errorf "front matter: %s: type must be tutorial, how-to, explanation or reference (got %q)" $f $type -}}
+      {{- end -}}
+    {{- else if $type -}}
+      {{- errorf "front matter: %s: a section overview (_index.md) declares no type (got %q)" $f $type -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
