@@ -1,5 +1,5 @@
-{{- /* Figure pending: Three ways to deploy. Its port draws the SVG of the Astro site's
-       ThreeWaysToDeploy.astro (site/src/components/diagrams/, in git history) in
-       _partials/opm/figures/three-ways-to-deploy.html, through _partials/opm/figure.html as
-       module-to-cluster.html does. Until then the page shows this stub. */ -}}
-{{- partial "components/github-style-alert.html" (dict "content" ("<p>The figure <em>Three ways to deploy</em> is being redrawn for this site.</p>" | safeHTML) "alertType" "note" "alertTitle" "Figure pending") -}}
+{{- /* Figure: three ways to deploy (Start here overview).
+       Port of the Astro site's ThreeWaysToDeploy.astro; the SVG body, with its rows
+       computed as Astro did, is _partials/opm/figures/three-ways-to-deploy.html. */ -}}
+{{- $claim := `Every deployment has exactly one manager, which applies its objects and records them. opm instance apply manages the instances it creates, recorded in a ModuleInstance with owner cli. The OPM operator manages a ModuleInstance written with kubectl or Git, and a ModulePackage that points at an instance package in a Flux source; each records its own objects. The operator only marks a CLI-owned instance, and the CLI only edits the module and values of an operator-owned one.` -}}
+{{- partial "opm/figure.html" (dict "id" "ttd" "title" "Three ways to deploy" "claim" $claim "width" 360 "height" 232 "body" (partial "opm/figures/three-ways-to-deploy.html" .)) -}}
