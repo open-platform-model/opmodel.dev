@@ -184,6 +184,14 @@ if [ $rc -eq 0 ]; then
     ok "comments" "no brief in any text output; llms.txt prints the description"
   else bad "comments" "a planning comment reached: ${leak:-llms.txt}" "$P/llms.txt"; fi
 
+  # The landing's primary button leads to the Start here section of its own
+  # version, not to the docs root (a relative href resolves against /v1.0/).
+  cta=$(tr '\n' ' ' < "$P/index.html" | grep -oE '<a [^>]*href="?[^" >]+"?[^>]*>Get started</a>' | sed -nE 's/.*href="?([^" >]+).*/\1/p' | head -n 1)
+  case "$cta" in /*) target=$cta ;; *) target=/v1.0/$cta ;; esac
+  if [ "$target" = /v1.0/docs/start/ ] && [ -f "$P/docs/start/index.html" ]; then
+    ok "landing" "Get started leads to /v1.0/docs/start/ (href $cta)"
+  else bad "landing" "Get started leads to ${target:-nothing}, not /v1.0/docs/start/"; fi
+
   # Markdown outputs (Copy page): links point into the version, figures show
   # their title, and no shortcode is left outside a code fence.
   mdbad=$(find "$OUT/$name/site/public" -name '*.md' | sort | while IFS= read -r m; do

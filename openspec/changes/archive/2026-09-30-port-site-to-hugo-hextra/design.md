@@ -256,6 +256,8 @@ With those, `task hugo:qa` passes: two figure pages (9.5 px minimum text), four 
 - **Test copies.** `test-site.sh` copies the site from an allow-list (the Hugo directories and the top-level files), so Astro output an old checkout left behind is never copied.
 - **Known difference, not in this change.** The prev/next pager is section-local (Hextra's `PrevInSection`/`NextInSection`), where Starlight followed the whole sidebar.
 
+**Owner review (PR 2, 2026-09-30).** The landing's "Get started" button now leads to the Start here section (`docs/start/`, relative to the version's home, so `/v1.0/docs/start/`) instead of the docs root, and `test-site` asserts that target.
+
 ### 16. Repo documents at cutover
 
 - `README.md`: stack, architecture, prerequisites, quick start (`task serve` on http://127.0.0.1:1313/, output `site/public/`), tree, tasks. It gains a `## Contributing` section: Preview, Page dialect (points at the workspace `STYLE.md` "Site Pages" and `task lint:sources`) and Adding a figure (the recipe C updates).
