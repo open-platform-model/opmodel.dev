@@ -10,10 +10,19 @@
    from the actions to the two columns. */
 .opm-hero-main { display: grid; gap: 2.5rem 3rem; margin-bottom: 3.5rem; }
 .opm-hero-text .opm-hero-actions { margin-bottom: 0; }
-@media (min-width: 64rem) {
-  .opm-hero-main { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: center; }
-}
 .opm-hero-figure .opm-fig { margin: 0 auto; }
+/* In two columns the figure is portrait, so its drawing is capped at 36rem
+   high (its width follows the viewBox) and the text sits at the top beside
+   it: the feature cards then start inside a 900 px-high window at 1280 px
+   wide (shots.py checks it). 36rem keeps ModuleToCluster's smallest label
+   at about 9.3 px; do not go below 35rem. On a phone the figure keeps the
+   full column width. */
+@media (min-width: 64rem) {
+  .opm-hero { padding-top: 0.5rem; }
+  .opm-hero-main { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; margin-bottom: 2.5rem; }
+  .opm-hero-figure .opm-fig svg { height: 36rem; width: auto; max-width: 100%; margin-inline: auto; }
+  .opm-hero-figure .opm-fig figcaption { text-align: center; }
+}
 
 /* Quieter feature cards: a smaller title and icon, the text in the body
    grey. Their glow gradients are gone from content/_index.md. */
