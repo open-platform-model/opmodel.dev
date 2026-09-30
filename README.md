@@ -111,7 +111,7 @@ task generate          # Generate the schema JSON and the CLI reference
 - [x] Build checks: drift guard, lint, front matter, links, page set, stray files, reserved sections, planning comments, supply chain, redirects, git dates
 - [x] Per-version Pagefind search in Hextra's palette; `/latest/` and root redirects
 - [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
-- [ ] Figures other than "From module to running objects" (they show a "Figure pending" note)
+- [x] All six figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] `docgen schema` and `docgen cli` implementations, and pages generated from their output
 - [ ] Versions built from release tags
 - [ ] CI and deployment
@@ -130,12 +130,27 @@ The site-owned pages in `site/content/` are not linted, but the build checks the
 
 ### Adding a figure
 
-A figure is inline SVG drawn by hand in the site engine.
+A figure is inline SVG drawn by hand in the site engine. It is two files:
 
-1. Draw the SVG body in `site/layouts/_partials/opm/figures/<name>.html` on its viewBox grid, with the `opm-fig` classes in `site/assets/css/opm/figures.css`. Reference the arrowhead as `marker-end="url(#<id>-arrow)"`.
-2. In `site/layouts/_shortcodes/opm/<name>.html`, render it through `partial "opm/figure.html"` with `id`, `title`, `claim` (the caption, which is also the SVG's accessible label), `width`, `height` and `body`.
-3. Pages use it as `{{< opm/<name> >}}` on a line of its own. The six figure names are part of the page dialect: a new name is a change to the workspace dialect contract and the lint first.
-4. Run `task shots` and read the PNGs: light, dark, both theme and OS mismatches, and phone width. The run fails when any figure text drops below 9 px on a phone.
+1. The shortcode `site/layouts/_shortcodes/opm/<name>.html` renders the frame, `partial "opm/figure.html"`, with a dict of `id`, `title`, `claim`, `width`, `height` and `body`.
+   - `id` is three letters, unique among the figures. The frame names the arrowhead marker `<id>-arrow` after it.
+   - `width` is 360: every figure is drawn on a grid 360 units wide. `height` is the figure's own.
+   - `claim` states the figure's one point. The frame prints it both as the caption and as the SVG's accessible label, so it must make sense to a reader who cannot see the drawing.
+   - `body` is the body partial below, rendered with `partial`.
+2. The body `site/layouts/_partials/opm/figures/<name>.html` holds the SVG elements, drawn with the `opm-fig` classes in `site/assets/css/opm/figures.css`. Reference the arrowhead as `marker-end="url(#<id>-arrow)"`, and write comments as Go template comments (`{{/* ... */}}`). A body is one of two kinds:
+   - static: the elements written out, as in `helm-and-opm.html`;
+   - data-driven: a `range` over a `slice` of `dict` values, one per row, with the coordinates computed in `add`, `mul` and `div` on integers, as in `component-to-objects.html`. `div` truncates, and `len` counts bytes, not characters, so size a box around non-ASCII text by hand.
+
+Every figure keeps these rules:
+
+- Colours come only from the `--opm-fig-*` tokens in `figures.css`. A `.opm-fig` rule never names a raw colour, a Hextra colour or `prefers-color-scheme`; raw values appear only where the tokens are defined. The tokens are set again under `html.dark`, so a figure follows the site's theme toggle, not the OS.
+- One colour per role: blue for the module author (`author`), green for the deployer (`deployer`), orange for the platform team (`team`). Published and Kubernetes things stay neutral (`neutral`, `obj`). A new class gets its rule in `figures.css`, on the tokens.
+- No text is under 10 px on the grid, so it stays at 9 px or more on a 390 px phone. `task shots` fails below 9 px.
+- A page shows a figure at most once, because the arrowhead marker id is per figure.
+
+A new figure name is a change to the page dialect. Add it to the workspace dialect contract first, then in the same change to `FIGURES` in `site/scripts/lint-sources.sh` (which stays byte-identical to the contract) and to the list of figure names in the workspace `STYLE.md` ("Site Pages"). Add its title to `site/layouts/_partials/opm/figure-titles.html`, which the Markdown outputs print where the page draws the figure. Pages then use it as `{{< opm/<name> >}}` on a line of its own.
+
+To check a figure, run `task qa` and read its PNGs in `site/.shots/<page>/` in all six variants: light, dark, both theme and OS mismatches, and phone light and dark.
 
 See the main [OPM documentation](https://github.com/open-platform-model) for general contribution guidelines.
 

@@ -95,14 +95,14 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
 
 ## 3. The data-driven figures, the stub removed, and the recipe
 
-- [ ] 3.1 Port ComponentToObjects (design.md Decisions 3 and 8):
+- [x] 3.1 Port ComponentToObjects (design.md Decisions 3 and 8):
   - `site/layouts/_partials/opm/figures/component-to-objects.html` has the static part verbatim, its two comments as Go template comments, and the four rows as a `slice` of `dict` in a `range`, with the arithmetic from design.md;
   - on the trimmed branch only, line 32's space is written `Component&#160;<tspan class="mono">web</tspan>`, noted for `deviations`;
   - replace the stub in `site/layouts/_shortcodes/opm/component-to-objects.html` with the frame call (id `cto`, title `How a component becomes objects`, 360 x 496).
-- [ ] 3.2 Port ThreeWaysToDeploy the same way:
+- [x] 3.2 Port ThreeWaysToDeploy the same way:
   - `site/layouts/_partials/opm/figures/three-ways-to-deploy.html` has three rows of `start`, `by` and `rec` slices, and a nested `range $j, $line := after 1 $row.start`;
   - replace the stub in `site/layouts/_shortcodes/opm/three-ways-to-deploy.html` with the frame call (id `ttd`, title `Three ways to deploy`, 360 x 232).
-- [ ] 3.3 Fidelity against the design.md coordinate table, and against the Astro pages if they were copied:
+- [x] 3.3 Fidelity against the design.md coordinate table, and against the Astro pages if they were copied:
   - `How a component becomes objects` draws 53 elements, on `/v1.0/docs/start/` and on `/v1.0/docs/start/what-is-opm/`;
   - its title `<text>`, the one holding `<tspan class="mono">web</tspan>`, has the text content `Component web`, with U+00A0 as the space on the trimmed branch, never `Componentweb`;
   - `Three ways to deploy` draws 37;
@@ -110,15 +110,15 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
   - text compared byte-exactly (Conventions);
   - no coordinate carries a decimal point;
   - each `aria-label` equals its `figcaption`.
-- [ ] 3.4 Remove the stub (design.md Decision 6):
+- [x] 3.4 Remove the stub (design.md Decision 6):
   - delete the stub's own leftovers, if A made any: a stub-only partial, a stub-only i18n key, a stub-only CSS rule;
   - verify that `grep -rn 'Figure pending' <wt>/site` prints nothing;
   - if a file under `site/tests/` or `site/scripts/` still names the stub, 1.1 missed it: edit nothing, report it under `deviations`, and wait.
-- [ ] 3.5 Land the durable decision. In `<wt>/README.md`, rewrite the part "Adding a figure" of `## Contributing` with every point of design.md "Durable decisions". Write the `&#160;` point only on the trimmed branch.
+- [x] 3.5 Land the durable decision. In `<wt>/README.md`, rewrite the part "Adding a figure" of `## Contributing` with every point of design.md "Durable decisions". Write the `&#160;` point only on the trimmed branch.
   - If A put the part elsewhere, find it with `grep -rln -i -e 'Adding a figure' -e 'figure recipe' -e 'opm/figure.html' <wt> --include=*.md --exclude-dir=openspec --exclude-dir=themes`, and name the file under `deviations`.
   - Verify: the part names both body kinds, the token rule, the 10 px minimum, one figure per page, and the dialect step for a new name.
   - A repo doc shows a shortcode plainly. Only a page that Hugo renders needs the escaped form `{{</* opm/<name> */>}}` (trap 13).
-- [ ] 3.6 Screenshots. Read the six PNGs each of Start here figures `3-*` (ComponentToObjects) and `5-*` (ThreeWaysToDeploy), and What OPM is figure `3-*` (ComponentToObjects). Check:
+- [x] 3.6 Screenshots. Read the six PNGs each of Start here figures `3-*` (ComponentToObjects) and `5-*` (ThreeWaysToDeploy), and What OPM is figure `3-*` (ComponentToObjects). Check:
   - the red `no match` text and the red `✗` requirement;
   - the dashed `nothing` box;
   - the tool boxes and the owner lines of the three rows;
@@ -129,7 +129,7 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
   Also check that the search smoke test in `task qa` passes. Then check that every earlier figure is unchanged against `<scratch>/shots-s1` and `<scratch>/shots-s2`:
   - on Start here, ModuleToCluster (`1-*`) and RolesAndArtifacts (`2-*`) keep their numbers, and WhereThingsLive moves from `3-*` in `shots-s2` to `4-*` now;
   - on What OPM is, HelmAndOpm (`1-*`) and ModuleToCluster (`2-*`) keep theirs.
-- [ ] 3.7 The gates green, PNGs read, then commit `feat(site): port the component-to-objects and three-ways-to-deploy figures`. Stage:
+- [x] 3.7 The gates green, PNGs read, then commit `feat(site): port the component-to-objects and three-ways-to-deploy figures`. Stage:
   - `site/layouts/_partials/opm/figures/component-to-objects.html` and `site/layouts/_partials/opm/figures/three-ways-to-deploy.html`;
   - `site/layouts/_shortcodes/opm/component-to-objects.html` and `site/layouts/_shortcodes/opm/three-ways-to-deploy.html`;
   - `site/assets/css/opm/figures.css` if it changed;
