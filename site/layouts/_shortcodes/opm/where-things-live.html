@@ -1,5 +1,5 @@
-{{- /* Figure pending: Where things live. Its port draws the SVG of the Astro site's
-       WhereThingsLive.astro (site/src/components/diagrams/, in git history) in
-       _partials/opm/figures/where-things-live.html, through _partials/opm/figure.html as
-       module-to-cluster.html does. Until then the page shows this stub. */ -}}
-{{- partial "components/github-style-alert.html" (dict "content" ("<p>The figure <em>Where things live</em> is being redrawn for this site.</p>" | safeHTML) "alertType" "note" "alertTitle" "Figure pending") -}}
+{{- /* Figure: where things live (Start here overview).
+       Port of the Astro site's WhereThingsLive.astro; the SVG body is verbatim in
+       _partials/opm/figures/where-things-live.html. */ -}}
+{{- $claim := `OPM keeps things in three places: a registry, your machine and the cluster. Every command moves one thing between two of them. opm module init copies a template, and opm module publish uploads your module. opm instance init writes an instance of a published module, and opm instance apply deploys it. opm platform pull copies the cluster’s platform to your machine. The OPM operator fetches from the registry on its own.` -}}
+{{- partial "opm/figure.html" (dict "id" "wtl" "title" "Where things live" "claim" $claim "width" 360 "height" 492 "body" (partial "opm/figures/where-things-live.html" .)) -}}

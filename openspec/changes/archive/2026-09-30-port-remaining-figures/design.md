@@ -246,9 +246,30 @@ Totals: `cto` draws 53 elements and `ttd` draws 37.
 - A3: The smallest rendered text stays at 9 px or more at 390 px. This is predicted above; `task shots` measures it.
 - A4: No label outgrows its box in the Hugo site's fonts.
 
-**Explored**: Pending section 1.
-**Decision**: Pending section 1.
-**Rationale**: Pending section 1.
+**Explored**: Section 1 ported HelmAndOpm on A's branch head (2d70215), built it with `OPM_SRC_WORKTREE=site-src`, and ran `task ci` and `task qa`:
+- A1: every class the five bodies use, static and computed (`author` ... `zone-label`, `obj`, `none`, `nomatch`, `req miss`, `sub mono`), already has a `.opm-fig` rule in A's `figures.css`. A carries every rule of `figure.css` at `2207ba1`, plus `.tool text.mono` and `.pill`. Every colour in a `.opm-fig` rule is a `--opm-fig-*` token, a `--role-*` variable, a `color-mix` of those, `currentColor` or `none`; `figures.css` has no `prefers-color-scheme`, `--sl-*` or raw colour outside the `:root` and `html.dark` blocks.
+- A2: the built `Helm and OPM` figure on `/v1.0/docs/start/what-is-opm/` has the same 65 drawn elements as the `2207ba1` body and as the Astro-built page (tag, attributes and text chunks, compared byte-exactly). Its claim equals Astro's, `aria-label` equals the `figcaption`, the marker is `hao-arrow`, and no `<!--` is inside the figure. Decision 8: A's `hugo.toml` sets `disableSVG = true` under `[minify]`, and the baseline build reads `component <tspan`: the kept branch. HelmAndOpm reads `component <tspan class="mono">web</tspan>` with an ASCII space; no `&#160;` is used, and ModuleToCluster keeps its space too.
+- A3: `task shots` reports 9.5 px as the smallest text at a 390 px viewport, for HelmAndOpm and ModuleToCluster alike.
+- A4: in all six variants no label crosses its box (`stateless workload`, `Deployment transformer`, `helm upgrade`, `--install`). Two font effects, neither a defect: at phone width the two hyphens of `--install` touch, because Geist Mono's hyphen is wide at about 10 px (at desktop width they stand apart, so it is not a ligature), and Geist's word space makes `component web` tighter than Astro's font did, as in ModuleToCluster.
+- ModuleToCluster on `/v1.0/docs/start/` is byte-identical to the baseline. On What OPM is it moved from `1-*` to `2-*` and differs only by a one-pixel vertical offset.
+
+**Decision**: The method holds as planned. No CSS rule or token is added, no geometry changes, and no `&#160;` is written: the other four figures are copied (or computed) as design.md describes, on the kept branch.
+**Rationale**: The measured build matches the oracle element for element, and the screenshots show the Astro drawing in the Hextra palette, following the site toggle.
+
+### Deviations after section 3 (supervisor ruling, 2026-09-30)
+
+**Context**: Section 3's verify found four things outside the planned Touches. The Markdown outputs (Copy page) named `component-to-objects` "Component to Kubernetes objects", the section 4 display name in A's `_partials/opm/figure-titles.html`, while the page draws it as "How a component becomes objects" (Decision 1). The README status list still said the figures "show a 'Figure pending' note". Two comments in A's test files still described stubs. And two labels sit tight in Geist Mono.
+**Explored**: The fixture's start page calls all six shortcodes once. Its drawn `<title>`s and its `.md` output's `_Figure: ..._` lines differed only for `component-to-objects`; the other five entries already matched their shortcodes' `title`.
+**Decision**: The supervisor approved these edits outside C's Touches:
+- `README.md`, "Implementation Status": the unchecked figures line becomes checked ("All six figures of the page dialect ...").
+- `site/layouts/_partials/opm/figure-titles.html` (A's): every entry equals the title its shortcode draws; `component-to-objects` becomes "How a component becomes objects".
+- `site/scripts/test-site.sh` (A's): a `markdown/figure-titles` assertion compares the fixture start page's drawn figure titles with its `.md` output's `_Figure:` lines, in page order, and requires six. It failed on the old entry before the fix. The comment above `dialect/shortcodes` no longer describes stubs (comment only; the count still takes an alert in a figure's place as one of the six).
+- `site/tests/browser/a11y.py` (A's): the `/docs/start/` comment says "five figures" (comment only).
+
+Two notes, with no change (supervisor ruling):
+- Geist Mono is wider than the Astro site's mono. `instance apply` (the `sub mono` line of the first three-ways-to-deploy row) clears its tool box's stroke by 1 px at desktop width (Astro: 5 px), and at phone width the two hyphens of `--install` touch. Neither crosses its box, and neither is a ligature.
+- `.opm-fig .tool text.mono { font-size: 11px }` in `figures.css` has no effect today: `.tool text.sub`, later in the file, sets the one `sub mono` line to 10.5 px. If that line lost its `sub` class, it would render at 11 px and overflow its 92-unit box (92.4 units).
+**Rationale**: A reader who copies a page as Markdown should meet the figure under the name the page shows, and the assertion keeps the two lists from drifting again. The rest keeps prose and comments true now that no stub is left.
 
 ## Risks / Trade-offs
 
