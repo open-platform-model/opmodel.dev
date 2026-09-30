@@ -5,7 +5,9 @@ Every page of the default version that draws a figure (a <figure> holding an
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page and the open search palette) get a
-viewport shot per variant, into site/.shots/<page>/page-<variant>.png.
+viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
+shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 site/.shots/ is replaced on every run.
 
 The variants: light and dark at desktop width, the two cases where the site's
@@ -37,6 +39,15 @@ VARIANTS = [
 ]
 
 FIGURES = 'figure:has(svg[role="img"])'
+
+# Viewport shots at a size of their own, one entry each, in light and dark,
+# into site/.shots/<page>/<name>-<theme>.png:
+#   (url under the version, name, width, height, phone)
+SIZED_EXTRAS = [
+    # Between 48rem and 80rem the rail is hidden and the current page's h2
+    # list sits under its sidebar entry.
+    ("/docs/start/quickstart/", "tablet", 1024, 768, False),
+]
 
 # Sticky and fixed elements (the navbar) would cover the top of a tall figure
 # in an element screenshot. They are hidden, not made static: a static copy
@@ -70,6 +81,22 @@ def figure_pages(version):
         if "<figure" in text and "role=img" in text.replace('"', ""):
             pages.append("/" + html.parent.relative_to(PUBLIC).as_posix() + "/")
     return pages
+
+
+def shoot_sized_extras(browser, base, version, errors):
+    """The SIZED_EXTRAS entries, each in light and dark."""
+    for path, name, width, height, phone in SIZED_EXTRAS:
+        url = f"/{version}{path}"
+        folder = OUT / slug(url)
+        folder.mkdir(parents=True, exist_ok=True)
+        for theme in ("light", "dark"):
+            page = new_page(browser, width, theme, theme, phone)
+            page.set_viewport_size({"width": width, "height": height})
+            page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
+            page.goto(base + url, wait_until="networkidle")
+            page.screenshot(path=str(folder / f"{name}-{theme}.png"))
+            page.context.close()
+        print(f"{url}: {name} {width}x{height} x 2 themes -> .shots/{slug(url)}/")
 
 
 def main():
@@ -125,6 +152,7 @@ def main():
                 page.screenshot(path=str(OUT / name / f"page-{variant}.png"))
                 page.context.close()
             print(f"{url}: {what} x {len(VARIANTS)} variants -> .shots/{name}/")
+        shoot_sized_extras(browser, base, version, errors)
         browser.close()
     for e in errors:
         print(f"page error: {e}")

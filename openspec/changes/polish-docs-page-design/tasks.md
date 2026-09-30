@@ -50,11 +50,11 @@ Never build without `OPM_SRC_WORKTREE=site-src`. If you need `task serve` or `ta
 
 ## 2. Table of contents: a visible active item, and headings from 768 px (fix 3)
 
-- [ ] 2.1 In `assets/css/opm/toc.css`, add the right-rail rules: a reserved bar on every link, and weight plus a `gray-900`/`gray-100` inset bar on `a.hextra-toc-active` (Decision 4). Create the file if SP1 found it missing.
-- [ ] 2.2 In `assets/css/opm/toc.css`, add the `48rem`-`79.99rem` rule that shows `.opm-sb .opm-sb-sub.opm-sb-toc` (Decision 4). If SP5 found A's sidebar rules in a file that sorts after `toc.css`, raise the selector's specificity instead of renaming A's file.
-- [ ] 2.3 In `site/tests/browser/`, add a shot extra at 1024 x 768 of `/v1.0/docs/start/quickstart/` (only if A's extras lack one), as its own entry. Verify: qa writes it.
-- [ ] 2.4 In `README.md` under `## Page design`, record the TOC half of durable decision 2: the right rail from 80 rem, the page's h2 list under its sidebar entry below that.
-- [ ] 2.5 Run ci and qa; both must be green. Read the PNGs:
+- [x] 2.1 In `assets/css/opm/toc.css`, add the right-rail rules: a reserved bar on every link, and weight plus a `gray-900`/`gray-100` inset bar on `a.hextra-toc-active` (Decision 4). Create the file if SP1 found it missing.
+- [x] 2.2 In `assets/css/opm/toc.css`, add the `48rem`-`79.99rem` rule that shows `.opm-sb .opm-sb-sub.opm-sb-toc` (Decision 4). If SP5 found A's sidebar rules in a file that sorts after `toc.css`, raise the selector's specificity instead of renaming A's file.
+- [x] 2.3 In `site/tests/browser/`, add a shot extra at 1024 x 768 of `/v1.0/docs/start/quickstart/` (only if A's extras lack one), as its own entry. Verify: qa writes it.
+- [x] 2.4 In `README.md` under `## Page design`, record the TOC half of durable decision 2: the right rail from 80 rem, the page's h2 list under its sidebar entry below that.
+- [x] 2.5 Run ci and qa; both must be green. Read the PNGs:
   - the 1440 px quickstart shots show the rail with one item bold and barred, in light and dark;
   - the 1024 px shot shows the quickstart's h2 list under its sidebar entry, and no right rail;
   - the phone shots match the before set (Gates, compare), apart from section 1's changes when the before set predates section 1.
