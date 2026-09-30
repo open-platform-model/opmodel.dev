@@ -108,7 +108,7 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 
 - **Stack.** Hugo + Hextra v0.13.0, neutral skin, chosen 2026-09-30; the evidence is in the workspace `research/docs-site-stacks/hugo-themes/`.
 - **URL layout.** Every version lives under `/<version>/`. `/latest/` is the default version and `/` goes to `/latest/` (`public/_redirects`, plus meta-refresh stubs for hosts that ignore it). `/reference-archive/` is reserved. Nothing globs `v*/` or "every top-level directory": the version list is explicit. Today there is one version, `v1.0` (beta), built from each source repo's current checkout.
-- **Reserved sections.** `docs/reference/cli/` and `docs/reference/definitions/` are site-owned: no source page may publish there (the build fails), and generated content goes to `site/.gen/<version>/`.
+- **Reserved sections.** `docs/reference/cli/` and `docs/reference/definitions/` are site-owned: no source page may publish there (the build fails), and generated content goes to `site/.gen/<version>/`, which the build mounts per version. For now `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`.
 
 ## Entrypoint
 
@@ -155,7 +155,7 @@ Read these on entry:
 
 ## Environment Notes
 
-- **Go**: `1.22+` for the `docgen` tool.
+- **Go**: 1.25+ (see `go.mod`) for the `docgen` tool.
 - **Docker**: builds and runs the site's images; Hugo, Pagefind and the browsers live only there.
 - **Source repositories**: the build reads `<repo>/docs/site/` from `OPM_WS` (default: the parent of the main checkout, found through git, so it is right inside a worktree). `OPM_SRC_WORKTREE=<name>` reads `<repo>/.claude/worktrees/<name>` instead, and `OPM_SRC_<REPO>` (`OPM_SRC_CATALOG_OPM`, `OPM_SRC_OPM_OPERATOR`, ...) points at one repo. Every root is checked before a container starts. Each root is mounted read-only at `/src/<repo>`, the repo at `/work/repo`.
 - **Git dates** come from `git log` inside the container. A worktree's `.git` file points at a host path the container does not mount, so a build from worktrees has no dates; `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
@@ -191,7 +191,7 @@ Read these on entry:
 
 ### Technology stack
 
-- **docgen**: Go 1.22+, `cuelang.org/go` (native CUE eval), `cobra` + `cobra/doc` (CLI ref).
+- **docgen**: Go 1.25+ (see `go.mod`), `cuelang.org/go` (native CUE eval), `cobra` + `cobra/doc` (CLI ref).
 - **Site**: Hugo 0.167.0 (static, non-extended), Hextra v0.13.0 (vendored, neutral skin), Pagefind 1.5.2 per version; built in Docker from Alpine, every download SHA-256-checked. QA: Playwright for Python 1.63.0 and axe-core 4.10.3.
 - **CUE Go APIs used**: `load.Instances()`, `Value.Doc()`, `Value.Fields()`, `Value.Default()`, `Value.IncompleteKind()`, `Value.Expr()`.
 
@@ -199,7 +199,7 @@ Read these on entry:
 
 - **CUE doc extraction**: load modules via `load.Instances()` → walk defs with `Value.Fields(cue.Definitions(true))` → extract doc comments → resolve cross-refs (e.g. Trait `appliesTo` Resources) → output structured JSON per module.
 - **CLI doc generation**: import CLI root as Go dep → `cobra/doc.GenMarkdownTreeCustom()` with a Hugo front matter prepender → one markdown file per command.
-- **Site content generation**: `docgen` outputs JSON to `site/data/schema/` + markdown for the CLI reference; turning the JSON into pages (a Hugo content adapter) is not built yet. Generated pages go to `site/.gen/<version>/`, which the build mounts per version.
+- **Site content generation**: `docgen` outputs JSON to `site/data/schema/` + markdown for the CLI reference; turning the JSON into pages (a Hugo content adapter) is not built yet. Generated pages go to `site/.gen/<version>/`, which the build mounts per version; `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`.
 - **Styles**: one CSS file per owner under `site/assets/css/opm/`, concatenated in lexical file-name order into one fingerprinted stylesheet; add a file, there is no list to edit. Use Hextra's CSS variables and key dark mode on `html.dark`.
 - **Theme changes**: prefer Hextra's built-ins and hooks (`_partials/custom/*`) over override copies; an override copy is pinned in `site/overrides.sha256`.
 - **Order**: `weight`, then title, in the sidebar, the section child lists and the pager.
@@ -223,7 +223,7 @@ Rationale: `[x]`/`[ ]` are 3 ASCII chars wide, easy table alignment. `OK`/`FAIL`
 ## Working Style for Agents
 
 - Update the Repository Layout tree above when adding new packages/directories.
-- Don't edit generated content (`site/data/schema/*`, `site/content/docs/reference/cli/opm*.md`) — regenerate via `task generate`.
+- Don't edit generated content (`site/data/schema/*`, and `site/content/docs/reference/cli/opm*.md` until the generated-reference change moves the CLI pages to `site/.gen/<version>/`) — regenerate via `task generate`.
 - Schema source lives upstream in `core/` (and `catalog/`); CLI command source lives in `cli/`. Doc bugs that trace to source — fix upstream, not by patching generated output. A page's prose lives in the repo whose change would make it wrong: fix it there, not here.
 - Personas to keep in mind when writing docs: **Module Author** (writes CUE defs, primary audience for ref docs), **Platform Operator** (deploys modules, needs deployment guides + CLI ref), **End-user** (consumes modules, needs getting started + conceptual guides), **Contributor** (extends OPM, needs architecture + design docs).
 - For OPM-specific terms, link to the [canonical glossary in opm/](https://github.com/open-platform-model/opm/blob/main/docs/legacy/glossary.md) — don't duplicate definitions here.

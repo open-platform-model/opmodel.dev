@@ -113,11 +113,11 @@ defaultContentVersionInSubdir = true
 [menus]
   [[menus.main]]
     name = 'Docs'
-    pageRef = '/docs'
+    pageRef = 'docs'
     weight = 1
   [[menus.main]]
     name = 'Reference'
-    pageRef = '/docs/reference'
+    pageRef = 'docs/reference'
     weight = 2
   [[menus.main]]
     name = 'Search'

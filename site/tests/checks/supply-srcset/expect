@@ -1,0 +1,4 @@
++ SUPPLY FAIL: pages load from another host:
++ srcset=https://images.example.net/mark-2x.svg
++ poster=https://media.example.net/poster.png
++ url(https://img.example.net/bg.png

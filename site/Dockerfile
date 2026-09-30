@@ -4,9 +4,9 @@
 # is vendored as files, not a Hugo module). Every download is checked against
 # a pinned SHA-256, and the base image is pinned by digest.
 #
-# Built with no context (`docker build -t <tag> - < site/Dockerfile.hugo`), so
-# it COPYs nothing from the repo. The tag is opmodel-dev-hugo:<first 12 hex of
-# the sha256 of this file> (site/scripts/run-in-image.sh image).
+# Built with no context (`docker build -t <tag> - < site/Dockerfile`), so it
+# COPYs nothing from the repo. The tag is opmodel-dev-hugo:<first 12 hex of the
+# sha256 of this file> (site/scripts/run-in-image.sh image, task image).
 ARG ALPINE=alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
 FROM ${ALPINE} AS fetch

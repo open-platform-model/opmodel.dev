@@ -3,7 +3,7 @@
 Every page of the default version that draws a figure (a <figure> holding an
 <svg role="img">) gets each drawn figure shot in six variants, into
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
-page order (a "Figure pending" stub takes no number). The extras (the
+page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page and the open search palette) get a
 viewport shot per variant, into site/.shots/<page>/page-<variant>.png.
 site/.shots/ is replaced on every run.

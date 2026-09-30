@@ -70,7 +70,7 @@ Documentation site implementation status and roadmap.
   - [ ] Create Hugo front matter prepender function (title, description, type, weight)
   - [ ] Create link handler for cross-references
   - [ ] Call `cobra/doc.GenMarkdownTreeCustom()`
-  - [ ] Output to `site/.gen/<version>/docs/reference/cli/` (mounted per version)
+  - [ ] Output to `site/.gen/<version>/docs/reference/cli/` (mounted per version); today `task generate:cli` still writes to `site/content/docs/reference/cli/`
 
 #### Testing
 - [ ] Unit test for front matter generation
@@ -95,7 +95,7 @@ Documentation site implementation status and roadmap.
 
 - [ ] `task build:docgen` succeeds
 - [ ] `task generate:schema` produces JSON files in `site/data/schema/`
-- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/`
+- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/` (moving to `site/.gen/<version>/` with the generated-reference change)
 - [x] `task build` produces the complete site in `site/public/`
 - [x] Manual verification: `task preview`, browse http://127.0.0.1:1313/
 

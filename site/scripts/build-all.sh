@@ -46,10 +46,6 @@ sh "$SCRIPTS/check-pages.sh" pre $VERSIONS
 step "hugo build ($(hugo version | cut -d' ' -f1-2))"
 hugo build --gc --cleanDestinationDir --panicOnWarning --logLevel warn
 
-step "page set, stray files, sidebar order"
-# shellcheck disable=SC2086
-sh "$SCRIPTS/check-pages.sh" post $VERSIONS
-
 step "root files and search, per version"
 [ -f "public/$DEFAULT/404.html" ] || fail "ROOT FAIL: public/$DEFAULT/404.html was not built"
 printf '/ /latest/ 302\n/latest/* /%s/:splat 302\n' "$DEFAULT" > public/_redirects
@@ -64,6 +60,10 @@ for pair in $VERSIONS; do
   printf '%s: pagefind %s pages, %s\n' "$v" "$(find "public/$v/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "public/$v/pagefind" | cut -f1)"
 done
 
+step "page set, stray files, sidebar order, links"
+# shellcheck disable=SC2086
+sh "$SCRIPTS/check-pages.sh" post $VERSIONS
+
 step "output guards"
 # Check 12: the redirect files and root files are present.
 for f in _redirects index.html 404.html robots.txt latest/index.html build-stamp.json; do
@@ -76,19 +76,46 @@ raw=$(find public -name '*.html' -exec grep -l -e '<p>:::' -e '^:::' {} + || tru
 [ -z "$raw" ] || fail "DIALECT FAIL: literal ':::' published in:
 $(echo "$raw" | sed 's/^/  /')"
 echo "dialect: no raw ':::' in public/"
-# Check 10: planning comments (<!-- ... -->) reach no published text.
+# Check 10: planning comments (<!-- ... -->) reach no published text, not as a
+# comment and not as visible text: a brief that Markdown escaped (a table cell
+# holding "|", an indented or blank-line-split brief) shows up as &lt;!-- or
+# --&gt;, or, once the typographer has turned "--" into a dash, as &lt;!&ndash;.
 leak=$(find public \( -name '*.html' -o -name '*.txt' -o -name '*.md' -o -name '*.xml' -o -name '*.json' \) -exec grep -l -e '<!--' {} + || true)
-[ -z "$leak" ] || fail "COMMENT FAIL: an HTML comment reached:
-$(echo "$leak" | sed 's/^/  /')"
-echo "comments: no HTML comment in any published text"
-# Check 11: nothing is fetched from a third party at run time.
-ext=$(find public -name '*.html' -exec grep -hoE '<(script|link|img|iframe|source)[^>]+(src|href)="?(https?:)?//[^" >]+' {} + | grep -vE 'rel="?canonical|(src|href)="?https://(opmodel\.dev|github\.com)' | sort -u || true)
-[ -z "$ext" ] || fail "SUPPLY FAIL: pages load third-party URLs:
-$(echo "$ext" | sed 's/^/  /')"
+shown=$(find public -name '*.html' -exec grep -lE -e '&lt;!(--|&ndash;|&mdash;)' -e '(--|&ndash;|&mdash;)&gt;' {} + || true)
+[ -z "$leak$shown" ] || fail "COMMENT FAIL: a planning comment reached:
+$(printf '%s\n%s\n' "$leak" "$shown" | sed '/^$/d; s/^/  /')"
+echo "comments: no HTML comment in any published text, escaped or not"
+# Check 11: nothing is loaded from another host at run time. Every URL a tag
+# loads (src, srcset, poster, data, xlink:href, and href on a link other than
+# rel=canonical or rel=alternate) must be relative or https://opmodel.dev/; so
+# must every CSS url() and @import, in *.css and in the pages. A plain <a href>
+# loads nothing and may point anywhere.
+ext=$(find public -name '*.html' | sort | while IFS= read -r f; do
+  tr '\n' ' ' < "$f" | grep -oiE '<(script|link|img|iframe|source|video|audio|embed|object|track|image)([ \t][^>]*)?>' |
+    awk -v F="${f#public/}" '
+      {
+        low = tolower($0)
+        if (low ~ /^<link/ && low ~ /[ \t]rel="?(canonical|alternate)[" \t>]/) next
+        s = $0
+        while (match(s, /[ \t](srcset|src|href|poster|data|xlink:href)=("[^"]*"|[^ \t">]+)/)) {
+          a = substr(s, RSTART + 1, RLENGTH - 1); s = substr(s, RSTART + RLENGTH)
+          name = a; sub(/=.*/, "", name); v = a; sub(/^[^=]*=/, "", v); gsub(/"/, "", v)
+          n = (tolower(name) == "srcset") ? split(v, parts, ",") : split(v, parts, "\n")
+          for (i = 1; i <= n; i++) {
+            u = parts[i]; sub(/^[ \t]+/, "", u); sub(/[ \t].*$/, "", u)
+            if (u ~ /^(https?:)?\/\// && u !~ /^https:\/\/opmodel\.dev\//) print "  " F ": " name "=" u
+          }
+        }
+      }'
+done | sort -u)
+css=$(find public \( -name '*.css' -o -name '*.html' \) -exec grep -oiE '(url\([ \t]*"?|@import[ \t]+"?)(https?:)?//[^")[:space:];]+' {} + |
+  grep -viE '(url\([ \t]*"?|@import[ \t]+"?)https://opmodel\.dev/' | sed 's#^public/#  #' | sort -u || true)
+[ -z "$ext$css" ] || fail "SUPPLY FAIL: pages load from another host:
+$(printf '%s\n%s\n' "$ext" "$css" | sed '/^$/d')"
 cdn=$(find public \( -name '*.html' -o -name '*.js' -o -name '*.css' \) -exec grep -lE 'cdn\.jsdelivr|unpkg\.com|cdnjs|googleapis|gstatic' {} + || true)
 [ -z "$cdn" ] || fail "SUPPLY FAIL: CDN reference in:
 $(echo "$cdn" | sed 's/^/  /')"
-echo "supply: no CDN or third-party script, style or image URL"
+echo "supply: every loaded URL is relative or https://opmodel.dev/; no CDN reference"
 
 step "summary"
 for pair in $VERSIONS; do

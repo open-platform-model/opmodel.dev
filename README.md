@@ -38,7 +38,7 @@ See [RFC-0006](https://github.com/open-platform-model/cli/blob/main/docs/rfc/000
 - Docker
 - [Task](https://taskfile.dev/)
 - git
-- Go 1.22+ and the OpenSpec CLI, for `task check`
+- Go 1.25+ (see `go.mod`) and the OpenSpec CLI, for `task check`
 - The six source repositories checked out next to this one (the default), or pointed at with the variables below
 
 ## Quick Start

@@ -5,7 +5,7 @@
 # with no network (site/scripts/run-in-image.sh test). It reads only fixtures
 # under site/tests/, never a source checkout, and writes only under
 # site/.check/tests/: each case runs on its own copies of the fixture
-# workspace and of the site (site/ less its generated paths and tests/), with
+# workspace and of the site (the directories a build reads, and the top-level files), with
 # SITE_DIR pointing at the copy, so a test run never touches site/public/ or a
 # real build's generated config. Scratch files go to the container's own
 # /tmp (mktemp), never to a host path.
@@ -39,18 +39,20 @@ pass=0; fail=0
 ok() { echo "ok   $1: $2"; pass=$((pass + 1)); }
 bad() { echo "FAIL $1: $2"; fail=$((fail + 1)); [ -z "${3:-}" ] || tail -n 15 "$3" | sed 's/^/     | /'; }
 
-# copy_site CASE: site/ less its generated paths and tests/, at OUT/CASE/site.
+# copy_site CASE: the site at OUT/CASE/site: the directories a build reads and
+# the top-level files, never generated output (public/, .check/, ...), tests/
+# or anything an old checkout left behind (site/dist/, site/.astro/, site/src/).
 copy_site() {
   d=$OUT/$1/site
   mkdir -p "$d"
-  for e in "$SITE"/* "$SITE"/.[!.]*; do
-    [ -e "$e" ] || continue
-    case "${e##*/}" in
-      public|resources|.check|.shots|.versions|.gen|tests|.hugo_build.lock|node_modules) continue ;;
-    esac
-    cp -R "$e" "$d/"
+  for e in config content layouts assets static data i18n archetypes themes scripts; do
+    [ -d "$SITE/$e" ] && cp -R "$SITE/$e" "$d/"
   done
-  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm"
+  for e in "$SITE"/* "$SITE"/.[!.]*; do
+    [ -f "$e" ] && cp "$e" "$d/"
+  done
+  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock"
+  return 0
 }
 
 # copy_ws CASE: the fixture workspace at OUT/CASE/ws.
@@ -134,15 +136,24 @@ if [ $rc -eq 0 ]; then
     ok "dialect/alerts" "TIP and NOTE render as Hextra alerts with the bold title line; no [! left"
   else bad "dialect/alerts" "quickstart alerts did not render as Hextra alerts with their bold title" "$q"; fi
 
-  # Parameterless figure shortcodes: one drawn figure, five stubs, the escaped
-  # example as text, and no unexpanded shortcode anywhere.
+  # Parameterless figure shortcodes: all six render, each as a drawn figure or,
+  # while a figure is not drawn yet, as an alert in its place. Every drawn
+  # figure's svg[role=img] carries its caption as its accessible label. The
+  # escaped example shows as text, and no shortcode is left unexpanded.
   s=$P/docs/start/index.html
   raw=$(find "$P" -name '*.html' -exec grep -l '{{<' {} + 2>/dev/null)
-  if [ "$(count '<figure class="?opm-fig' "$s")" = 1 ] && [ "$(count 'role="?img"? aria-label=' "$s")" -ge 1 ] &&
-     [ "$(count 'Figure pending' "$s")" = 5 ] && [ "$(count 'The figure <em>[^<]+</em> is being redrawn' "$s")" = 5 ] &&
+  drawn=$(count '<figure class="?opm-fig' "$s")
+  inplace=$(count 'data-alert=' "$s")
+  labelled=$(tr '\n' ' ' < "$s" | sed 's#</figure>#</figure>\n#g' | awk '
+    /<figure class="?opm-fig/ && /role="?img/ {
+      l = $0; sub(/.*aria-label="/, "", l); sub(/".*/, "", l)
+      if (match($0, /<figcaption>[^<]*<\/figcaption>/) && l != "" && l == substr($0, RSTART + 12, RLENGTH - 25)) n++
+    }
+    END { print n + 0 }')
+  if [ "$drawn" -ge 1 ] && [ $((drawn + inplace)) -eq 6 ] && [ "$labelled" -eq "$drawn" ] &&
      [ "$(count '\{\{&lt; opm/helm-and-opm &gt;\}\}' "$s")" = 1 ] && [ "$(count '\{\{&lt;' "$s")" = 1 ] && [ -z "$raw" ]; then
-    ok "dialect/shortcodes" "six opm/ shortcodes render (1 figure, 5 stubs); the escaped one shows as text; no raw {{< left"
-  else bad "dialect/shortcodes" "figure shortcodes did not render as expected${raw:+ (raw {{< in: $raw)}"; fi
+    ok "dialect/shortcodes" "six opm/ shortcodes render ($drawn drawn, $inplace not drawn yet); each drawn figure is labelled by its caption; the escaped one shows as text; no raw {{< left"
+  else bad "dialect/shortcodes" "figure shortcodes did not render as expected ($drawn drawn, $inplace in place, $labelled labelled)${raw:+ (raw {{< in: $raw)}"; fi
 
   # Inline figure SVG passes the minifier byte for byte.
   if grep -q 'component <tspan' "$s"; then ok "dialect/svg-space" "the figure keeps the space before its <tspan>"
@@ -172,6 +183,20 @@ if [ $rc -eq 0 ]; then
   if [ -z "$leak" ] && grep -q 'Brief only.*: A planned page whose body is only its planning comment\.$' "$P/llms.txt"; then
     ok "comments" "no brief in any text output; llms.txt prints the description"
   else bad "comments" "a planning comment reached: ${leak:-llms.txt}" "$P/llms.txt"; fi
+
+  # Markdown outputs (Copy page): links point into the version, figures show
+  # their title, and no shortcode is left outside a code fence.
+  mdbad=$(find "$OUT/$name/site/public" -name '*.md' | sort | while IFS= read -r m; do
+    awk -v F="${m#"$OUT/$name/site/public/"}" '
+      /^ ? ? ?(```|~~~)/ { f = !f; next }
+      !f && /[{][{][<%]/ { print "  " F ": " $0 }
+      /[]][(]\/docs\// || /^ ? ? ?[[][^]]+[]]:[ \t]*\/docs\// { print "  " F ": " $0 }' "$m"
+  done)
+  if [ -z "$mdbad" ] && grep -q '^_Figure: From module to running objects_$' "$P/docs/start/index.md" &&
+     grep -qF '](https://opmodel.dev/v1.0/docs/concepts/fixture-concept/#why)' "$P/docs/start/quickstart.md"; then
+    ok "markdown" "the .md outputs link into /v1.0/, show figure titles, and hold no shortcode outside a code fence"
+  else bad "markdown" "a Markdown output still holds /docs/ links or shortcodes:
+$mdbad"; fi
 fi
 
 # ---------------------------------------------------------------------------

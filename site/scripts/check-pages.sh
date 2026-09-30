@@ -2,7 +2,8 @@
 # Page-set checks.
 #
 #   check-pages.sh pre  VERSION=ROOT [...]   before hugo build: A1, reserved prefixes
-#   check-pages.sh post VERSION=ROOT [...]   after it: A1, reserved prefixes, Q2, stray files, nav order
+#   check-pages.sh post VERSION=ROOT [...]   after the build and its root files: A1, reserved
+#                                            prefixes, Q2, stray files, nav order, links
 #
 # Lists the URL every page should publish at: the site-owned content/ at /,
 # a version's generated reference in .gen/<version>/ at /, and each source
@@ -18,7 +19,13 @@
 #   stray  fails on a file under public/<version>/ that is not a known output
 #          type, or a .md that is not a page's Markdown output;
 #   nav    writes SITE_DIR/.check/<version>/nav-order.txt: the sidebar's links
-#          on the version's docs home, in document order.
+#          on the version's docs home, in document order;
+#   links  fails when a root-relative href, src or data-url in any published
+#          HTML file (every version, the /latest/ stubs, the root files) names
+#          nothing under public/: a file, or a directory with an index.html.
+#          /latest/ maps to the version public/_redirects sends it to. This
+#          covers the links layouts and shortcodes write, which the link render
+#          hook (check Q1) never sees.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 REPOS="opm core catalog_opm cli library opm-operator"
@@ -87,5 +94,24 @@ for pair in "$@"; do
   fi
   echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/$v.have" | tr -d ' ') built, $(wc -l < ".check/$v/nav-order.txt" | tr -d ' ') sidebar links in .check/$v/nav-order.txt"
 done
+
+if [ "$mode" = post ]; then
+  latest=$(sed -n 's#^/latest/\* /\([^/]*\)/:splat .*#\1#p' "$PUBLIC/_redirects" 2>/dev/null || true)
+  find "$PUBLIC" -type f -name '*.html' ! -path "$PUBLIC/*/pagefind/*" | sort | while IFS= read -r f; do
+    tr '\n' ' ' < "$f" | grep -oE '(^|[ \t])(href|src|data-url)=("/[^"]*|/[^ >"'"'"']*)' |
+      sed -E 's/^[ \t]*(href|src|data-url)="?//' | grep -v '^//' | sed "s#^#${f#"$PUBLIC"/}	#" || true
+  done > "$tmp/links"
+  bad=$(awk -F'\t' '!($2 in seen) { seen[$2] = 1; print $2 "\t" $1 }' "$tmp/links" | while IFS='	' read -r u from; do
+    p=${u%%#*}; p=${p%%\?*}
+    case "$p" in /latest/*) [ -n "$latest" ] && p="/$latest/${p#/latest/}" ;; esac
+    case "$p" in
+      */) [ -f "$PUBLIC${p}index.html" ] && continue ;;
+      *) { [ -f "$PUBLIC$p" ] || [ -f "$PUBLIC$p/index.html" ]; } && continue ;;
+    esac
+    echo "  $u (in $from)"
+  done)
+  if [ -n "$bad" ]; then rc=1; echo "LINK FAIL: published pages link to URLs nothing serves:"; echo "$bad"; fi
+  echo "links: $(cut -f2 "$tmp/links" | sort -u | wc -l | tr -d ' ') distinct root-relative URLs in $(cut -f1 "$tmp/links" | sort -u | wc -l | tr -d ' ') HTML files$( [ -z "$bad" ] && echo ', all resolve')"
+fi
 if [ $rc -eq 0 ]; then echo "check-pages ($mode): OK"; else echo "check-pages ($mode): FAILED"; fi
 exit $rc

@@ -53,7 +53,7 @@ The three layers of the documentation pipeline MUST remain independently replace
 - `site/` (Hugo + Hextra) — static site generation and layout
 - `site/content/` — human-authored content
 
-Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/content/docs/reference/`.
+Changes to one layer must not require changes to the others unless the interface between them changes. The interface is: JSON in `site/data/schema/` and Markdown in `site/.gen/<version>/`, which the build mounts per version. Until the generated-reference change lands, `task generate:cli` still writes to `site/content/docs/reference/cli/`.
 
 ---
 
