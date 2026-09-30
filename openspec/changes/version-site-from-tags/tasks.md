@@ -55,9 +55,9 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
 
 ## 2. Materialise anchored versions and generate the versions config
 
-- [ ] 2.1 Add `site/scripts/materialise.sh` (design.md Decision 6). For each anchored version it writes `git archive` trees under `site/.versions/<v>/<repo>/docs/site`, with the `.sha` skip marker. It removes version directories that are not in the manifest, and only inside `site/.versions/`. For every version, `main` included, it writes `site/.versions/<v>/lastmod.tsv` with both kinds of row: source pages (`<repo>/docs/site/<path>`, from `git -C <root> log -1 --format=%cI <sha> -- docs/site/<path>`) and site-owned pages (`opmodel.dev/site/content/<path>`, from the opmodel.dev checkout's `HEAD`). With `OPM_VERSIONS` set it does nothing.
-- [ ] 2.2 Set the body of `versions:prepare` to `resolve-versions.sh` (which writes `versions.tsv`) followed by `materialise.sh`. With `OPM_VERSIONS` set, it skips both steps and removes any stale `site/.versions/versions.tsv`.
-- [ ] 2.3 Wire the resolved file into the container side (Decisions 5, 7, 8 and 10):
+- [x] 2.1 Add `site/scripts/materialise.sh` (design.md Decision 6). For each anchored version it writes `git archive` trees under `site/.versions/<v>/<repo>/docs/site`, with the `.sha` skip marker. It removes version directories that are not in the manifest, and only inside `site/.versions/`. For every version, `main` included, it writes `site/.versions/<v>/lastmod.tsv` with both kinds of row: source pages (`<repo>/docs/site/<path>`, from `git -C <root> log -1 --format=%cI <sha> -- docs/site/<path>`) and site-owned pages (`opmodel.dev/site/content/<path>`, from the opmodel.dev checkout's `HEAD`). With `OPM_VERSIONS` set it does nothing.
+- [x] 2.2 Set the body of `versions:prepare` to `resolve-versions.sh` (which writes `versions.tsv`) followed by `materialise.sh`. With `OPM_VERSIONS` set, it skips both steps and removes any stale `site/.versions/versions.tsv`.
+- [x] 2.3 Wire the resolved file into the container side (Decisions 5, 7, 8 and 10):
   - `build-all.sh` and `serve.sh` load the version list from `versions.tsv`. They fall back to an explicit `OPM_VERSIONS`, and then to A's default.
   - `gen-mounts.sh` writes the versions config in the form 1.2 chose.
   - `gen-lastmod.sh`, in manifest mode, runs no `git`: it reads the `lastmod.tsv` files, still walks every source and site-owned page, and counts a page with no row as a miss (check 13). In explicit mode it keeps A's container-side `git log`.
@@ -74,7 +74,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `site/data/opm/lastmod.json` has dates for `v1.0` pages even in this worktree build, for source keys (`cli/docs/site/...`) and site-owned keys (`opmodel.dev/site/content/...`) alike;
   - `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build` passes, which proves check 13 locally;
   - `OPM_VERSIONS=v1.0=/src OPM_WS=<wt>/site/tests/fixtures/ws task build` passes in explicit mode, and `task test:site` is green.
-- [ ] 2.4 Add `site/tests/versions/two-versions.conf` (design.md Decision 11). It holds `v1.0` (`source = main`, default) and `v0.9` ("v0.9 (test)"), anchored at the cli test SHA with `catalog` and `opm` at the catalog_opm and opm test SHAs. Its overrides for library, core and opm-operator point at their test SHAs, each with the reason "test pins post-S SHAs, no post-S tag yet". The test SHAs are the ones 1.1 recorded in design.md Decision 11: the S merge SHAs, or the buildable post-S SHAs the supervisor named if A's merge needed source fixes after the S merges.
+- [x] 2.4 Add `site/tests/versions/two-versions.conf` (design.md Decision 11). It holds `v1.0` (`source = main`, default) and `v0.9` ("v0.9 (test)"), anchored at the cli test SHA with `catalog` and `opm` at the catalog_opm and opm test SHAs. Its overrides for library, core and opm-operator point at their test SHAs, each with the reason "test pins post-S SHAs, no post-S tag yet". The test SHAs are the ones 1.1 recorded in design.md Decision 11: the S merge SHAs, or the buildable post-S SHAs the supervisor named if A's merge needed source fixes after the S merges.
 
   Verify with `OPM_VERSIONS_MANIFEST=site/tests/versions/two-versions.conf OPM_SRC_WORKTREE=site-src task build`:
   - the build log shows the lint over `.versions/v0.9/<repo>/docs/site` for all six repositories;
@@ -84,7 +84,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `site/.versions/v0.9/cli/docs/site` lists exactly `git -C WS/cli/.claude/worktrees/site-src ls-tree -r --name-only <cli test SHA> docs/site`.
 
   Then rebuild with the real manifest. `site/public/v0.9/` and `site/.versions/v0.9/` must be gone.
-- [ ] 2.5 Land the durable decisions (design.md "Durable decisions") in `README.md`, under a new `## Site versions` heading:
+- [x] 2.5 Land the durable decisions (design.md "Durable decisions") in `README.md`, under a new `## Site versions` heading:
   - the manifest;
   - `source = main` until beta tags exist;
   - the edit that moves `v1.0` onto tags;
@@ -93,7 +93,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `task versions:check`;
   - `OPM_VERSIONS_MANIFEST`;
   - a fixture-workspace build runs with `OPM_VERSIONS=v1.0=/src`.
-- [ ] 2.6 Land them in `AGENTS.md` too, under a new `## Site versions` heading of this change's own. Do not edit A's `## Durable decisions` section or its layout tree. The heading holds:
+- [x] 2.6 Land them in `AGENTS.md` too, under a new `## Site versions` heading of this change's own. Do not edit A's `## Durable decisions` section or its layout tree. The heading holds:
   - the manifest is the only list of versions, and nothing globs `v*/`;
   - pins come from `cli/go.mod`, library `DefaultSchemaModule` and cli `PinnedOperatorVersion`; catalog and opm are explicit; never `cli/hack/platform/`; an override needs a reason;
   - no ref older than its repository's floor builds;
@@ -101,7 +101,7 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - the files this change adds: `site/versions.conf`, `site/scripts/{resolve-versions,materialise}.sh` and `site/tests/versions/`.
 
   Complete the header comment of `site/versions.conf` with the O3 and floor rules. Verify: `grep -n "^## Site versions" README.md AGENTS.md` hits both, and `git -C <wt> diff origin/main...HEAD -- AGENTS.md` changes no line outside that heading.
-- [ ] 2.7 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` (the label now comes from the manifest; read the header PNGs). When all are green, commit `feat(site): build tagged versions from git archives`.
+- [x] 2.7 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` (the label now comes from the manifest; read the header PNGs). When all are green, commit `feat(site): build tagged versions from git archives`.
 
 ## 3. Stamp, source links, version switch and outdated bar
 

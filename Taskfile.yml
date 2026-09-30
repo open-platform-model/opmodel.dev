@@ -75,12 +75,10 @@ tasks:
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       OPM_VERSIONS_MANIFEST: '{{.OPM_VERSIONS_MANIFEST}}'
     cmds:
-      - |
-        if [ -n "${OPM_VERSIONS:-}" ]; then
-          echo "versions:prepare: OPM_VERSIONS is set (explicit mode); nothing to resolve"
-        else
-          sh site/scripts/resolve-versions.sh --check
-        fi
+      # Writes site/.versions/versions.tsv; with OPM_VERSIONS set it only removes a stale one.
+      - sh site/scripts/resolve-versions.sh
+      # The archives of anchored versions and every page's git date; with OPM_VERSIONS set, nothing.
+      - sh site/scripts/materialise.sh
 
   versions:check:
     desc: Resolve every site version and print its refs (site/versions.conf, or OPM_VERSIONS_MANIFEST); writes nothing

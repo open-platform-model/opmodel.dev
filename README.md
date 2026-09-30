@@ -104,6 +104,31 @@ task build:docgen      # Build the docgen tool
 task generate          # Generate the schema JSON and the CLI reference
 ```
 
+## Site versions
+
+`site/versions.conf` is the only list of the versions the site publishes. It is in git-config syntax (`git config --file` reads it, so nothing new enters the build image), and it changes only by a reviewed commit. `task build` and `task serve` resolve it on the host first (`task versions:prepare`); `task versions:check` resolves it and prints every version's refs and SHAs without building.
+
+A version is one of two kinds:
+
+- `source = main`: every source repository at its checked-out `HEAD` (in CI that is `main`; locally whatever `OPM_SRC_WORKTREE` points at). It is allowed only until `v1.0.0-beta.N` tags exist, and only for one version. The build records the six SHAs in the footer stamp and in `site/public/build-stamp.json`.
+- Anchored: fixed refs, bumped by commit, never a moving line resolved at build time. `cli` is the anchor, a tag or a full SHA. The library ref comes from the anchor's `go.mod`, core from that library's `DefaultSchemaModule` (`opm/schema/loader.go`), and opm-operator from the anchor's `PinnedOperatorVersion` (`internal/operator/manifest.go`). `catalog` and `opm` are explicit, because the CLI pins no catalog and opm has no repository-level tag. `cli/hack/platform/` is a test fixture and never a pin. A pin that is not an exact release, or that is wrong for the site, is replaced by `override = <repo> <ref> <reason>`; the reason is required and shows in the build stamp.
+
+Moving `v1.0` onto beta tags is this edit (the tag names are examples):
+
+```ini
+[version "v1.0"]
+	label = v1.0 (beta)
+	weight = 1
+	default = true
+	cli = v1.0.0-beta.1
+	catalog = opm-v4.6.0
+	opm = 0123456789abcdef0123456789abcdef01234567
+```
+
+Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds, and no tag cut before it can: the resolver fails first, naming the repository and the ref. So each repository needs a tag cut after its floor before `v1.0` can move onto tags.
+
+`OPM_VERSIONS_MANIFEST=<file>` selects another manifest; the regression tests use `site/tests/versions/two-versions.conf`. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
+
 ## Implementation Status
 
 - [x] Hugo + Hextra site, built and served in Docker with no network

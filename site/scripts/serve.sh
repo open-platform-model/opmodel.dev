@@ -5,15 +5,25 @@
 # only 127.0.0.1:${SITE_PORT:-1313}; one SIGINT stops it (tini forwards it to
 # the process group, and hugo runs as the shell's exec).
 #
-# Env: SITE_DIR, OPM_VERSIONS (default v1.0=/src), SITE_PORT (the host port,
-#      for the base URL).
+# Env: SITE_DIR, OPM_VERSIONS (an explicit version set; unset: the versions
+#      task versions:prepare resolved into .versions/versions.tsv), SITE_PORT
+#      (the host port, for the base URL).
 set -eu
 SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 SITE_DIR=${SITE_DIR:-$(cd "$SCRIPTS/.." && pwd)}
 export SITE_DIR
-VERSIONS=${OPM_VERSIONS:-v1.0=/src}
 REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
+# The versions, as build-all.sh reads them: an explicit OPM_VERSIONS, else the
+# resolved .versions/versions.tsv (a source = main version reads /src in
+# place, an anchored one its archive in .versions/<v>/), else v1.0=/src.
+if [ -n "${OPM_VERSIONS:-}" ]; then
+  VERSIONS=$OPM_VERSIONS
+elif [ -f .versions/versions.tsv ]; then
+  VERSIONS=$(awk -F'\t' -v S="$SITE_DIR" '/^#/ { next } !($1 in seen) { seen[$1]; printf "%s%s=%s", (n++ ? " " : ""), $1, ($5 == "main" ? "/src" : S "/.versions/" $1) }' .versions/versions.tsv)
+else
+  VERSIONS=v1.0=/src
+fi
 
 sh "$SCRIPTS/check-overrides.sh"
 dirs=""
@@ -25,7 +35,8 @@ done
 sh "$SCRIPTS/lint-sources.sh" $dirs
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
-sh "$SCRIPTS/gen-stamp.sh"
+# shellcheck disable=SC2086
+sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-mounts.sh" config/development/module.toml $VERSIONS
 port=${SITE_PORT:-1313}

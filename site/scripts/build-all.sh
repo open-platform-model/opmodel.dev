@@ -5,22 +5,34 @@
 #
 # Env: SITE_DIR           the site tree to build (default: this script's site/,
 #                         /work/repo/site); test-site.sh points it at a copy
-#      OPM_VERSIONS       name=root ... (default v1.0=/src); each root holds <repo>/docs/site
+#      OPM_VERSIONS       name=root ...: an explicit version set (fixture builds); each
+#                         root holds <repo>/docs/site. Unset: the versions that
+#                         task versions:prepare resolved into .versions/versions.tsv
 #      OPM_REQUIRE_DATES  1: a page without a git date fails the build
 #      OPM_BUILD_REFS     repo=sha ..., resolved on the host (the build stamp)
 set -eu
 SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 SITE_DIR=${SITE_DIR:-$(cd "$SCRIPTS/.." && pwd)}
 export SITE_DIR
-VERSIONS=${OPM_VERSIONS:-v1.0=/src}
 REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 t0=$(date +%s)
 step() { printf '\n== %s\n' "$*"; }
 fail() { echo "$*"; exit 1; }
-# The default version: /latest/ and / point at it.
-DEFAULT=$(sed -n "s/^defaultContentVersion *= *['\"]\(.*\)['\"] *$/\1/p" config/_default/hugo.toml)
-[ -n "$DEFAULT" ] || fail "build-all: no defaultContentVersion in config/_default/hugo.toml"
+# The versions, in weight order, and the default one (/latest/ and / point at
+# it): an explicit OPM_VERSIONS (the first is the default), else the resolved
+# .versions/versions.tsv (a source = main version reads /src, an anchored one
+# its archive in .versions/<v>/), else v1.0=/src.
+if [ -n "${OPM_VERSIONS:-}" ]; then
+  VERSIONS=$OPM_VERSIONS; DEFAULT=${VERSIONS%%=*}
+elif [ -f .versions/versions.tsv ]; then
+  VERSIONS=$(awk -F'\t' -v S="$SITE_DIR" '/^#/ { next } !($1 in seen) { seen[$1]; printf "%s%s=%s", (n++ ? " " : ""), $1, ($5 == "main" ? "/src" : S "/.versions/" $1) }' .versions/versions.tsv)
+  DEFAULT=$(awk -F'\t' '!/^#/ && $4 == "true" { print $1; exit }' .versions/versions.tsv)
+else
+  VERSIONS=v1.0=/src; DEFAULT=v1.0
+fi
+[ -n "$VERSIONS" ] && [ -n "$DEFAULT" ] || fail "build-all: no versions to build"
+echo "build-all: versions $VERSIONS (default $DEFAULT)"
 
 step "drift guard: overridden theme files unchanged upstream"
 sh "$SCRIPTS/check-overrides.sh"
@@ -37,7 +49,8 @@ sh "$SCRIPTS/lint-sources.sh" $dirs
 step "dates, stamp, mounts, collisions"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
-sh "$SCRIPTS/gen-stamp.sh"
+# shellcheck disable=SC2086
+sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-mounts.sh" config/production/module.toml $VERSIONS
 # shellcheck disable=SC2086
