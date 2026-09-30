@@ -246,9 +246,15 @@ Totals: `cto` draws 53 elements and `ttd` draws 37.
 - A3: The smallest rendered text stays at 9 px or more at 390 px. This is predicted above; `task shots` measures it.
 - A4: No label outgrows its box in the Hugo site's fonts.
 
-**Explored**: Pending section 1.
-**Decision**: Pending section 1.
-**Rationale**: Pending section 1.
+**Explored**: Section 1 ported HelmAndOpm on A's branch head (2d70215), built it with `OPM_SRC_WORKTREE=site-src`, and ran `task ci` and `task qa`:
+- A1: every class the five bodies use, static and computed (`author` ... `zone-label`, `obj`, `none`, `nomatch`, `req miss`, `sub mono`), already has a `.opm-fig` rule in A's `figures.css`. A carries every rule of `figure.css` at `2207ba1`, plus `.tool text.mono` and `.pill`. Every colour in a `.opm-fig` rule is a `--opm-fig-*` token, a `--role-*` variable, a `color-mix` of those, `currentColor` or `none`; `figures.css` has no `prefers-color-scheme`, `--sl-*` or raw colour outside the `:root` and `html.dark` blocks.
+- A2: the built `Helm and OPM` figure on `/v1.0/docs/start/what-is-opm/` has the same 65 drawn elements as the `2207ba1` body and as the Astro-built page (tag, attributes and text chunks, compared byte-exactly). Its claim equals Astro's, `aria-label` equals the `figcaption`, the marker is `hao-arrow`, and no `<!--` is inside the figure. Decision 8: A's `hugo.toml` sets `disableSVG = true` under `[minify]`, and the baseline build reads `component <tspan`: the kept branch. HelmAndOpm reads `component <tspan class="mono">web</tspan>` with an ASCII space; no `&#160;` is used, and ModuleToCluster keeps its space too.
+- A3: `task shots` reports 9.5 px as the smallest text at a 390 px viewport, for HelmAndOpm and ModuleToCluster alike.
+- A4: in all six variants no label crosses its box (`stateless workload`, `Deployment transformer`, `helm upgrade`, `--install`). Two font effects, neither a defect: at phone width the two hyphens of `--install` touch, because Geist Mono's hyphen is wide at about 10 px (at desktop width they stand apart, so it is not a ligature), and Geist's word space makes `component web` tighter than Astro's font did, as in ModuleToCluster.
+- ModuleToCluster on `/v1.0/docs/start/` is byte-identical to the baseline. On What OPM is it moved from `1-*` to `2-*` and differs only by a one-pixel vertical offset.
+
+**Decision**: The method holds as planned. No CSS rule or token is added, no geometry changes, and no `&#160;` is written: the other four figures are copied (or computed) as design.md describes, on the kept branch.
+**Rationale**: The measured build matches the oracle element for element, and the screenshots show the Astro drawing in the Hextra palette, following the site toggle.
 
 ## Risks / Trade-offs
 

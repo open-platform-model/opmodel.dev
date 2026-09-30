@@ -18,36 +18,36 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
 
 ## 1. Spike: the port method on HelmAndOpm
 
-- [ ] 1.1 Preconditions. Check that A is merged in `<wt>`: `site/layouts/_partials/opm/figure.html`, `site/layouts/_partials/opm/figures/module-to-cluster.html`, the six `site/layouts/_shortcodes/opm/*.html` and `site/assets/css/opm/figures.css` all exist.
+- [x] 1.1 Preconditions. Check that A is merged in `<wt>`: `site/layouts/_partials/opm/figure.html`, `site/layouts/_partials/opm/figures/module-to-cluster.html`, the six `site/layouts/_shortcodes/opm/*.html` and `site/assets/css/opm/figures.css` all exist.
   - `grep -rln 'Figure pending' <wt>/site` lists the five stub shortcodes, plus any stub-only partial, i18n file or CSS file (design.md Decision 6). If it lists a file under `site/tests/` or `site/scripts/`, a test or check asserts the stub. That file is A's and outside C's Touches, so treat it as a miss.
   - The six `WS/<repo>/.claude/worktrees/site-src` directories exist.
   - `WS/opm/.claude/worktrees/site-src/docs/site/start/what-is-opm.md` contains `{{< opm/helm-and-opm >}}`.
   - `site/tests/browser/shots.py` numbers only drawn figures (`figure:has(svg[role="img"])`) in page order, as A's tasks 4.2 require. The `<n>` values below assume it.
   - On any miss, edit nothing, report it under `deviations`, and wait.
-- [ ] 1.2 Baseline. On the untouched branch, the gates are green. A failure here is A's: report it and wait.
+- [x] 1.2 Baseline. On the untouched branch, the gates are green. A failure here is A's: report it and wait.
   - Copy `<wt>/site/.shots` to `<scratch>/shots-baseline`. HelmAndOpm and ComponentToObjects are stubs there, so on What OPM is, ModuleToCluster is figure `1-*`.
   - Pick design.md Decision 8's branch. `grep -o 'component.\{0,1\}<tspan' <wt>/site/public/v1.0/docs/start/index.html` shows ModuleToCluster's text as `component <tspan` (kept) or `component<tspan` (trimmed).
   - On the trimmed branch, note ModuleToCluster's lost space for `follow-ups`. Do not edit it.
-- [ ] 1.3 References. Write `git -C <wt> show 2207ba1:site/src/components/diagrams/<File>` into `<scratch>/astro/` for `Figure.astro`, `figure.css`, `HelmAndOpm.astro`, `RolesAndArtifacts.astro`, `WhereThingsLive.astro`, `ComponentToObjects.astro` and `ThreeWaysToDeploy.astro`.
+- [x] 1.3 References. Write `git -C <wt> show 2207ba1:site/src/components/diagrams/<File>` into `<scratch>/astro/` for `Figure.astro`, `figure.css`, `HelmAndOpm.astro`, `RolesAndArtifacts.astro`, `WhereThingsLive.astro`, `ComponentToObjects.astro` and `ThreeWaysToDeploy.astro`.
   - If they still exist, copy these into `<scratch>/astro/` (read-only): `WS/opmodel.dev/site/dist/v0.2/docs/start/index.html`, `WS/opmodel.dev/site/dist/v0.2/docs/start/what-is-opm/index.html`, `WS/opmodel.dev/site/.shots/v0.2_docs_start/` and `WS/opmodel.dev/site/.shots/v0.2_docs_start_what-is-opm/`.
   - Never modify the owner's checkout. If they are gone, go on without them.
-- [ ] 1.4 Class coverage (assumption A1). Compare the class names the five components use, static and computed (design.md Decision 4), with the `.opm-fig` selectors in `site/assets/css/opm/figures.css`.
+- [x] 1.4 Class coverage (assumption A1). Compare the class names the five components use, static and computed (design.md Decision 4), with the `.opm-fig` selectors in `site/assets/css/opm/figures.css`.
   - Port each missing `figure.css` rule from `2207ba1` onto `--opm-fig-*` tokens with the design.md mapping.
   - Add a token (light and `html.dark`) only if its target is missing.
   - Verify: every class has a rule.
   - Verify: every colour in a `.opm-fig` rule is a `--opm-fig-*` token, a `--role-*` variable set from one, a `color-mix` of those, `currentColor` or `none`.
   - Verify: no `.opm-fig` rule names `--sl-`, `--hx-color-`, `prefers-color-scheme` or a raw colour (`#`, `rgb(`, `hsl(`, `oklch(`). Raw values appear only in the `:root` and `html.dark` token definitions.
-- [ ] 1.5 Port HelmAndOpm (design.md Decisions 1, 2 and 8):
+- [x] 1.5 Port HelmAndOpm (design.md Decisions 1, 2 and 8):
   - Add `site/layouts/_partials/opm/figures/helm-and-opm.html` with the `2207ba1` SVG body copied verbatim. Every HTML comment becomes a Go template comment: the header comment and the four `<!-- Row ... -->`.
   - On the trimmed branch only, write line 38's space as `component&#160;<tspan class="mono">web</tspan>`, and note it for `deviations`.
   - Replace the stub in `site/layouts/_shortcodes/opm/helm-and-opm.html` with the frame call: id `hao`, title `Helm and OPM`, 360 x 586, and the claim as one raw string equal to Astro's concatenation.
-- [ ] 1.6 Fidelity (A2). Run the gates' build. From `<wt>/site/public/v1.0/docs/start/what-is-opm/index.html`, the figure titled `Helm and OPM` must have:
+- [x] 1.6 Fidelity (A2). Run the gates' build. From `<wt>/site/public/v1.0/docs/start/what-is-opm/index.html`, the figure titled `Helm and OPM` must have:
   - the same 65 drawn elements as the `2207ba1` body, and as the Astro page if it was copied, text compared byte-exactly (Conventions);
   - a `<text>` holding `<tspan class="mono">web</tspan>` whose text content is `component web`, with U+00A0 as the space on the trimmed branch, never `componentweb`;
   - `aria-label` equal to its `figcaption`;
   - marker `hao-arrow`;
   - no `<!--` inside the figure.
-- [ ] 1.7 Screenshots (A3, A4). Run `OPM_SRC_WORKTREE=site-src task -d <wt> qa`, then read the six PNGs of HelmAndOpm, figure `1-*` in the `site/.shots/` directory for the What OPM is page. Check:
+- [x] 1.7 Screenshots (A3, A4). Run `OPM_SRC_WORKTREE=site-src task -d <wt> qa`, then read the six PNGs of HelmAndOpm, figure `1-*` in the `site/.shots/` directory for the What OPM is page. Check:
   - blue author cards, green deployer cards, the orange platform card and neutral cluster objects, filled in light and dark;
   - both switch variants follow the site toggle, not the OS;
   - the phone variants are legible, and `task shots` passed the 9 px floor;
@@ -56,13 +56,13 @@ Screenshot numbering: `task shots` numbers only drawn figures (`figure:has(svg[r
   - compared with the Astro PNG (if copied), the drawing matches, bar the palette.
 
   Also compare ModuleToCluster with the baseline: it is `2-*` on that page now and `1-*` in `<scratch>/shots-baseline`. It must be unchanged.
-- [ ] 1.8 Write the results for A1 to A4 into design.md, "Spike findings":
+- [x] 1.8 Write the results for A1 to A4 into design.md, "Spike findings":
   - the missing rules, or "none";
   - the fidelity result;
   - Decision 8's branch, and whether the entity was used;
   - the smallest text size `task shots` reported;
   - any geometry fix, with its reason (none expected).
-- [ ] 1.9 The gates green, PNGs read, then commit `feat(site): port the helm-and-opm figure`.
+- [x] 1.9 The gates green, PNGs read, then commit `feat(site): port the helm-and-opm figure`.
   - Stage `site/layouts/_partials/opm/figures/helm-and-opm.html`, `site/layouts/_shortcodes/opm/helm-and-opm.html`, `site/assets/css/opm/figures.css` if it changed, `<cd>/design.md` and `<cd>/tasks.md`.
   - Then copy `<wt>/site/.shots` to `<scratch>/shots-s1`.
 
