@@ -1,5 +1,5 @@
-{{- /* Figure pending: Helm and OPM. Its port draws the SVG of the Astro site's
-       HelmAndOpm.astro (site/src/components/diagrams/, in git history) in
-       _partials/opm/figures/helm-and-opm.html, through _partials/opm/figure.html as
-       module-to-cluster.html does. Until then the page shows this stub. */ -}}
-{{- partial "components/github-style-alert.html" (dict "content" ("<p>The figure <em>Helm and OPM</em> is being redrawn for this site.</p>" | safeHTML) "alertType" "note" "alertTitle" "Figure pending") -}}
+{{- /* Figure: Helm and OPM side by side (What OPM is, "In Kubernetes terms").
+       Port of the Astro site's HelmAndOpm.astro; the SVG body is verbatim in
+       _partials/opm/figures/helm-and-opm.html. */ -}}
+{{- $claim := `Helm and OPM both end in a Deployment and a Service, but a different role decides them. In Helm, the chart author writes templates that name every object. In OPM, the module names components, and the platform team’s transformers decide which objects each one becomes. Helm records a release in a Secret. OPM records an instance in a ModuleInstance.` -}}
+{{- partial "opm/figure.html" (dict "id" "hao" "title" "Helm and OPM" "claim" $claim "width" 360 "height" 586 "body" (partial "opm/figures/helm-and-opm.html" .)) -}}

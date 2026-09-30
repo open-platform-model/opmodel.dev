@@ -1,10 +1,11 @@
-{{- /* The six figures of the page dialect, by shortcode name, with their
-       titles. The Markdown outputs (Copy page) print a figure's title where
-       the page draws it. */ -}}
+{{- /* The six figures of the page dialect, by shortcode name, with the title
+       each draws (the "title" its shortcode passes to opm/figure.html). The
+       Markdown outputs (Copy page) print a figure's title where the page draws
+       it; test-site fails when an entry differs from the drawn title. */ -}}
 {{- return dict
   "module-to-cluster" "From module to running objects"
   "roles-and-artifacts" "Three roles, three artifacts"
-  "component-to-objects" "Component to Kubernetes objects"
+  "component-to-objects" "How a component becomes objects"
   "where-things-live" "Where things live"
   "three-ways-to-deploy" "Three ways to deploy"
   "helm-and-opm" "Helm and OPM"

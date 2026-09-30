@@ -12,7 +12,7 @@ TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
 PAGES = [
     "/",                          # landing
     "/docs/",                     # docs home, a section with its child list
-    "/docs/start/",               # figures and figure stubs
+    "/docs/start/",               # five figures
     "/docs/start/quickstart/",    # alerts, code blocks, a tutorial badge
     "/docs/reference/",           # a site-owned section
     "/404.html",
