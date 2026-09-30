@@ -119,15 +119,15 @@ Gates, run on the whole worktree at every section end:
 
 ## 4. Verify, report and archive (orchestration.md section 7, steps 6 and 7)
 
-- [ ] 4.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `publish-interim-github-pages`. Run each `openspec` command as `cd <wt> && openspec ...`, never through the root `/opsx:verify` router. Verify also:
+- [x] 4.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `publish-interim-github-pages`. Run each `openspec` command as `cd <wt> && openspec ...`, never through the root `/opsx:verify` router. Verify also:
   - `find <wt>/openspec/changes/publish-interim-github-pages -name enhancement.yaml` prints nothing;
   - `git -C <wt> diff --stat origin/main` touches only the Touches list in proposal.md;
   - `git -C <wt> log origin/main..HEAD` shows the three commits above. Each has only the plain `Co-Authored-By: Claude <noreply@anthropic.com>` trailer and no bare `@name`.
-- [ ] 4.2 Report to the supervisor with the block in orchestration.md section 7, step 6.
+- [x] 4.2 Report to the supervisor with the block in orchestration.md section 7, step 6.
   - `sections: 3/3`, counting the implementation sections.
   - `surface`: design.md's Interface section.
   - `deviations`: whatever the spike changed.
   - `gates`: every command of 1.5, 2.10 and 3.5.
   - `questions`: the Pages state from 1.1, if it differed, and the owner's acceptance of publishing every page as it is (0018:OQ15, proposal), which the pull request body must record before the merge.
   - Then STOP and wait. The owner reviews and merges this change, and the merge deploys. After it, the supervisor checks the first deploy with README "GitHub Pages (interim)".
-- [ ] 4.3 Only on the supervisor's go: tick this box, then run `cd <wt> && openspec archive publish-interim-github-pages --yes --skip-specs`, then `cd <wt> && openspec validate --all --strict --no-interactive`. When both are green, stage `openspec/changes/archive/<date>-publish-interim-github-pages` and the removed `openspec/changes/publish-interim-github-pages` by explicit path, and commit `chore(openspec): archive publish-interim-github-pages`. Pushing and the pull request follow orchestration.md section 7, step 7, outside this file. The pull request title, which becomes the squash commit on `main`, is `ci: deploy the site to github pages for now`.
+- [x] 4.3 Only on the supervisor's go: tick this box, then run `cd <wt> && openspec archive publish-interim-github-pages --yes --skip-specs`, then `cd <wt> && openspec validate --all --strict --no-interactive`. When both are green, stage `openspec/changes/archive/<date>-publish-interim-github-pages` and the removed `openspec/changes/publish-interim-github-pages` by explicit path, and commit `chore(openspec): archive publish-interim-github-pages`. Pushing and the pull request follow orchestration.md section 7, step 7, outside this file. The pull request title, which becomes the squash commit on `main`, is `ci: deploy the site to github pages for now`.
