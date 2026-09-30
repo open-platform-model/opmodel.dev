@@ -75,20 +75,20 @@ Never build without `OPM_SRC_WORKTREE=site-src`. If you need `task serve` or `ta
 
 ## 4. Descriptions in search results (fix 5)
 
-- [ ] 4.1 In `layouts/_partials/custom/content-begin.html`, make the Pagefind crumbs skip home and the page's first section (Decision 6). Verify: the `crumbs:` meta in `site/public/v1.0/docs/start/quickstart/index.html` starts with the start section's title, not the docs root's title.
-- [ ] 4.2 In `assets/js/opm-pagefind.js`, give the page-level match `meta.description` as its sub-line, and let heading-level matches keep the excerpt (Decision 6). The `window.hextraSearch` shape does not change.
-- [ ] 4.3 In `site/tests/browser/`, add a separate search smoke function (Decision 10). It queries "Quickstart" and asserts three things:
+- [x] 4.1 In `layouts/_partials/custom/content-begin.html`, make the Pagefind crumbs skip home and the page's first section (Decision 6). Verify: the `crumbs:` meta in `site/public/v1.0/docs/start/quickstart/index.html` starts with the start section's title, not the docs root's title.
+- [x] 4.2 In `assets/js/opm-pagefind.js`, give the page-level match `meta.description` as its sub-line, and let heading-level matches keep the excerpt (Decision 6). The `window.hextraSearch` shape does not change.
+- [x] 4.3 In `site/tests/browser/`, add a separate search smoke function (Decision 10). It queries "Quickstart" and asserts three things:
   - the result whose route ends in `docs/start/quickstart/` shows the built page's `p.opm-lead` text as its page-level sub-line;
   - no result's crumbs start with the docs root's h1;
   - a heading-level match still shows an excerpt.
 
   This proves SP9. Record the SP9 outcome in design.md's spike list.
-- [ ] 4.4 In `README.md` under `## Page design`, record durable decision 4:
+- [x] 4.4 In `README.md` under `## Page design`, record durable decision 4:
   - the lead is indexed and is the `description` metadata;
   - the cards are `data-pagefind-ignore`;
   - the crumbs start below the docs root;
   - a DOM change under `main#content > .content` must keep all three true.
-- [ ] 4.5 Run ci and qa; both must be green, the new search function included. If A's shots include the open search palette, read it: sub-lines show descriptions, and no crumb reads "Documentation". Then commit `feat(site): show descriptions in search results`.
+- [x] 4.5 Run ci and qa; both must be green, the new search function included. If A's shots include the open search palette, read it: sub-lines show descriptions, and no crumb reads "Documentation". Then commit `feat(site): show descriptions in search results`.
 
 ## 5. Landing figure, phone breadcrumb and drawer, breadcrumb a11y (fixes 6, 8)
 
