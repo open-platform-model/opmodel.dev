@@ -2,11 +2,16 @@
 title: Open Platform Model
 description: A declarative platform model for describing applications and their infrastructure requirements.
 layout: hextra-home
-# The landing, in every version: hero, two actions, three cards, with the
-# text of the Starlight splash it replaces.
+# The landing, in every version: the hero (text and two actions on the left,
+# the ModuleToCluster figure on the right from 64rem, after the actions on a
+# phone) and three cards, with the text of the Starlight splash it replaces.
 ---
 
 <div class="opm-hero">
+
+<div class="opm-hero-main">
+
+<div class="opm-hero-text">
 
 {{< hextra/hero-badge >}}
   <span>This site is under construction</span>
@@ -29,27 +34,34 @@ layout: hextra-home
 {{< hextra/hero-button text="Reference" link="docs/reference/" style="background:transparent;color:inherit;box-shadow:inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent)" >}}
 </div>
 
+</div>
+
+<div class="opm-hero-figure">
+
+{{< opm/module-to-cluster >}}
+
+</div>
+
+</div>
+
 {{< hextra/feature-grid >}}
   {{< hextra/feature-card
     title="Type-safe"
     icon="badge-check"
     subtitle="CUE-based definitions, validated while you write them."
     link="docs/concepts/"
-    style="background: radial-gradient(ellipse at 50% 90%, rgba(59,130,246,0.16), hsla(0,0%,100%,0) 70%);"
   >}}
   {{< hextra/feature-card
     title="Open source"
     icon="book-open"
     subtitle="All definitions, providers, and tooling under Apache 2.0."
     link="https://github.com/open-platform-model"
-    style="background: radial-gradient(ellipse at 50% 90%, rgba(34,197,94,0.14), hsla(0,0%,100%,0) 70%);"
   >}}
   {{< hextra/feature-card
     title="Generated reference"
     icon="document-text"
     subtitle="Reference documentation generated from the code it describes."
     link="docs/reference/"
-    style="background: radial-gradient(ellipse at 50% 90%, rgba(249,115,22,0.14), hsla(0,0%,100%,0) 70%);"
   >}}
 {{< /hextra/feature-grid >}}
 

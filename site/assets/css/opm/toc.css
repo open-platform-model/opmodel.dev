@@ -1,0 +1,50 @@
+/* Navigation aids: the table of contents (Hextra's right rail and the h2
+   list under the current page's sidebar entry) and the breadcrumb. */
+
+/* The right rail (nav.hextra-toc, shown from 80rem). Hextra's scrollspy
+   (core/toc-scroll.js) marks the current heading's link hextra-toc-active and
+   sets only its colour, with !important; the cue here is weight plus an inset
+   bar. Every link reserves the bar, so marking one shifts no text, and its
+   start corners are square, so the bar is straight (Hextra rounds the link
+   for its focus ring). An h3 entry (Hextra's pl-4 utility) keeps its indent. */
+.hextra-toc a {
+  box-shadow: inset 2px 0 0 transparent;
+  padding-inline-start: 0.5rem;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.hextra-toc a[class*="pl-4"] { padding-inline-start: 1.5rem; }
+.hextra-toc a.hextra-toc-active { font-weight: 600; box-shadow: inset 2px 0 0 var(--hx-color-gray-900); }
+html.dark .hextra-toc a.hextra-toc-active { box-shadow: inset 2px 0 0 var(--hx-color-gray-100); }
+
+/* Hextra shows the rail only from 80rem, and the sidebar shows the current
+   page's h2 list (ul.opm-sb-toc, sidebar.css) only below 48rem. Show the list
+   in between too. Same specificity as sidebar.css's display: none, which
+   sorts earlier; unlayered, it also beats the list's hx:md:hidden utility. */
+@media (min-width: 48rem) and (max-width: 79.99rem) {
+  .opm-sb .opm-sb-sub.opm-sb-toc { display: flex; }
+}
+
+/* The breadcrumb (layouts/_partials/breadcrumb.html): nav > ol, the current
+   page marked aria-current. The crumbs wrap instead of clipping, at every
+   width, so no crumb is ever cut off. Below 48rem each crumb may wrap inside
+   too, and the docs-root crumb is hidden: it is also the sidebar's first row
+   and the navbar's Docs link. On the docs root itself the only crumb is the
+   current page, which stays. */
+.opm-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.opm-crumbs li { display: flex; align-items: center; gap: 0.25rem; min-width: 0; white-space: nowrap; }
+.opm-crumbs [aria-current="page"] { font-weight: 500; color: var(--hx-color-gray-700); }
+html.dark .opm-crumbs [aria-current="page"] { color: var(--hx-color-gray-100); }
+@media (max-width: 47.99rem) {
+  .opm-crumbs li { white-space: normal; }
+  .opm-crumbs li:first-child:not(:last-child) { display: none; }
+}

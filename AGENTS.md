@@ -143,6 +143,7 @@ Read these on entry:
 │   ├── layouts/           # Overrides, OPM partials (_partials/opm/), figure shortcodes (_shortcodes/opm/)
 │   ├── assets/css/opm/    # One CSS file per owner
 │   ├── assets/js/         # Pagefind adapter for Hextra's search palette
+│   ├── assets/js/core/    # Override copy of Hextra's sidebar.js (pinned in overrides.sha256)
 │   ├── static/            # Fonts, favicon, images
 │   ├── themes/hextra/     # Vendored Hextra v0.13.0 (+ hextra.COMMIT)
 │   ├── scripts/           # run-in-image.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh

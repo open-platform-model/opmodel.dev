@@ -1,6 +1,14 @@
-{{- /* Hextra hook (v0.13.0), after the page title:
+{{- /* Hextra hook (v0.13.0), after the page title. Hextra's hextra-home.html
+       runs it on the landing too, outside .content, so every addition here
+       is guarded with .IsHome unless the landing should show it.
+       - the page lead: the front-matter description, which is also the
+         page's Pagefind description (the element form stores its text), so
+         the lead and the search sub-line cannot drift apart (0018:D7);
        - the page-type badge (0018:D7), with Hextra's own badge partial;
        - Pagefind metadata: the breadcrumb, shown in the search palette. */ -}}
+{{- if not .IsHome }}{{ with .Description -}}
+  <p class="opm-lead" data-pagefind-meta="description">{{ . }}</p>
+{{- end }}{{ end -}}
 {{- $types := dict
   "tutorial" (dict "label" "Tutorial" "color" "green" "icon" "academic-cap")
   "how-to" (dict "label" "How-to guide" "color" "blue" "icon" "clipboard-check")
@@ -10,8 +18,13 @@
 {{- with index $types .Type -}}
   {{- partial "shortcodes/badge" (dict "content" .label "color" .color "icon" .icon "border" true "class" "opm-type-badge") -}}
 {{- end -}}
+{{- /* The crumbs start below the docs root (the page's first section), so
+       a result reads "Start here", not "Documentation / Start here"; a page
+       at the docs root gets none. Inline metadata runs to the end of the
+       attribute, so a title with a comma is safe. */ -}}
 {{- if not .IsHome -}}
+  {{- $root := .FirstSection -}}
   {{- $crumbs := slice -}}
-  {{- range .Ancestors.Reverse -}}{{- if not .IsHome -}}{{ $crumbs = $crumbs | append (partial "utils/title" .) }}{{- end -}}{{- end -}}
-  <span hidden data-pagefind-meta="crumbs:{{ delimit $crumbs " / " }}"></span>
+  {{- range .Ancestors.Reverse -}}{{- if and (not .IsHome) (ne . $root) -}}{{ $crumbs = $crumbs | append (partial "utils/title" .) }}{{- end -}}{{- end -}}
+  {{- with $crumbs }}<span hidden data-pagefind-meta="crumbs:{{ delimit . " / " }}"></span>{{ end -}}
 {{- end -}}

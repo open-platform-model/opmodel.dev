@@ -1,25 +1,53 @@
-{{- /* A section's child list: its pages and subsections, each with its
-       description, ordered by weight, then title (a child without a weight
-       comes after the weighted ones), leaving out sidebar.exclude. Called from
+{{- /* A section's child list, as cards: its pages and subsections, each with
+       its description, leaving out sidebar.exclude. Called from
        opm/docs-main.html on section pages, so an overview page needs no hand
-       links. */ -}}
+       links. Subsections come first, with no heading; then the pages,
+       grouped by type in the order tutorial, how-to guide, explanation,
+       reference (0018:D7:R2), leaving out empty groups. Within each group the
+       order is weight, then title (a child without a weight comes after the
+       weighted ones). A page of any other type is still listed, last.
+       not-prose keeps Hextra's prose styles (bullets, link colour, the page
+       h2 size) off the cards; data-pagefind-ignore keeps the section page
+       from matching every child's title and description in search. */ -}}
 {{- $items := where (union .RegularPages .Sections) "Params.sidebar.exclude" "!=" true -}}
 {{- $keyed := slice -}}
 {{- range $items -}}
   {{- $weight := cond (gt .Weight 0) .Weight 1000000 -}}
   {{- $keyed = $keyed | append (dict "k" (printf "%07d %s" $weight (lower .LinkTitle)) "p" .) -}}
 {{- end -}}
-{{- with $keyed -}}
-<ul class="opm-children not-prose" data-pagefind-ignore="all">
-  {{- range sort . "k" -}}
-    {{- with .p }}
-  <li class="opm-child">
-    <a class="opm-child-link" href="{{ .RelPermalink }}">{{ partial "utils/title" . }}</a>
-    {{- with .Description }}
-    <p class="opm-child-description">{{ . }}</p>
-    {{- end }}
-  </li>
+{{- $kids := slice -}}
+{{- range sort $keyed "k" }}{{ $kids = $kids | append .p }}{{ end -}}
+{{- $groups := slice
+  (dict "type" "tutorial" "label" "Tutorials")
+  (dict "type" "how-to" "label" "How-to guides")
+  (dict "type" "explanation" "label" "Explanations")
+  (dict "type" "reference" "label" "Reference")
+-}}
+{{- with $kids -}}
+<div class="opm-cards not-prose" data-pagefind-ignore="all">
+  {{- with where $kids "Kind" "section" }}
+  <ul class="opm-cards-list">{{ range . }}{{ template "opm-card" . }}{{ end }}</ul>
+  {{- end -}}
+  {{- $pages := where $kids "Kind" "page" -}}
+  {{- $known := slice -}}
+  {{- range $groups -}}
+    {{- $g := . -}}
+    {{- $known = $known | append $g.type -}}
+    {{- with where $pages "Type" $g.type }}
+  <h2 class="opm-cards-heading" id="opm-cards-{{ $g.type }}">{{ $g.label }}</h2>
+  <ul class="opm-cards-list">{{ range . }}{{ template "opm-card" . }}{{ end }}</ul>
     {{- end -}}
+  {{- end -}}
+  {{- with where $pages "Type" "not in" $known }}
+  <h2 class="opm-cards-heading" id="opm-cards-other">Other pages</h2>
+  <ul class="opm-cards-list">{{ range . }}{{ template "opm-card" . }}{{ end }}</ul>
   {{- end }}
-</ul>
+</div>
+{{- end -}}
+
+{{- define "opm-card" -}}
+  <li><a class="opm-card" href="{{ .RelPermalink }}">
+    <span class="opm-card-title">{{ partial "utils/title" . }}</span>
+    {{- with .Description }}<span class="opm-card-desc">{{ . }}</span>{{ end -}}
+  </a></li>
 {{- end -}}
