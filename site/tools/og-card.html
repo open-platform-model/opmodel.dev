@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- The Open Graph card, 1200x630 (task brand:og). site/tools/og-card.py
+     fills the placeholders (string.Template) and screenshots it into
+     site/static/images/og-default.png. The neutral skin's colours, no
+     gradients and no version label: one card serves every version. -->
+<style>
+@font-face { font-family: Geist; src: url(${geist}) format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "Geist Mono"; src: url(${geist_mono}) format("woff2"); font-weight: 100 900; }
+html, body { margin: 0; }
+body {
+  width: 1200px; height: 630px; box-sizing: border-box; padding: 80px 88px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background: #0a0a0a; color: #fafafa; font-family: Geist, sans-serif;
+}
+.brand { display: flex; align-items: center; gap: 18px; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+.brand svg { width: 44px; height: 44px; display: block; }
+h1 { margin: 0 0 28px; font-size: 96px; line-height: 1; font-weight: 700; letter-spacing: -0.045em; }
+p { margin: 0; max-width: 900px; font-size: 34px; line-height: 1.35; color: #a3a3a3; }
+.foot { font-family: "Geist Mono", monospace; font-size: 24px; color: #737373; }
+</style>
+<div class="brand">${mark}Documentation</div>
+<div><h1>${title}</h1><p>${description}</p></div>
+<div class="foot">opmodel.dev</div>

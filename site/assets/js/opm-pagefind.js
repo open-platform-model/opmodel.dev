@@ -40,12 +40,16 @@
     return pages.map((page) => {
       const title = (page.meta && page.meta.title) || page.url;
       const crumbs = page.meta && page.meta.crumbs ? page.meta.crumbs.split(' / ').filter(Boolean) : [];
+      // The page's description (its lead, custom/content-begin.html) is the
+      // sub-line of the match that is the page itself (its URL, no
+      // fragment); a match on a heading keeps Pagefind's excerpt.
+      const desc = page.meta && page.meta.description;
       const subs = (page.sub_results || []).slice(0, maxSubResults);
       const matches = (subs.length ? subs : [{ url: page.url, title, excerpt: page.excerpt }]).map((sub) => ({
         id: `hextra-search-opt-${n++}`,
         route: sub.url,
         title: sub.title || title,
-        content: text(sub.excerpt),
+        content: desc && sub.url === page.url ? desc : text(sub.excerpt),
       }));
       return { id: `hextra-search-opt-${n++}`, route: page.url, title, breadcrumbs: crumbs, matches };
     });

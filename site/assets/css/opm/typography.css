@@ -1,0 +1,83 @@
+/* Page type: the lead (layouts/_partials/custom/content-begin.html), the
+   heading scale, inline code and GitHub alerts. Hextra's prose rules
+   (.content :where(h2) ...) are not in a cascade layer and weigh 0,1,0; the
+   selectors here weigh more or the same and load later, so they win. Like
+   Hextra's, the heading rules skip anything inside a not-prose element. */
+
+/* The description, shown as the page lead under the title. */
+.opm-lead {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--hx-color-gray-600);
+  max-width: 42rem;
+  margin: 0.25rem 0 1.25rem;
+  text-wrap: pretty;
+}
+html.dark .opm-lead { color: var(--hx-color-gray-400); }
+
+/* A lighter heading scale: h1 36 px at 650, h2 24 px at 600 with no rule,
+   h3 18 px at 600. */
+.content h1:not(:where(.not-prose, .not-prose *)) {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.content h2:not(:where(.not-prose, .not-prose *)) {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin-top: 3rem;
+}
+.content h3:not(:where(.not-prose, .not-prose *)) {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  margin-top: 2rem;
+}
+
+/* Inline code: a quiet tint, no border. Code blocks (pre > code) keep
+   Hextra's styles. */
+.content :not(pre) > code {
+  border: 0;
+  background: var(--hx-color-gray-100);
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  font-size: 0.875em;
+}
+html.dark .content :not(pre) > code { background: oklch(100% 0 0 / 8%); }
+
+/* GitHub alerts: a neutral box with a 2 px start border and an icon in the
+   role colour; the text keeps the body colour. Hextra's compiled CSS is
+   purged and defines no green-600 or amber-600, so tip and warning are
+   Tailwind v4's values here (a var() of a missing variable paints nothing). */
+:root {
+  --opm-alert-tip: oklch(62.7% .194 149.214);
+  --opm-alert-warning: oklch(66.6% .179 58.318);
+  --opm-alert-caution: var(--hx-color-red-600);
+}
+html.dark {
+  --opm-alert-tip: oklch(79.2% .209 151.711);
+  --opm-alert-warning: oklch(82.8% .189 84.429);
+  --opm-alert-caution: var(--hx-color-red-400);
+}
+.hextra-alert[data-alert] {
+  --opm-alert: var(--hx-color-gray-500);
+  color: inherit;
+  background: color-mix(in oklab, var(--opm-alert) 5%, transparent);
+  border: 1px solid var(--hx-color-gray-200);
+  border-inline-start: 2px solid var(--opm-alert);
+}
+.hextra-alert[data-alert="tip"] { --opm-alert: var(--opm-alert-tip); }
+.hextra-alert[data-alert="important"] { --opm-alert: var(--hx-color-primary-600); }
+.hextra-alert[data-alert="warning"] { --opm-alert: var(--opm-alert-warning); }
+.hextra-alert[data-alert="caution"] { --opm-alert: var(--opm-alert-caution); }
+html.dark .hextra-alert[data-alert] {
+  border-color: var(--hx-color-neutral-800);
+  border-inline-start-color: var(--opm-alert);
+  background: color-mix(in oklab, var(--opm-alert) 8%, transparent);
+}
+.hextra-alert[data-alert] .hextra-alert-icon { color: var(--opm-alert); }

@@ -1,0 +1,28 @@
+{{- /* OPM override of Hextra's _partials/breadcrumb.html (v0.13.0, pinned in
+       overrides.sha256). Upstream renders a div of divs with no nav, no list
+       and no aria-current, and clips each crumb (overflow-hidden,
+       whitespace-nowrap, text-ellipsis), so a phone cuts crumbs off. This
+       copy renders a nav landmark holding an ordered list, marks the current
+       page with aria-current="page", and drops the clipping; the layout,
+       wrapping and the phone rules are in assets/css/opm/toc.css
+       (.opm-crumbs). It keeps upstream's breadcrumbs front-matter switch,
+       colour classes and chevron. Delete it when upstream fixes the markup. */ -}}
+{{- $page := .page -}}
+{{- $enable := .enable -}}
+{{- if (default $enable $page.Params.breadcrumbs) -}}
+  <nav aria-label="Breadcrumb" class="opm-crumbs hx:mt-1.5 hx:text-sm hx:text-gray-500 hx:dark:text-gray-400 hx:contrast-more:text-current">
+    <ol>
+      {{- range $page.Ancestors.Reverse }}
+        {{- if not .IsHome }}
+          <li>
+            <a href="{{ .RelPermalink }}" class="hx:inline-block hx:rounded-sm hx:hextra-focus-visible-inset hx:transition-colors hx:hover:text-gray-900 hx:dark:hover:text-gray-100">{{- partial "utils/title" . -}}</a>
+            {{- partial "utils/icon.html" (dict "name" "chevron-right" "attributes" "class=\"hx:w-3.5 hx:shrink-0 hx:rtl:-rotate-180\"") -}}
+          </li>
+        {{- end }}
+      {{- end }}
+      <li><span aria-current="page" class="hx:font-medium hx:text-gray-700 hx:contrast-more:font-bold hx:contrast-more:text-current hx:dark:text-gray-100 hx:contrast-more:dark:text-current">
+        {{- partial "utils/title" $page -}}
+      </span></li>
+    </ol>
+  </nav>
+{{ end -}}
