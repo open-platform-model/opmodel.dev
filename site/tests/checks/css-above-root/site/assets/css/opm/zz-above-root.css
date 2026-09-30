@@ -1,0 +1,3 @@
+/* A site-owned stylesheet whose relative url() climbs above the site root:
+   the stylesheet publishes at css/opm.min.<hash>.css, one level down. */
+.opm-above-root { background-image: url("../../outside-the-site.png"); }

@@ -1,5 +1,18 @@
 {{- /* Hextra hook (v0.13.0), end of <head>. */ -}}
 {{- partial "opm/check-front-matter.html" . -}}
+{{- /* Only the production host is indexed. Another host (the interim GitHub
+       Pages site, a local server) sends no robots header, and a robots.txt
+       under a path is ignored, so the page asks for itself. Hextra's head has
+       already written "index, follow"; search engines apply the most
+       restrictive rule. A missing param fails the build rather than silently
+       de-indexing production. */ -}}
+{{- with site.Params.opm.indexedHost -}}
+  {{- if ne (urls.Parse site.BaseURL).Host . -}}
+    <meta name="robots" content="noindex, nofollow">
+  {{- end -}}
+{{- else -}}
+  {{- errorf "params.opm.indexedHost is not set in hugo.toml" -}}
+{{- end -}}
 <link rel="preload" href="{{ "fonts/Geist-Variable.woff2" | relURL }}" as="font" type="font/woff2" crossorigin>
 {{- /* OPM styles: every assets/css/opm/*.css, concatenated in lexical file-name
        order, minified and fingerprinted into one stylesheet after Hextra's.

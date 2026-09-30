@@ -1,0 +1,4 @@
++ SUPPLY FAIL: pages load from another host:
++ src=https://opmodel.dev/x.js
++ src=https://pagesXexample/opm/docs/x.js
+- LINK FAIL

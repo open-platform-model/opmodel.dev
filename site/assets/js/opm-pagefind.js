@@ -6,6 +6,8 @@
 // so the palette renders Pagefind results with Hextra's own markup and
 // styles. The bundle is this version's (/<version>/pagefind/), so results
 // never leave the version being read. Loaded on first open of the palette.
+// Result URLs start at the version's home, passed as baseUrl so they are a
+// build output under any base path, not Pagefind's guess from the bundle URL.
 (function () {
   const bundlePath = '{{ .Site.Home.RelPermalink }}pagefind/';
   const maxPages = 10;
@@ -16,7 +18,7 @@
     if (!loading) {
       loading = import(bundlePath + 'pagefind.js')
         .then(async (pagefind) => {
-          await pagefind.options({ excerptLength: 20 });
+          await pagefind.options({ baseUrl: '{{ .Site.Home.RelPermalink }}', excerptLength: 20 });
           pagefind.init();
           return pagefind;
         })

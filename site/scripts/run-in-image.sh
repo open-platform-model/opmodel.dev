@@ -27,6 +27,10 @@
 #   OPM_REQUIRE_DATES  1 fails the build when a page has no git date (default 0).
 #   OPM_VERSIONS       name=root ... (roots are container paths). Passed into the container only
 #                      when the caller set it; otherwise build-all.sh and serve.sh use v1.0=/src.
+#   OPM_BASE_URL       the site's base URL, an absolute http(s) URL ending in /, which may carry
+#                      a path (https://example.org/docs/). Passed into the container in build
+#                      mode only, and only when set; unset, the build uses hugo.toml's baseURL.
+#                      serve, test, lint and the two-version test never see it.
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
@@ -114,8 +118,10 @@ case "$mode" in
   build)
     sources; image >/dev/null
     echo "run-in-image: build, sources $REFS"
+    base=$(envval OPM_BASE_URL)
+    if [ -n "$base" ]; then set -- --env "OPM_BASE_URL=$base"; else set --; fi
     # shellcheck disable=SC2086 # MOUNTS is a list of -v flags without spaces inside paths
-    run --network none --env "OPM_BUILD_REFS=$REFS" $MOUNTS \
+    run --network none --env "OPM_BUILD_REFS=$REFS" "$@" $MOUNTS \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/build-all.sh ;;
   serve)
     sources; image >/dev/null
