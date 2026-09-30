@@ -149,6 +149,16 @@ tasks:
       - task: build
       - task: test:site
 
+  # The workflows' lint, and the local gate for them: nothing runs a workflow
+  # before its branch is pushed. Read-only, no network, as the calling user.
+  # Extra flags pass through: task ci:lint -- -verbose
+  ci:lint:
+    desc: Lint .github/workflows with actionlint (and its bundled shellcheck), in a pinned image
+    vars:
+      ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+    cmds:
+      - docker run --rm --network none --user "$(id -u):$(id -g)" --volume "{{.ROOT_DIR}}:/repo:ro" --workdir /repo {{.ACTIONLINT_IMAGE}} -color {{.CLI_ARGS}}
+
   clean:
     desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:

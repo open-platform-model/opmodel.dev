@@ -1,0 +1,55 @@
+name: PR Title
+
+# Squash-merge is the norm here, and the repo's squash title setting is
+# COMMIT_OR_PR_TITLE: a pull request with one commit lands on main under that
+# commit's subject, and one with several (every OpenSpec change has one commit
+# per section) lands under the PR title. There is no release-please here, so
+# nothing else checks that title. This check fails the PR until its title is a
+# Conventional Commit with this repo's types, keeping main's history in the
+# shape the commits are written in. (Same guard as cli and library.)
+#
+# pull_request_target runs the workflow as it is on main, so a change to this
+# file first applies to the pull request after it merges. It checks out no
+# pull request code, so the third-party action has nothing of the PR to run.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate Conventional Commit title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Keep in lockstep with "Commit Standards" in openspec/config.yaml.
+          types: |
+            feat
+            fix
+            refactor
+            docs
+            test
+            chore
+            build
+            ci
+          # Scopes are optional, so do not require one. The action accepts a
+          # trailing "!" for breaking changes (e.g. "feat(site)!: ...") out of
+          # the box.
+          requireScope: false
+          # Subject must not start with an uppercase letter — rejects
+          # branch-name titles like "Feat/add site ci".
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the PR title "{title}" must start
+            lowercase (imperative mood, no leading capital).
