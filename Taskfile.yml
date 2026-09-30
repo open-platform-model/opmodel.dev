@@ -1,27 +1,5 @@
 version: '3'
 
-vars:
-  IMAGE: opmodel-dev-site:local
-  SHOTS_IMAGE: opmodel-dev-shots:local
-  UID:
-    sh: id -u
-  GID:
-    sh: id -g
-  # Runs a command in the site's build image with the repository mounted, as
-  # the calling user so files written to site/ stay owned by them. The
-  # workspace is mounted read-only so the site can read each source
-  # repository's docs/site/ (site/scripts/sources.mjs). TINI_KILL_PROCESS_GROUP
-  # makes the init process pass Ctrl+C to npm's whole process group, so the
-  # node process under `npm run` stops too and the container exits. Declared
-  # after UID and GID because Task resolves vars in order.
-  SITE_RUN: >-
-    docker run --rm --init
-    --env TINI_KILL_PROCESS_GROUP=1
-    --user {{.UID}}:{{.GID}}
-    --volume {{.ROOT_DIR}}:/work/repo
-    --volume {{.ROOT_DIR}}/..:/work/workspace:ro
-    --env OPM_DOCS_WORKSPACE=/work/workspace
-
 tasks:
   default:
     desc: Show available tasks
@@ -32,11 +10,6 @@ tasks:
     desc: Install Go dependencies (the site's live in its build image)
     cmds:
       - go mod download
-
-  image:
-    desc: Build the site's build image (Node, git and the npm packages)
-    cmds:
-      - docker build --quiet --tag {{.IMAGE}} site
 
   build:docgen:
     desc: Build the docgen tool
@@ -72,64 +45,28 @@ tasks:
     desc: Generate all documentation
     deps: [generate:schema, generate:cli]
 
-  # The dev script deletes .astro/dev.json first: Astro records its dev
-  # server's PID there to refuse a second server, but each run is a new
-  # container whose own processes reuse low PIDs, so a lock left by an earlier
-  # run always looks alive and blocks the next start.
-  serve:
-    desc: Run the dev server for the latest version on http://localhost:4321/
-    deps: [image]
-    cmds:
-      - '{{.SITE_RUN}} --publish 127.0.0.1:4321:4321 {{.IMAGE}} npm run dev -- --host 0.0.0.0 --port 4321'
-
-  build:
-    desc: Build every site version into site/dist/
-    deps: [image]
-    cmds:
-      - '{{.SITE_RUN}} {{.IMAGE}} npm run build'
-
-  preview:
-    desc: Serve the built site, every version, on http://localhost:4321/
-    deps: [build]
-    cmds:
-      - '{{.SITE_RUN}} --publish 127.0.0.1:4321:4321 {{.IMAGE}} npm run preview'
-
-  shots:image:
-    desc: Build the screenshot image (Playwright with Chromium)
-    cmds:
-      - docker build --quiet --tag {{.SHOTS_IMAGE}} site/shots
-
-  shots:
-    desc: Screenshot every figure on the built site, in both themes and at phone width, into site/.shots/
-    deps: [build, shots:image]
-    cmds:
-      - rm -rf site/.shots && mkdir -p site/.shots
-      - docker run --rm --user {{.UID}}:{{.GID}} --env HOME=/tmp --volume {{.ROOT_DIR}}/site:/site:ro --volume {{.ROOT_DIR}}/site/.shots:/out {{.SHOTS_IMAGE}} python3 /site/shots/shoot.py
-
-  # The Hugo site (change port-site-to-hugo-hextra). Until its cutover these
-  # carry the hugo: prefix, and the bare image, serve, build, preview, shots
-  # and shots:image above are the Astro site. Every step runs in Docker
-  # through site/scripts/run-in-image.sh, which resolves OPM_WS,
-  # OPM_SRC_<REPO> and OPM_SRC_WORKTREE (the environment or a task CLI var
-  # wins over the defaults) and checks every source root before any container
-  # starts. The env map below hands the CLI form (task hugo:build OPM_WS=...)
-  # to the script; an unset variable arrives empty and counts as unset.
-  hugo:image:
-    desc: Build the Hugo build image, opmodel-dev-hugo:<12 hex of sha256 of site/Dockerfile.hugo>, if the tag is missing
+  # The site. Every step runs in Docker through site/scripts/run-in-image.sh,
+  # which resolves OPM_WS, OPM_SRC_<REPO> and OPM_SRC_WORKTREE (the
+  # environment or a task CLI var wins over the defaults) and checks every
+  # source root before any container starts. The env map below hands the CLI
+  # form (task build OPM_WS=...) to the script; an unset variable arrives
+  # empty and counts as unset. Image tags come from the Dockerfile hashes.
+  image:
+    desc: Build the site's build image (Hugo, Pagefind, git), tagged by the hash of site/Dockerfile, if the tag is missing
     cmds:
       - sh site/scripts/run-in-image.sh image
 
   # Host-side preparation that build and serve run first; nothing to prepare
   # for one version built from the source roots.
-  hugo:versions:prepare:
+  versions:prepare:
     desc: Prepare the site versions on the host (no-op for one version)
     cmds:
       - cmd: 'true'
         silent: true
 
-  hugo:build:
+  build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
-    deps: [hugo:versions:prepare]
+    deps: [versions:prepare]
     env: &hugo-env
       OPM_WS: '{{.OPM_WS}}'
       OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
@@ -145,63 +82,63 @@ tasks:
     cmds:
       - sh site/scripts/run-in-image.sh build
 
-  hugo:serve:
+  serve:
     desc: Run the dev server on http://127.0.0.1:${SITE_PORT:-1313}/, reading the sources in place
-    deps: [hugo:versions:prepare]
+    deps: [versions:prepare]
     env: *hugo-env
     cmds:
       - sh site/scripts/run-in-image.sh serve
 
-  hugo:preview:
-    desc: Serve the built site/public/ on http://127.0.0.1:${SITE_PORT:-1313}/ (run hugo:build first)
+  preview:
+    desc: Serve the built site/public/ on http://127.0.0.1:${SITE_PORT:-1313}/ (run build first)
     env:
       SITE_PORT: '{{.SITE_PORT}}'
     cmds:
       - sh site/scripts/run-in-image.sh preview
 
-  hugo:lint:sources:
+  lint:sources:
     desc: Lint the six source repos' docs/site pages against the page dialect
     env: *hugo-env
     cmds:
       - sh site/scripts/run-in-image.sh lint
 
-  hugo:test:site:
+  test:site:
     desc: Prove the build checks on fixtures (site/tests), in Docker with no network
     cmds:
       - sh site/scripts/run-in-image.sh test
 
-  hugo:qa:image:
+  qa:image:
     desc: Build the QA image, opmodel-dev-qa:<12 hex of sha256 of site/tests/browser/Dockerfile>, if the tag is missing
     cmds:
       - sh site/scripts/run-in-image.sh qa-image
 
-  hugo:shots:
+  shots:
     desc: Build the site, then screenshot every figure page and the extras in six variants into site/.shots/
-    deps: [hugo:qa:image]
+    deps: [qa:image]
     cmds:
-      - task: hugo:build
+      - task: build
       - sh site/scripts/run-in-image.sh shots
 
-  hugo:qa:
+  qa:
     desc: Build the site, then the screenshots, the axe accessibility and the search smoke tests (no network, no port)
-    deps: [hugo:qa:image]
+    deps: [qa:image]
     cmds:
-      - task: hugo:build
+      - task: build
       - sh site/scripts/run-in-image.sh qa
 
-  hugo:ci:
+  ci:
     desc: What CI runs for the site - check, the image, the build and the site tests
     cmds:
       - task: check
-      - task: hugo:image
-      - task: hugo:build
-      - task: hugo:test:site
+      - task: image
+      - task: build
+      - task: test:site
 
   clean:
-    desc: Clean generated files
+    desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:
-      - rm -rf bin/ site/dist/ site/.astro/ site/.versions/ site/src/content/docs/ site/src/generated/ site/data/schema/ site/content/docs/reference/cli/opm*.md
-      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.check/
+      - rm -rf bin/ site/data/schema/ site/content/docs/reference/cli/opm*.md
+      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/
 
   fmt:
     desc: Format Go code

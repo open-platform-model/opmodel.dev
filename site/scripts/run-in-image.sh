@@ -34,7 +34,7 @@
 # each source root read-only at /src/<repo>, never with :z.
 set -eu
 REPOS="opm core catalog_opm cli library opm-operator"
-DOCKERFILE=site/Dockerfile.hugo
+DOCKERFILE=site/Dockerfile
 QA_DOCKERFILE=site/tests/browser/Dockerfile
 
 repo=$(cd "$(dirname "$0")/../.." && pwd -P)

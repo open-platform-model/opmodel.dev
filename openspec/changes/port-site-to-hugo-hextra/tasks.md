@@ -172,7 +172,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
 
 ## 5. Cutover
 
-- [ ] 5.1 Delete the Astro site:
+- [x] 5.1 Delete the Astro site:
   - `site/astro.config.mjs`, `site/package.json`, `site/package-lock.json`, `site/tsconfig.json`, `site/.dockerignore` and `site/versions.config.mjs`;
   - the Astro `site/Dockerfile`;
   - `site/src/`;
@@ -180,7 +180,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - `site/shots/`.
 
   Then `git mv site/Dockerfile.hugo site/Dockerfile`. Verify: `git -C <wt> ls-files site | grep -E '\.(mjs|astro|ts)$|package(-lock)?\.json$|tsconfig\.json$|^site/(src|shots)/|^site/\.dockerignore$'` prints nothing.
-- [ ] 5.2 In `Taskfile.yml`:
+- [x] 5.2 In `Taskfile.yml`:
   - remove `IMAGE`, `SHOTS_IMAGE` and `SITE_RUN`, and the Astro tasks `image`, `serve`, `build`, `preview`, `shots:image` and `shots`;
   - rename every `hugo:<name>` to `<name>`;
   - make `clean` remove generated paths only;
@@ -190,18 +190,18 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - `grep -nE 'opmodel-dev-site|opmodel-dev-shots|4321|SITE_RUN|hugo:' <wt>/Taskfile.yml` prints nothing;
   - `grep -rn 'task hugo:' <wt>/site/scripts <wt>/site/tests` prints nothing;
   - `task -d <wt> image` finds the section-4 tag already present and builds nothing, and `task -d <wt> qa:image` does the same for the QA image.
-- [ ] 5.3 Rewrite `site/.gitignore` for the Hugo site only: drop `node_modules/`, `dist/`, `.astro/`, `src/content/docs/` and `src/generated/`. Verify: after a build, `git -C <wt> status --short` shows no generated file.
-- [ ] 5.4 Rewrite `README.md` for the Hugo site (design decision 16):
+- [x] 5.3 Rewrite `site/.gitignore` for the Hugo site only: drop `node_modules/`, `dist/`, `.astro/`, `src/content/docs/` and `src/generated/`. Verify: after a build, `git -C <wt> status --short` shows no generated file.
+- [x] 5.4 Rewrite `README.md` for the Hugo site (design decision 16):
   - the stack, the architecture and the prerequisites;
   - a quick start with `task serve` on http://127.0.0.1:1313/ and the `site/public/` output;
   - the tree and the task list, with `OPM_SRC_WORKTREE`;
   - a `## Contributing` section with three parts: Preview; Page dialect (the workspace `STYLE.md` "Site Pages", `task lint:sources`, and "fix the page, never the lint"; order by `weight` then title; an overview declares no type); and Adding a figure (the recipe).
-- [ ] 5.5 Rewrite `AGENTS.md`: Purpose, Repository Rules, Repository Layout (drop the stale `adr/`, `getting-started/` and `guides/`), Environment Notes, Build And Dev Commands, Technology stack and Patterns. Keep the attribution, bare-`@name` and 250-word PR rules word for word. Land these durable decisions from design.md:
+- [x] 5.5 Rewrite `AGENTS.md`: Purpose, Repository Rules, Repository Layout (drop the stale `adr/`, `getting-started/` and `guides/`), Environment Notes, Build And Dev Commands, Technology stack and Patterns. Keep the attribution, bare-`@name` and 250-word PR rules word for word. Land these durable decisions from design.md:
   - `## Durable decisions`: the stack ("Hugo + Hextra v0.13.0, neutral skin, chosen 2026-09-30; see the workspace `research/docs-site-stacks/hugo-themes/`"), the URL layout, and the reserved `docs/reference/{cli,definitions}/` sections;
   - Repository Rules: the lint bytes, the vendored theme and drift guard, and Docker only (hash tags, no fixed names, `SITE_PORT`, no network in builds);
   - Patterns: one CSS file per owner under `assets/css/opm/`.
-- [ ] 5.6 Update `CONSTITUTION.md` lines 5, 30, 53 and 153 to the Hugo site. Change line 102 to "Theme built-ins over overrides; every override copy is hash-guarded".
-- [ ] 5.7 Update `TODO.md`:
+- [x] 5.6 Update `CONSTITUTION.md` lines 5, 30, 53 and 153 to the Hugo site. Change line 102 to "Theme built-ins over overrides; every override copy is hash-guarded".
+- [x] 5.7 Update `TODO.md`:
   - the line 5 banner and the "Astro Site" block;
   - 1.2 (Hugo front matter), 1.3 (a Hugo content adapter, `_content.gotmpl`), 1.4 (the stack and its date) and 1.5 (`site/public/`, port 1313);
   - 2.2 (Hugo partials and shortcodes instead of `.astro` components), 3.1 (`site/public/`) and 3.4 (one `v1.0` from `main`; tag-based versions are change `version-site-from-tags`);
@@ -209,10 +209,10 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - the Astro and Starlight references, and Next Immediate Steps item 2.
 
   Leave 3.2 (hosting) to the deploy change.
-- [ ] 5.8 docgen wording: "Starlight front matter" becomes "Hugo front matter" in `internal/cobradoc/generator.go` (lines 2, 9 and 13) and `cmd/docgen/main.go` (line 38). On line 13, "(title, description, sidebar order)" also becomes "(title, description, weight)". Comments and help text only. Verify: `grep -rn 'sidebar' <wt>/cmd <wt>/internal` prints nothing.
-- [ ] 5.9 In `openspec/config.yaml`, delete the paragraph that starts "Until `port-site-to-hugo-hextra` lands its cutover section" (lines 108-112) and the clause "the Astro site that came before it is being replaced" (lines 10-11). Verify: `grep -n 'Until .port-site-to-hugo-hextra\|Astro' <wt>/openspec/config.yaml` prints nothing, and `cd <wt> && openspec validate --all --strict --no-interactive` is green.
-- [ ] 5.10 Sweep for leftovers: `grep -rniE 'astro|starlight|site/dist|4321' <wt>/README.md <wt>/AGENTS.md <wt>/CONSTITUTION.md <wt>/TODO.md <wt>/Taskfile.yml <wt>/cmd <wt>/internal <wt>/site/scripts <wt>/site/tests <wt>/site/config <wt>/site/layouts`. Verify: every hit is read, and every remaining hit names the retired stack on purpose. Then run `grep -rniE 'sidebar[ .]order' <wt>/README.md <wt>/AGENTS.md <wt>/CONSTITUTION.md <wt>/TODO.md <wt>/cmd <wt>/internal`: every hit is read, and every remaining one names the retired field on purpose. A bare `sidebar` is not swept: `sidebar.html`, `sidebar.exclude` and Hextra's sidebar classes are live Hugo names.
-- [ ] 5.11 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` (PNGs read); all must be green. Then commit `feat(site)!: retire the astro site`.
+- [x] 5.8 docgen wording: "Starlight front matter" becomes "Hugo front matter" in `internal/cobradoc/generator.go` (lines 2, 9 and 13) and `cmd/docgen/main.go` (line 38). On line 13, "(title, description, sidebar order)" also becomes "(title, description, weight)". Comments and help text only. Verify: `grep -rn 'sidebar' <wt>/cmd <wt>/internal` prints nothing.
+- [x] 5.9 In `openspec/config.yaml`, delete the paragraph that starts "Until `port-site-to-hugo-hextra` lands its cutover section" (lines 108-112) and the clause "the Astro site that came before it is being replaced" (lines 10-11). Verify: `grep -n 'Until .port-site-to-hugo-hextra\|Astro' <wt>/openspec/config.yaml` prints nothing, and `cd <wt> && openspec validate --all --strict --no-interactive` is green.
+- [x] 5.10 Sweep for leftovers: `grep -rniE 'astro|starlight|site/dist|4321' <wt>/README.md <wt>/AGENTS.md <wt>/CONSTITUTION.md <wt>/TODO.md <wt>/Taskfile.yml <wt>/cmd <wt>/internal <wt>/site/scripts <wt>/site/tests <wt>/site/config <wt>/site/layouts`. Verify: every hit is read, and every remaining hit names the retired stack on purpose. Then run `grep -rniE 'sidebar[ .]order' <wt>/README.md <wt>/AGENTS.md <wt>/CONSTITUTION.md <wt>/TODO.md <wt>/cmd <wt>/internal`: every hit is read, and every remaining one names the retired field on purpose. A bare `sidebar` is not swept: `sidebar.html`, `sidebar.exclude` and Hextra's sidebar classes are live Hugo names.
+- [x] 5.11 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` (PNGs read); all must be green. Then commit `feat(site)!: retire the astro site`.
 
 ## After section 5
 

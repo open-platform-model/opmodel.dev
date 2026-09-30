@@ -1,4 +1,4 @@
-"""Screenshots of the built site (task hugo:shots, later task shots).
+"""Screenshots of the built site (task shots).
 
 Every page of the default version that draws a figure (a <figure> holding an
 <svg role="img">) gets each drawn figure shot in six variants, into

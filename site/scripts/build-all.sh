@@ -1,5 +1,5 @@
 #!/bin/sh
-# The site build. Runs inside the build image (site/Dockerfile.hugo) with the
+# The site build. Runs inside the build image (site/Dockerfile) with the
 # repo at /work/repo and each source root read-only at /src/<repo>, with no
 # network (site/scripts/run-in-image.sh build). Every step fails the build.
 #

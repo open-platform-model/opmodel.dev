@@ -1,4 +1,0 @@
-# The image needs only package.json and package-lock.json.
-*
-!package.json
-!package-lock.json

@@ -7,11 +7,10 @@ context: |
 
   This repo builds the public documentation site opmodel.dev, plus the `docgen` Go tool that
   generates reference pages from the CUE schema and the CLI's cobra commands. The site is a
-  Hugo site on the Hextra theme (neutral skin), built only inside Docker; the Astro site that
-  came before it is being replaced. Pages authored in six source repos (opm, core,
-  catalog_opm, cli, library, opm-operator), each in its `docs/site/` tree, are assembled here
-  at build time. Design principles for the whole repo are in CONSTITUTION.md; commands and
-  working rules are in AGENTS.md.
+  Hugo site on the Hextra theme (neutral skin), built only inside Docker. Pages authored in
+  six source repos (opm, core, catalog_opm, cli, library, opm-operator), each in its
+  `docs/site/` tree, are assembled here at build time. Design principles for the whole repo
+  are in CONSTITUTION.md; commands and working rules are in AGENTS.md.
 
   ### I. Content Lives in the Owning Repository
   A page's source lives in the repository whose change would make it wrong (0018:D8). This
@@ -104,12 +103,6 @@ context: |
   3. `task test:site` — every build check still fails on its fixture.
   4. `task qa` — screenshots (light, dark, phone width) plus the accessibility and search smoke
      tests. Required whenever anything visual changes; read the screenshots.
-
-  Until `port-site-to-hugo-hextra` lands its cutover section, gates 2 to 4 run as
-  `task hugo:build`, `task hugo:test:site` and `task hugo:qa`. The bare `image`, `build`,
-  `serve`, `preview`, `shots` and `shots:image` tasks belong to the Astro site being replaced;
-  agents never run them, because they retag shared images and publish port 4321. A change's
-  `tasks.md` names the exact gates each section runs.
 
   ## Comments and Enhancement References
   - Default to no enhancement reference: say what the code does and why, in the comment's own words.

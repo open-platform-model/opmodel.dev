@@ -241,6 +241,8 @@ Mutations prove the dialect assertions are live: without `render-codeblock-cue.h
 - The footer stamp relied on a Hextra utility class the purged CSS lacks; it is styled in `chrome.css`.
 With those, `task hugo:qa` passes: two figure pages (9.5 px minimum text), four extras, axe on six pages in both themes with no violation, and search finds the quickstart first with every result inside `v1.0`. No QA container had a port mapping while it ran.
 
+**Section 5 result (2026-09-30).** The cutover deleted the Astro app, its image, lockfile and `site/shots/`, and renamed the tasks; `site/Dockerfile.hugo` moved to `site/Dockerfile` with its bytes, so `task image` and `task qa:image` found `opmodel-dev-hugo:a655bffa27af` and `opmodel-dev-qa:ca08c2e70f2e` and built nothing. The Dockerfile's header comment still names `site/Dockerfile.hugo`: correcting it would change the hash and the tag, which this section must not, so the next change that edits the Dockerfile fixes the comment. `task ci` and `task qa` pass from a clean tree, and `task serve` and `task preview` answer on `127.0.0.1:1313` and stop on one SIGINT.
+
 ### 16. Repo documents at cutover
 
 - `README.md`: stack, architecture, prerequisites, quick start (`task serve` on http://127.0.0.1:1313/, output `site/public/`), tree, tasks. It gains a `## Contributing` section: Preview, Page dialect (points at the workspace `STYLE.md` "Site Pages" and `task lint:sources`) and Adding a figure (the recipe C updates).

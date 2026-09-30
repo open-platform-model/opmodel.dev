@@ -1,20 +1,15 @@
-node_modules/
-dist/
-.astro/
-# Generated per build by scripts/prepare-versions.mjs and stage-version.mjs.
-.versions/
-src/content/docs/
-src/generated/
-# Screenshots written by task shots.
-.shots/
-# Hugo site: build output, Hugo's own state, and inputs generated per build
-# (scripts/gen-lastmod.sh, gen-mounts.sh; .gen/<version>/ is reserved for the
-# generated reference). .check/ holds check output and test-site.sh copies.
+# Build output and Hugo's own state.
 public/
 resources/
 .hugo_build.lock
+# Inputs generated per build: git dates and the build stamp (data/opm/), the
+# content mounts (config/{production,development}/), the generated reference
+# (.gen/<version>/) and prepared versions (.versions/<version>/).
 data/opm/
 config/production/
 config/development/
 .gen/
+.versions/
+# Check output and test-site.sh's copies (.check/), screenshots (.shots/).
 .check/
+.shots/
