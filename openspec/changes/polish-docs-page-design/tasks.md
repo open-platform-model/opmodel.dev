@@ -63,15 +63,15 @@ Never build without `OPM_SRC_WORKTREE=site-src`. If you need `task serve` or `ta
 
 ## 3. Section children as cards grouped by type (fix 4)
 
-- [ ] 3.1 In `layouts/_partials/opm/section-children.html`, render A's child set in A's order as cards (Decision 5): subsections first with no heading, then Tutorials, How-to guides, Explanations and Reference, with empty groups left out, all inside `<div class="opm-cards not-prose" data-pagefind-ignore>`. Leave the call site where A put it. Verify in the built HTML:
+- [x] 3.1 In `layouts/_partials/opm/section-children.html`, render A's child set in A's order as cards (Decision 5): subsections first with no heading, then Tutorials, How-to guides, Explanations and Reference, with empty groups left out, all inside `<div class="opm-cards not-prose" data-pagefind-ignore>`. Leave the call site where A put it. Verify in the built HTML:
   - `site/public/v1.0/docs/operating/index.html` shows the headings in the order Tutorials, How-to guides, Explanations;
   - each list follows the order of `site/.check/v1.0/nav-order.txt`;
   - `site/public/v1.0/docs/index.html` lists its subsections as cards with no heading;
   - the Q2 page-set check is still green.
-- [ ] 3.2 In `assets/css/opm/cards.css`, add the grid, card and group-heading rules, each scoped under `.opm-cards`, with the file's own list and link styles (Decision 5). Create the file if SP1 found it missing.
-- [ ] 3.3 If A's shot set lacks them, add shot extras for `/v1.0/docs/` and `/v1.0/docs/operating/` in `site/tests/browser/`, each as its own entry.
-- [ ] 3.4 In `README.md` under `## Page design`, record durable decision 3: section indexes list generated cards grouped by type, and nobody writes a child list by hand.
-- [ ] 3.5 Run ci and qa; both must be green, the search smoke test included. Read the PNGs of `/v1.0/docs/` and `/v1.0/docs/operating/` in light, dark and phone: the cards form a grid, and each shows a title and description; the group headings are small, not page-h2 size; no card list has bullets, and no card link is underlined. Then commit `feat(site): list child pages as cards grouped by type`.
+- [x] 3.2 In `assets/css/opm/cards.css`, add the grid, card and group-heading rules, each scoped under `.opm-cards`, with the file's own list and link styles (Decision 5). Create the file if SP1 found it missing.
+- [x] 3.3 If A's shot set lacks them, add shot extras for `/v1.0/docs/` and `/v1.0/docs/operating/` in `site/tests/browser/`, each as its own entry.
+- [x] 3.4 In `README.md` under `## Page design`, record durable decision 3: section indexes list generated cards grouped by type, and nobody writes a child list by hand.
+- [x] 3.5 Run ci and qa; both must be green, the search smoke test included. Read the PNGs of `/v1.0/docs/` and `/v1.0/docs/operating/` in light, dark and phone: the cards form a grid, and each shows a title and description; the group headings are small, not page-h2 size; no card list has bullets, and no card link is underlined. Then commit `feat(site): list child pages as cards grouped by type`.
 
 ## 4. Descriptions in search results (fix 5)
 

@@ -4,8 +4,8 @@ Every page of the default version that draws a figure (a <figure> holding an
 <svg role="img">) gets each drawn figure shot in six variants, into
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
-landing, a docs page, the 404 page and the open search palette) get a
-viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+landing, a docs page, the 404 page, the open search palette and two section
+pages with their child cards) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 site/.shots/ is replaced on every run.
@@ -110,6 +110,8 @@ def main():
         (f"/{version}/docs/start/quickstart/", "docs page", None),
         (f"/{version}/404.html", "404 page", None),
         (f"/{version}/docs/", "search", "search"),
+        (f"/{version}/docs/", "section cards", None),
+        (f"/{version}/docs/operating/", "section cards", None),
     ]
     too_small = []
     errors = []
