@@ -150,7 +150,9 @@ Moving `v1.0` onto beta tags is this edit (the tag names are examples):
 
 Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds, and no tag cut before it can: the resolver fails first, naming the repository and the ref. So each repository needs a tag cut after its floor before `v1.0` can move onto tags.
 
-`OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) builds `site/tests/versions/two-versions.conf`, which adds a test version, into `site/.check/versions-test/`, never `site/public/`. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
+The site-owned pages (`site/content/`) are built into every version, so every link on them must resolve in every version, older ones included; a link to a page that exists only in a newer version fails that version's build.
+
+`OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) builds `site/tests/versions/two-versions.conf`, which adds a test version, into `site/.check/versions-test/`, never `site/public/`. When `task versions:test` fails naming `(version v0.9)`, a source or site-owned page no longer builds at the test version's SHAs: bump them in `two-versions.conf` to buildable SHAs after each floor, never edit the checks. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
 
 ## Implementation Status
 

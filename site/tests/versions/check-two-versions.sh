@@ -136,6 +136,42 @@ one_version=$(printf '%s\n' "$site_keys" | awk 'NF && !(/"v1.0":/ && /"v0.9":/)'
 why="site-owned keys without both versions: $(printf '%s' "$one_version" | head -n 2)"
 check "data/opm/lastmod.json holds site-owned keys for both versions" [ -n "$site_keys" -a -z "$one_version" ]
 
+# The v0.9 source pages come from the anchored refs, not from the roots' HEADs:
+# per repository, the archive and the published v0.9 pages are exactly the
+# pages of git ls-tree at the test SHA, and a page added after it publishes
+# in v1.0 only.
+mounts=$(sh -c '. "$0" >/dev/null
+  sources
+  for m in $MOUNTS; do [ "$m" = -v ] || printf "%s\n" "$m"; done' "$SITE/scripts/run-in-image.sh" tag)
+root_of() { printf '%s\n' "$mounts" | awk -v r="$1" '{ m = $0; sub(/:\/src\/.*/, "", m); d = $0; sub(/.*:\/src\//, "", d); sub(/:ro$/, "", d); if (d == r) print m }'; }
+pages_at() { git -C "$1" ls-tree -r --name-only "$2" docs/site | grep '\.md$' | sed 's#^docs/site/##' | sort; }
+url_of() { sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#'; }
+set_bad=""; newer=""; newer_bad=""
+for r in $REPOS; do
+  root=$(root_of "$r"); s=$(sha_of "$r")
+  want=$(pages_at "$root" "$s")
+  have=$(cd "$SITE/.versions/v0.9/$r/docs/site" 2>/dev/null && find . -type f -name '*.md' | sed 's#^\./##' | sort)
+  [ "$want" = "$have" ] || set_bad="$set_bad $r(archive)"
+  unbuilt=$(printf '%s\n' "$want" | url_of | while IFS= read -r u; do [ -f "$P/v0.9/docs/${u}index.html" ] || echo "$u"; done | head -n 1)
+  [ -z "$unbuilt" ] || set_bad="$set_bad $r(/v0.9/docs/$unbuilt)"
+  printf '%s\n' "$want" > "$OUT/.want"
+  for u in $(pages_at "$root" HEAD | comm -23 - "$OUT/.want" | url_of); do
+    newer="$newer $r:$u"
+    { [ ! -e "$P/v0.9/docs/${u}index.html" ] && [ -f "$P/v1.0/docs/${u}index.html" ]; } || newer_bad="$newer_bad $r:$u"
+  done
+done
+rm -f "$OUT/.want"
+why="differs from git ls-tree at the test SHA:$set_bad"
+check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
+why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from the roots at HEAD}; wrong for:$newer_bad"
+n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
+check "pages added after the test SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]
+if git -C "$(root_of catalog_opm)" cat-file -e HEAD:docs/site/extending/write-a-blueprint.md 2>/dev/null; then
+  why="/v0.9/ has it, or /v1.0/ lacks it"
+  check "/docs/extending/write-a-blueprint/ (catalog_opm, after its floor) is in v1.0 and not in v0.9" \
+    [ ! -e "$P/v0.9/docs/extending/write-a-blueprint/index.html" -a -f "$P/v1.0/docs/extending/write-a-blueprint/index.html" ]
+fi
+
 echo
 echo "check-two-versions: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

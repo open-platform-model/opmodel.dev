@@ -577,6 +577,17 @@ Spike, task 1.2 (2026-09-30, image `opmodel-dev-hugo:cc96beb612fe`, Hugo 0.167.0
 
 **Rationale**: Stale lines in the repository's guide would contradict the rules the new headings state.
 
+### PR review hardening (2026-09-30)
+
+**Context**: The supervisor's review of the pull request found no blocker and asked for one more commit, `fix(site): harden the versions test and document its limits`.
+
+**Decision**:
+- `README.md` and `AGENTS.md` "Site versions" say that site-owned pages build into every version, so their links must resolve in every version, and that a `versions:test` failure naming `(version v0.9)` is fixed by bumping the test SHAs in `two-versions.conf` to buildable post-floor SHAs, never by editing the checks.
+- `check-two-versions.sh` proves that v0.9's source pages come from the anchored refs: per repository, the archive and the published v0.9 pages equal `git ls-tree -r --name-only <test SHA> docs/site`; every page added after a test SHA publishes in v1.0 only (one of them is `/docs/extending/write-a-blueprint/`, added to catalog_opm after its floor 2bbf457, asserted by name while catalog_opm's `HEAD` has it).
+- `resolve-versions.sh` in write mode removes `versions.tsv` on any failure (an `EXIT` trap). `versions:test` restores the real manifest as ordinary steps and fails if `site/.versions/` still holds v0.9; its defer runs only after a failure (`{{.EXIT_CODE}}`), because Task ignores a failing defer.
+
+**Follow-up, not in this change**: once `v1.0` moves onto tags, `build-stamp.json` `sources` (and E's CI job summary, which lists it) still reports the roots the build read, not what a published anchored version documents. Either `gen-stamp.sh` emits `sources` only for a `source = main` version, or the summary reads `.versions[].refs`.
+
 ### Release visibility of `docs` commits
 
 **Context**: Whether the S merges produce tags.

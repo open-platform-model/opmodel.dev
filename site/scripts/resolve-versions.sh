@@ -49,6 +49,9 @@ esac
 
 manifest=${OPM_VERSIONS_MANIFEST:-$SITE/versions.conf}
 case "$manifest" in /*) ;; *) manifest=$(pwd -P)/$manifest ;; esac
+# In write mode a failed run, at any step, leaves no versions.tsv behind, so
+# no build can read a stale or half-written version list.
+if [ "$mode" = write ]; then trap '[ $? -eq 0 ] || rm -f "$OUT" "$OUT.tmp"' EXIT; fi
 
 if [ "$mode" = write ] && [ -n "${OPM_VERSIONS:-}" ]; then
   rm -f "$OUT"
@@ -297,7 +300,6 @@ set -- $mains
 if [ -n "$errs" ]; then
   printf '%s' "$errs" >&2
   echo "resolve-versions: $manifest: $(printf '%s' "$errs" | grep -c .) problem(s)" >&2
-  [ "$mode" = check ] || rm -f "$OUT"
   exit 1
 fi
 
@@ -364,7 +366,6 @@ done
 if [ -n "$errs" ]; then
   printf '%s' "$errs" >&2
   echo "resolve-versions: $manifest: $(printf '%s' "$errs" | grep -c .) problem(s)" >&2
-  [ "$mode" = check ] || rm -f "$OUT"
   exit 1
 fi
 
