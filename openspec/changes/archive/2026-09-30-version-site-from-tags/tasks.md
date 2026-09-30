@@ -154,16 +154,16 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
 
 ## 5. Verify and hand off (orchestration.md section 7, steps 6 and 7)
 
-- [ ] 5.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `version-site-from-tags`, running every `openspec` command as `cd <wt> && openspec ...`. Confirm three things:
+- [x] 5.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `version-site-from-tags`, running every `openspec` command as `cd <wt> && openspec ...`. Confirm three things:
   - every durable decision marked for promotion is in `README.md` or `AGENTS.md`;
   - `find <wt>/openspec/changes/version-site-from-tags -name enhancement.yaml` prints nothing;
   - `git -C <wt> diff --stat origin/main...HEAD` (from the merge base, so changes that merged to `main` after this branch started are left out) stays inside proposal.md "Touches".
-- [ ] 5.2 Report to the supervisor with the block in `orchestration.md` section 7, step 6:
+- [x] 5.2 Report to the supervisor with the block in `orchestration.md` section 7, step 6:
   - `surface`: design.md "Interface: what this change adds and relies on";
   - `deviations`: whatever 1.1, 1.2, 4.1, 4.2 and 4.4 found or did.
 
   Then stop and wait.
-- [ ] 5.3 On the supervisor's go, tick this box first. Then:
+- [x] 5.3 On the supervisor's go, tick this box first. Then:
   1. `cd <wt> && openspec archive version-site-from-tags --yes --skip-specs`;
   2. confirm `cd <wt> && openspec validate --all --strict --no-interactive` is green;
   3. commit `chore(openspec): archive version-site-from-tags`.
