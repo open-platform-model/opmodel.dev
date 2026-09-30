@@ -78,8 +78,9 @@ opmodel.dev/
 │   ├── assets/js/              # Pagefind adapter for Hextra's search palette
 │   ├── static/                 # Fonts, favicon, images
 │   ├── themes/hextra/          # Vendored Hextra v0.13.0 (runtime files only; hextra.COMMIT)
-│   ├── scripts/                # Build, checks, lint, dev server, vendoring, host-side runner
-│   └── tests/                  # Fixture workspace, lint and check cases, dialect tree, browser QA
+│   ├── versions.conf           # The site versions (see Site versions)
+│   ├── scripts/                # Build, checks, lint, dev server, vendoring, host-side runner and version resolver
+│   └── tests/                  # Fixture workspace, lint and check cases, dialect tree, browser QA, version tests
 ├── Taskfile.yml
 └── README.md
 ```
@@ -91,14 +92,16 @@ task serve             # Dev server on http://127.0.0.1:${SITE_PORT:-1313}/, liv
 task build             # Lint, build and check the site into site/public/ (no network)
 task preview           # Serve the built site/public/ on SITE_PORT
 task lint:sources      # Lint the six source repos' docs/site pages
-task test:site         # Prove every check fails when it should (fixtures only)
+task test:site         # Prove every check fails when it should (fixtures), then task versions:test
 task shots             # Build, then screenshot every figure page and the extras into site/.shots/
 task qa                # shots, the axe accessibility and the search smoke tests
 task ci                # check, image, build, test:site
 task check             # Go fmt, vet and test, and openspec validate
 task image             # Build the site's image if its tag is missing
 task qa:image          # Build the QA image if its tag is missing
-task versions:prepare  # Host-side version preparation (nothing to do for one version)
+task versions:prepare  # Resolve site/versions.conf on the host: refs, archives, git dates (build and serve run it)
+task versions:check    # Print every version's resolved refs and SHAs; writes nothing
+task versions:test     # Resolver tests and a two-version build into site/.check/versions-test/
 task clean             # Remove generated files
 task build:docgen      # Build the docgen tool
 task generate          # Generate the schema JSON and the CLI reference
@@ -115,8 +118,8 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 | The build leaves the tree clean | `task ci`, then `git status --porcelain` |
 
 - **Clean tree.** CI fails when `task ci` leaves the tree dirty, `.task/` excluded (Task's checksum files; one of them is tracked). Two examples: `go fmt` rewrote unformatted Go (`task check` formats but never fails), or a build step wrote a file that is not gitignored.
-- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`. Every checkout has full history (`fetch-depth: 0`, which the git dates need) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
-- **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. Only CI sets it: a worktree's `.git` file points at a host path the build container does not mount, so a local build from worktrees has no dates. `task test:site` sets it back to 0 for its fixtures.
+- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`. Every checkout has full history and tags (`fetch-depth: 0`, which the git dates and the resolver tests of `task versions:test` need) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
+- **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
 - **Summary and artifacts.** The job summary lists the six source SHAs from `site/public/build-stamp.json` and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days.
 - **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same seven checkouts, since that build reads every source repository), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
 - **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, Go comes from `go.mod`, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
@@ -158,7 +161,8 @@ Every repository has a dialect floor in the manifest: the commit that moved its 
 - [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
 - [x] All six figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] `docgen schema` and `docgen cli` implementations, and pages generated from their output
-- [ ] Versions built from release tags
+- [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
+- [ ] `v1.0` on release tags (needs a tag cut after each repository's dialect floor)
 - [ ] CI and deployment
 
 ## Contributing

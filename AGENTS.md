@@ -144,6 +144,7 @@ Read these on entry:
 │   ├── Dockerfile         # Build image: Hugo, Pagefind, git (pinned)
 │   ├── NOTICE             # Third-party licences
 │   ├── overrides.sha256   # Upstream theme files behind every override copy
+│   ├── versions.conf      # The site versions (git-config syntax; see ## Site versions)
 │   ├── config/_default/   # hugo.toml
 │   ├── content/           # Site-owned pages
 │   │   ├── _index.md      # Landing (hextra-home)
@@ -153,8 +154,8 @@ Read these on entry:
 │   ├── assets/js/         # Pagefind adapter for Hextra's search palette
 │   ├── static/            # Fonts, favicon, images
 │   ├── themes/hextra/     # Vendored Hextra v0.13.0 (+ hextra.COMMIT)
-│   ├── scripts/           # run-in-image.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
-│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, browser/ (QA image and scripts)
+│   ├── scripts/           # run-in-image.sh, resolve-versions.sh, materialise.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
+│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, browser/ (QA image and scripts), versions/ (resolver and two-version tests)
 │   └── data/schema/       # Generated JSON (gitignored)
 ├── Taskfile.yml           # Build automation
 ├── go.mod
@@ -166,7 +167,7 @@ Read these on entry:
 - **Go**: 1.25+ (see `go.mod`) for the `docgen` tool.
 - **Docker**: builds and runs the site's images; Hugo, Pagefind and the browsers live only there.
 - **Source repositories**: the build reads `<repo>/docs/site/` from `OPM_WS` (default: the parent of the main checkout, found through git, so it is right inside a worktree). `OPM_SRC_WORKTREE=<name>` reads `<repo>/.claude/worktrees/<name>` instead, and `OPM_SRC_<REPO>` (`OPM_SRC_CATALOG_OPM`, `OPM_SRC_OPM_OPERATOR`, ...) points at one repo. Every root is checked before a container starts. Each root is mounted read-only at `/src/<repo>`, the repo at `/work/repo`.
-- **Git dates** come from `git log` inside the container. A worktree's `.git` file points at a host path the container does not mount, so a build from worktrees has no dates; `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
+- **Git dates** are computed on the host by `task versions:prepare` (`site/scripts/materialise.sh`), because a worktree's `.git` file points at a host path the container does not mount; so a build from worktrees has every date too. Only an explicit `OPM_VERSIONS` build (fixtures) runs `git log` inside the container, where a worktree has no dates. `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
 
 ## Build And Dev Commands
 
@@ -174,12 +175,14 @@ Read these on entry:
 - `task build` — the source lint, generated inputs, `hugo build`, every check and Pagefind, in Docker with no network (output: `site/public/`).
 - `task preview` — serve the built `site/public/` on `SITE_PORT`.
 - `task lint:sources` — the page-dialect lint over the six source repos.
-- `task test:site` — prove every check fails on its fixture (reads only `site/tests/`; writes only `site/.check/tests/`).
+- `task test:site` — prove every check fails on its fixture (the fixtures write only `site/.check/tests/`), then `task versions:test`.
 - `task shots` — build, then screenshot every page with a figure and the extras (landing, a docs page, 404, search) in six variants (light, dark, both theme/OS mismatches, phone light and dark) into `site/.shots/`; fails when figure text drops below 9 px on a phone. Read the PNGs before committing anything visual.
 - `task qa` — `shots`, then the axe WCAG 2.1 A and AA smoke test and the search smoke test.
 - `task ci` — `check`, `image`, `build`, `test:site`.
 - `task image`, `task qa:image` — build an image if its hash tag is missing (the only steps that use the network).
-- `task versions:prepare` — host-side version preparation that `build` and `serve` run first (nothing to do for one version).
+- `task versions:prepare` — resolve `site/versions.conf` on the host, archive anchored versions and compute every git date; `build` and `serve` run it first.
+- `task versions:check` — print every version's resolved refs and SHAs; writes nothing.
+- `task versions:test` — the resolver tests, then a two-version build into `site/.check/versions-test/` (never `site/public/`) and its assertions.
 - `task clean` — remove generated files.
 - `task build:docgen` — build docgen tool (output: `./bin/docgen`).
 - `task generate:schema`, `task generate:cli`, `task generate` — generate schema docs from CUE, CLI docs from cobra, or both.

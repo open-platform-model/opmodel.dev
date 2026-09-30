@@ -138,7 +138,7 @@ tasks:
       - sh site/scripts/run-in-image.sh lint
 
   test:site:
-    desc: Prove the build checks on fixtures (site/tests), in Docker with no network
+    desc: Prove the build checks on fixtures (site/tests, in Docker with no network), then run versions:test
     cmds:
       - sh site/scripts/run-in-image.sh test
       - task: versions:test

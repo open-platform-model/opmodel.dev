@@ -566,6 +566,17 @@ Spike, task 1.2 (2026-09-30, image `opmodel-dev-hugo:cc96beb612fe`, Hugo 0.167.0
 
 **Rationale**: The deploy artifact and the real check output stay untouched, which the test proves instead of assuming.
 
+### Supervisor rulings after verify (2026-09-30)
+
+**Context**: The verify report named three items outside the change's Touches.
+
+**Decision**: All accepted by the supervisor.
+- The `versions` key of `data/opm/build.json` lands in `site/scripts/gen-stamp.sh`, the stamp's one writer since A's section 2, not in `build-all.sh`.
+- One extra docs commit, `docs(site): describe the versions manifest`, corrects the lines this change made stale outside its two `## Site versions` headings: `AGENTS.md` Environment Notes (git dates), the `versions:prepare` and `test:site` lines of Build And Dev Commands (plus `versions:check` and `versions:test`), the layout tree (`versions.conf`, the host scripts, `tests/versions/`); `README.md` Tasks block, directory tree and Implementation Status; the `test:site` description in `Taskfile.yml`.
+- The branch merges `origin/main` (the figures and CI changes), keeping E's `## CI` and this change's `## Site versions` in `README.md`; the same docs commit corrects E's CI "Dates" bullet, which said worktree builds have no dates.
+
+**Rationale**: Stale lines in the repository's guide would contradict the rules the new headings state.
+
 ### Release visibility of `docs` commits
 
 **Context**: Whether the S merges produce tags.
