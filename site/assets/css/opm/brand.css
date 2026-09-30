@@ -1,5 +1,17 @@
-/* The navbar title (layouts/_partials/navbar-title.html): the short title
-   replaces the long one on a phone, so the header does not overflow. */
+/* The wordmark: the site title in the navbar stays live text, typeset here.
+   Selects only the class hooks of layouts/_partials/navbar-title.html
+   (opm-brand, opm-title-long, opm-title-short), never Hextra's hx: utility
+   classes. Unlayered, so it beats Hextra's @layer utilities (the title's
+   extrabold) without !important. The mark beside it is an image set through
+   params.navbar.logo in config/_default/hugo.toml. */
+.opm-brand .opm-title-long,
+.opm-brand .opm-title-short {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The short title replaces the long one on a phone, so the header does not
+   overflow. */
 .opm-title-short { display: none; }
 @media (max-width: 30rem) {
   .opm-title-long { display: none; }

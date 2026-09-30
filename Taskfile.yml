@@ -126,6 +126,21 @@ tasks:
       - task: build
       - sh site/scripts/run-in-image.sh qa
 
+  # The brand rasters, rendered by Chromium in the QA image with the flags
+  # task qa uses (no network, no port, the repo at /work/repo). Their output is
+  # committed and never hand-edited; the site build never runs them.
+  brand:favicons:
+    desc: Regenerate the favicon PNGs and favicon.ico in site/static/ from favicon.svg (QA image, no network)
+    deps: [qa:image]
+    cmds:
+      - docker run --rm --init --network none --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 --volume "$(pwd -P):/work/repo" --entrypoint python3 "$(sh site/scripts/run-in-image.sh qa-tag)" /work/repo/site/tools/favicons.py
+
+  brand:og:
+    desc: Regenerate site/static/images/og-default.png, the Open Graph card, from hugo.toml's title and description and the mark (QA image, no network)
+    deps: [qa:image]
+    cmds:
+      - docker run --rm --init --network none --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 --volume "$(pwd -P):/work/repo" --entrypoint python3 "$(sh site/scripts/run-in-image.sh qa-tag)" /work/repo/site/tools/og-card.py
+
   ci:
     desc: What CI runs for the site - check, the image, the build and the site tests
     cmds:
