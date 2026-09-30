@@ -105,10 +105,10 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
 
 ## 3. Stamp, source links, version switch and outdated bar
 
-- [ ] 3.1 `site/layouts/_partials/opm/build-stamp.html` (design.md Decision 8): an anchored version shows "Documents cli X, library L, core Y, catalog Z, operator W, opm <short SHA>", and a `main` version shows the short SHAs as A did. Verify:
+- [x] 3.1 `site/layouts/_partials/opm/build-stamp.html` (design.md Decision 8): an anchored version shows "Documents cli X, library L, core Y, catalog Z, operator W, opm <short SHA>", and a `main` version shows the short SHAs as A did. Verify:
   - on the real build, the footer of `/v1.0/docs/` shows the six `site-src` `HEAD` short SHAs;
   - on the two-version build, the footer of a `/v0.9/` page names the six test SHAs in short form.
-- [ ] 3.2 Make the source links follow the resolved refs:
+- [x] 3.2 Make the source links follow the resolved refs:
   - `site/layouts/_partials/opm/source.html` builds `viewURL` from the version's resolved ref for that repository;
   - `site/layouts/_partials/components/last-updated.html` follows the table in design.md Decision 8: "Edit this page" (`edit/main`) on a `source = main` version and on the default version; "View source at <ref>" on every anchored version, beside the edit link when that version is the default.
 
@@ -117,16 +117,16 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `site/public/v1.0/docs/start/what-is-opm/index.html` contains `edit/main/docs/site/start/what-is-opm.md` and no "View source at" link.
 
   Then, on a scratch copy of `two-versions.conf` that moves `default = true` to `v0.9`, build once: the same `/v0.9/` page carries both `edit/main/...` and `blob/<opm test SHA>/...`. Delete the scratch copy and rebuild with the real manifest.
-- [ ] 3.3 Update the version switch: `site/layouts/_partials/opm/version-switch.html`, `version-links.html` and `site/layouts/_partials/navbar-title.html` (the switch call only), plus `site/assets/css/opm/versions.css`.
+- [x] 3.3 Update the version switch: `site/layouts/_partials/opm/version-switch.html`, `version-links.html` and `site/layouts/_partials/navbar-title.html` (the switch call only), plus `site/assets/css/opm/versions.css`.
   - With two or more versions, it lists the labels in weight order, marks the default and keeps the nearest-parent fallback.
   - With one version, it is unchanged from A.
   - `navbar-title.html` keeps A's class hooks `opm-brand`, `opm-title-long` and `opm-title-short`, which `add-brand-marks` (M) selects in `brand.css`.
 
   Verify: on the two-version build, `/v0.9/` and `/v1.0/` pages list "v1.0 (beta)" before "v0.9 (test)". On the real build, the header HTML of `/v1.0/docs/` equals section 2's.
-- [ ] 3.4 `site/layouts/_partials/banner.html`: the outdated bar on every version that is not the default, worded as design.md Decision 9 says, with `data-pagefind-ignore="all"`. Verify: `grep -l opm-outdated` finds it in every HTML page under `site/public/v0.9/docs/` and in none under `site/public/v1.0/`.
-- [ ] 3.5 Add a shots extra in `site/tests/browser/` for the open switch and for a page carrying the outdated bar. It runs only when `build-stamp.json` lists two or more versions.
-- [ ] 3.6 Run `task qa` on the two-version build and read the PNGs: the open switch (light, dark, site/OS mismatch both ways, phone), the outdated bar, and the footer stamp. Then rebuild with the real manifest, run `task qa` again, and read the header and footer PNGs.
-- [ ] 3.7 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` on the real build with the PNGs read. When all are green, commit `feat(site): stamp each version with the refs it documents`.
+- [x] 3.4 `site/layouts/_partials/banner.html`: the outdated bar on every version that is not the default, worded as design.md Decision 9 says, with `data-pagefind-ignore="all"`. Verify: `grep -l opm-outdated` finds it in every HTML page under `site/public/v0.9/docs/` and in none under `site/public/v1.0/`.
+- [x] 3.5 Add a shots extra in `site/tests/browser/` for the open switch and for a page carrying the outdated bar. It runs only when `build-stamp.json` lists two or more versions.
+- [x] 3.6 Run `task qa` on the two-version build and read the PNGs: the open switch (light, dark, site/OS mismatch both ways, phone), the outdated bar, and the footer stamp. Then rebuild with the real manifest, run `task qa` again, and read the header and footer PNGs.
+- [x] 3.7 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` on the real build with the PNGs read. When all are green, commit `feat(site): stamp each version with the refs it documents`.
 
 ## 4. N-version outputs and the two-version regression test
 

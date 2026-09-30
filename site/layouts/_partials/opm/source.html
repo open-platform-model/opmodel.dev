@@ -1,12 +1,17 @@
-{{- /* Where a page's source lives: {key, repo, path, editURL, viewURL}, or an
-       empty dict for a page with no content file. A file under
-       <root>/<repo>/docs/site/<path> (in a normal build
-       /src/<repo>/docs/site/<path>) belongs to that repo, found from the
-       <repo>/docs/site/ path segment, so fixture roots and test copies map
-       the same way. Any other content file is site-owned: opmodel.dev,
-       site/content/<path>. The key matches data/opm/lastmod.json.
-       "Edit" goes to main. viewURL stays empty until a version maps to a git
-       ref; a version name is never used as a ref. */ -}}
+{{- /* Where a page's source lives: {key, repo, path, editURL, viewURL, ref,
+       refText}, or an empty dict for a page with no content file. A file
+       under <root>/<repo>/docs/site/<path> (in a normal build
+       /src/<repo>/docs/site/<path>, for an anchored version
+       .versions/<version>/<repo>/docs/site/<path>) belongs to that repo,
+       found from the <repo>/docs/site/ path segment, so archives, fixture
+       roots and test copies map the same way. Any other content file is
+       site-owned: opmodel.dev, site/content/<path>. The key matches
+       data/opm/lastmod.json.
+       "Edit" goes to main. viewURL is set only when the page's version is
+       anchored (data/opm/build.json, from site/versions.conf): it points at
+       the ref that version resolved for the repo, a tag or a SHA, never the
+       version name, which is no git ref. refText is that ref as shown: a
+       SHA as seven hex characters. */ -}}
 {{- $out := dict -}}
 {{- with .File -}}
   {{- $fn := replace .Filename "\\" "/" -}}
@@ -17,7 +22,15 @@
     {{- $path = printf "docs/site/%s" (index (index . 0) 2) -}}
   {{- end -}}
   {{- $base := printf "%s/%s" site.Params.opm.github $repo -}}
+  {{- $ref := "" -}}
+  {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}
+    {{- if eq .kind "anchored" -}}{{- with .refs -}}{{- with index . $repo -}}{{- $ref = .ref -}}{{- end -}}{{- end -}}{{- end -}}
+  {{- end -}}{{- end -}}{{- end -}}{{- end -}}
+  {{- $refText := $ref -}}
+  {{- if findRE `^[0-9a-f]{40}$` $ref -}}{{- $refText = substr $ref 0 7 -}}{{- end -}}
   {{- $out = dict "key" (printf "%s/%s" $repo $path) "repo" $repo "path" $path
-        "editURL" (printf "%s/edit/main/%s" $base $path) "viewURL" "" -}}
+        "editURL" (printf "%s/edit/main/%s" $base $path)
+        "viewURL" (cond (ne $ref "") (printf "%s/blob/%s/%s" $base $ref $path) "")
+        "ref" $ref "refText" $refText -}}
 {{- end -}}
 {{- return $out -}}
