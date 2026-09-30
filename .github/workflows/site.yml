@@ -1,0 +1,239 @@
+# Builds and tests the site exactly as the Taskfile does locally. The build
+# reads six source repositories, checked out beside opmodel.dev as they sit in
+# the workspace, so OPM_WS (the parent of the opmodel.dev checkout) is
+# $GITHUB_WORKSPACE. README.md "CI" names the local equivalents.
+name: Site
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Nightly: a merge in a source repository reaches CI within a day. An
+    # off-the-hour minute, because GitHub delays runs at the top of the hour.
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # A page without a git date fails the build. Only CI can require it: here
+  # every source is a real clone with full history, which the build image's
+  # git can read (a worktree's .git file points at an unmounted host path).
+  OPM_REQUIRE_DATES: '1'
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Concurrency is per job, one group per job, never workflow-level: a
+    # workflow-level group would cancel a deploy job along with the rest of a
+    # run, and two jobs sharing one cancelling group cancel each other. A
+    # deploy job sets its own group without cancel-in-progress.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-build
+      cancel-in-progress: true
+    # The working directory is a per-job default, never workflow-level: a
+    # deploy job runs a step before its checkout, when opmodel.dev does not
+    # exist yet. Action steps ignore it; their paths stay relative to
+    # $GITHUB_WORKSPACE.
+    defaults:
+      run:
+        working-directory: opmodel.dev
+    steps:
+      - name: Check out opmodel.dev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: opmodel.dev
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm
+          ref: main
+          path: opm
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/core
+          ref: main
+          path: core
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out catalog_opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/catalog_opm
+          ref: main
+          path: catalog_opm
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out cli
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/cli
+          ref: main
+          path: cli
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out library
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/library
+          ref: main
+          path: library
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out opm-operator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm-operator
+          ref: main
+          path: opm-operator
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: opmodel.dev/go.mod
+          cache-dependency-path: opmodel.dev/go.sum
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+      - name: Install openspec
+        run: npm install -g @fission-ai/openspec@1.12.0
+
+      - name: Lint the workflows
+        run: task ci:lint
+      - name: Check, build and test the site
+        run: task ci
+      - name: The build leaves the tree clean
+        # go fmt rewrites unformatted Go without failing, and a build step may
+        # write a file that is not gitignored; both show up here. .task/ holds
+        # Task's checksum files, one of which is tracked.
+        run: |
+          dirty=$(git status --porcelain --untracked-files=all -- . ':(exclude).task')
+          if [ -n "$dirty" ]; then
+            printf '%s\n' "$dirty"
+            echo "task ci left the tree dirty; run task ci, then git status --porcelain, and commit or ignore these paths" >&2
+            exit 1
+          fi
+      - name: Summary
+        run: |
+          {
+            echo '### Site build'
+            echo
+            echo '| Source | Commit |'
+            echo '|---|---|'
+            jq -r '.sources | to_entries[] | "| \(.key) | [\(.value[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value)) |"' site/public/build-stamp.json
+            echo
+            echo "Files in site/public: $(find site/public -type f | wc -l)"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site-public
+          path: opmodel.dev/site/public
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-stamp
+          path: opmodel.dev/site/public/build-stamp.json
+          if-no-files-found: error
+          retention-days: 90
+
+  browser:
+    name: Browser QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-browser
+      cancel-in-progress: true
+    defaults:
+      run:
+        working-directory: opmodel.dev
+    # task qa builds site/public itself and that build reads all six source
+    # roots, so this job runs beside build with the same seven checkouts
+    # instead of downloading the site-public artifact.
+    steps:
+      - name: Check out opmodel.dev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: opmodel.dev
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm
+          ref: main
+          path: opm
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/core
+          ref: main
+          path: core
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out catalog_opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/catalog_opm
+          ref: main
+          path: catalog_opm
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out cli
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/cli
+          ref: main
+          path: cli
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out library
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/library
+          ref: main
+          path: library
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out opm-operator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm-operator
+          ref: main
+          path: opm-operator
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+      - name: Screenshots, accessibility and search smoke tests
+        run: task qa
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        # The screenshots are the only way to see why an accessibility or
+        # search test failed in CI, so they upload from failed runs too.
+        # upload-artifact skips every file under a directory whose name starts
+        # with a dot, so without include-hidden-files .shots uploads nothing.
+        if: always()
+        with:
+          name: site-shots
+          path: opmodel.dev/site/.shots
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7

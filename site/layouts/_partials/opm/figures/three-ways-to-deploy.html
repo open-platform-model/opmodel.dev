@@ -1,0 +1,52 @@
+{{- /* Figure body: three ways to deploy (Start here overview).
+       One row per way, read left to right: what the deployer starts from, what
+       applies it, and where the applied objects are recorded. The CLI runs on
+       your machine; the operator runs in the cluster.
+       The frame is _partials/opm/figure.html and the classes are in
+       assets/css/opm/figures.css. */ -}}
+{{- /* Columns: what it starts as, what applies it, where it is recorded. */ -}}
+{{- $rows := slice
+  (dict
+    "start" (slice "Instance package" "on your machine")
+    "by" (slice "opm CLI" "instance apply")
+    "rec" (slice "ModuleInstance" "owner: cli"))
+  (dict
+    "start" (slice "ModuleInstance" "from Git or kubectl")
+    "by" (slice "OPM operator" "in the cluster")
+    "rec" (slice "ModuleInstance" "owner: operator"))
+  (dict
+    "start" (slice "ModulePackage" "an instance package" "from a Flux source")
+    "by" (slice "OPM operator" "in the cluster")
+    "rec" (slice "ModulePackage" "its status")) -}}
+<text class="zone-label" x="8" y="18">STARTS AS</text>
+<text class="zone-label" x="144" y="18">APPLIED BY</text>
+<text class="zone-label" x="248" y="18">RECORDED IN</text>
+{{- range $i, $row := $rows }}
+{{- $y := add 30 (mul $i 68) }}
+{{- $mid := add $y 29 }}
+<g>
+  <g class="card deployer">
+    <rect x="8" y="{{ $y }}" width="124" height="58" rx="6"></rect>
+    <text class="chip-text" x="16" y="{{ add $y 21 }}">{{ index $row.start 0 }}</text>
+    {{- range $j, $line := after 1 $row.start }}
+    <text class="body small" x="16" y="{{ add (add $y 37) (mul $j 14) }}">{{ $line }}</text>
+    {{- end }}
+  </g>
+  <g class="flow">
+    <line x1="132" y1="{{ $mid }}" x2="142" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
+  </g>
+  <g class="tool">
+    <rect x="144" y="{{ $y }}" width="92" height="58" rx="6"></rect>
+    <text x="190" y="{{ add $y 25 }}" text-anchor="middle">{{ index $row.by 0 }}</text>
+    <text class="{{ cond (eq $i 0) "sub mono" "sub" }}" x="190" y="{{ add $y 42 }}" text-anchor="middle">{{ index $row.by 1 }}</text>
+  </g>
+  <g class="flow">
+    <line x1="236" y1="{{ $mid }}" x2="246" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
+  </g>
+  <g class="obj">
+    <rect x="248" y="{{ $y }}" width="104" height="58" rx="6"></rect>
+    <text x="300" y="{{ add $y 25 }}" text-anchor="middle">{{ index $row.rec 0 }}</text>
+    <text class="note small" x="300" y="{{ add $y 42 }}" text-anchor="middle">{{ index $row.rec 1 }}</text>
+  </g>
+</g>
+{{- end }}

@@ -136,8 +136,8 @@ if [ $rc -eq 0 ]; then
     ok "dialect/alerts" "TIP and NOTE render as Hextra alerts with the bold title line; no [! left"
   else bad "dialect/alerts" "quickstart alerts did not render as Hextra alerts with their bold title" "$q"; fi
 
-  # Parameterless figure shortcodes: all six render, each as a drawn figure or,
-  # while a figure is not drawn yet, as an alert in its place. Every drawn
+  # Parameterless figure shortcodes: all six render as drawn figures (the count
+  # takes an alert standing in a figure's place as one of the six). Every drawn
   # figure's svg[role=img] carries its caption as its accessible label. The
   # escaped example shows as text, and no shortcode is left unexpanded.
   s=$P/docs/start/index.html
@@ -205,6 +205,23 @@ if [ $rc -eq 0 ]; then
     ok "markdown" "the .md outputs link into /v1.0/, show figure titles, and hold no shortcode outside a code fence"
   else bad "markdown" "a Markdown output still holds /docs/ links or shortcodes:
 $mdbad"; fi
+
+  # The Markdown outputs name each figure as the page draws it. The fixture's
+  # start page calls every figure shortcode once, so the titles its figures draw
+  # (their svg <title>) and its .md output's "_Figure: <title>_" lines must be
+  # the same six, in page order: an entry of _partials/opm/figure-titles.html
+  # that drifts from its shortcode's title fails here.
+  page_titles=$(tr '\n' ' ' < "$P/docs/start/index.html" | sed 's#</figure>#</figure>\n#g' | awk '
+    match($0, /<figure class="?opm-fig/) {
+      f = substr($0, RSTART)
+      if (match(f, /<title>[^<]*<\/title>/)) print substr(f, RSTART + 7, RLENGTH - 15)
+    }')
+  md_titles=$(sed -n 's/^_Figure: \(.*\)_$/\1/p' "$P/docs/start/index.md")
+  if [ "$(printf '%s\n' "$page_titles" | grep -c .)" -eq 6 ] && [ "$page_titles" = "$md_titles" ]; then
+    ok "markdown/figure-titles" "the .md output names all six figures as the page draws them"
+  else bad "markdown/figure-titles" "the .md output names the figures differently from the page:
+     page: $(printf '%s' "$page_titles" | tr '\n' '|')
+     .md:  $(printf '%s' "$md_titles" | tr '\n' '|')"; fi
 fi
 
 # ---------------------------------------------------------------------------
