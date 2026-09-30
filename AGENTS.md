@@ -172,7 +172,7 @@ Read these on entry:
 - `task qa` — `shots`, then the axe WCAG 2.1 A and AA smoke test and the search smoke test.
 - `task ci` — `check`, `image`, `build`, `test:site`.
 - `task image`, `task qa:image` — build an image if its hash tag is missing (the only steps that use the network).
-- `task brand:favicons` — regenerate `site/static/favicon-16x16.png`, `favicon-32x32.png`, `favicon.ico`, `apple-touch-icon.png` and `android-chrome-{192x192,512x512}.png` from the drawn `favicon.svg` and `images/opm-mark-dark.svg`, in the QA image with no network. The output is committed and never hand-edited; redraw the SVGs and rerun.
+- `task brand:favicons` — regenerate `site/static/favicon-16x16.png`, `favicon-32x32.png`, `favicon.ico`, `apple-touch-icon.png` and `android-chrome-{192x192,512x512}.png` from the drawn `favicon.svg`, in the QA image with no network. The output is committed and never hand-edited; redraw the SVGs and rerun.
 - `task brand:og` — regenerate `site/static/images/og-default.png` (the Open Graph card) from `hugo.toml`'s `title` and `params.description` and the mark, in the QA image with no network. Never hand-edited; rerun when either text or the mark changes. `README.md` "Brand marks" has the rules.
 - `task versions:prepare` — host-side version preparation that `build` and `serve` run first (nothing to do for one version).
 - `task clean` — remove generated files.

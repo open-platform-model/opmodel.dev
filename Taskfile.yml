@@ -130,7 +130,7 @@ tasks:
   # task qa uses (no network, no port, the repo at /work/repo). Their output is
   # committed and never hand-edited; the site build never runs them.
   brand:favicons:
-    desc: Regenerate the favicon PNGs and favicon.ico in site/static/ from favicon.svg and images/opm-mark-dark.svg (QA image, no network)
+    desc: Regenerate the favicon PNGs and favicon.ico in site/static/ from favicon.svg (QA image, no network)
     deps: [qa:image]
     cmds:
       - docker run --rm --init --network none --user "$(id -u):$(id -g)" --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 --volume "$(pwd -P):/work/repo" --entrypoint python3 "$(sh site/scripts/run-in-image.sh qa-tag)" /work/repo/site/tools/favicons.py

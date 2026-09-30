@@ -1,16 +1,18 @@
-"""Renders the favicon rasters from the drawn marks (task brand:favicons).
+"""Renders the favicon rasters from the drawn favicon (task brand:favicons).
 
 Runs in the QA image (site/tests/browser/Dockerfile) with the repo at
 /work/repo and no network; Chromium, driven by Playwright, is the rasteriser.
-Reads the two drawn sources and writes, into site/static/:
+Reads site/static/favicon.svg (the mark on its #0a0a0a rounded tile) and
+writes, into site/static/:
 
-  favicon-16x16.png, favicon-32x32.png   favicon.svg (the mark on its rounded
-                                         tile), transparent outside the tile
+  favicon-16x16.png, favicon-32x32.png   favicon.svg, transparent outside the tile
   favicon.ico                            16, 32 and 48 px PNG frames of
                                          favicon.svg, packed with struct
-  apple-touch-icon.png (180)             images/opm-mark-dark.svg on a full-bleed
-  android-chrome-192x192.png             #0a0a0a square, its drawn extent at
-  android-chrome-512x512.png             60% of the icon, centred; opaque
+  apple-touch-icon.png (180)             favicon.svg at 6/7 of the icon, centred
+  android-chrome-192x192.png             on a full-bleed square of the tile
+  android-chrome-512x512.png             colour, so the tile's corners vanish
+                                         and a mark drawn at 70% of the tile
+                                         lands at 60% of the icon; opaque
 
 The outputs are committed and never hand-edited: redraw the SVGs, then rerun
 the task. Chromium's output can differ between runs, so no check compares
@@ -26,10 +28,8 @@ from playwright.sync_api import sync_playwright
 
 STATIC = pathlib.Path("/work/repo/site/static")
 TILE = "#0a0a0a"
-# The mark's drawn extent is 20 of its 24 viewBox units; the opaque icons show
-# that extent at 60% of their width.
-EXTENT = 20 / 24
-OPAQUE_SHARE = 0.6
+# The opaque icons draw favicon.svg at this share of their width.
+OPAQUE_BOX = 6 / 7
 
 
 def data_uri(path):
@@ -53,8 +53,8 @@ def tiled(browser, svg, size):
 
 
 def opaque(browser, svg, size):
-    """The mark centred on a full-bleed tile-coloured square, no alpha."""
-    box = OPAQUE_SHARE * size / EXTENT
+    """favicon.svg centred on a full-bleed tile-coloured square, no alpha."""
+    box = OPAQUE_BOX * size
     html = ('<!doctype html><style>html,body{margin:0;height:100%}'
             f'body{{background:{TILE};display:flex;align-items:center;justify-content:center}}</style>'
             f'<img src="{svg}" style="width:{box}px;height:{box}px">')
@@ -76,16 +76,15 @@ def ico(frames):
 
 def main():
     favicon = data_uri(STATIC / "favicon.svg")
-    mark = data_uri(STATIC / "images" / "opm-mark-dark.svg")
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for size in (16, 32):
             (STATIC / f"favicon-{size}x{size}.png").write_bytes(tiled(browser, favicon, size))
         frames = [(size, tiled(browser, favicon, size)) for size in (16, 32, 48)]
         (STATIC / "favicon.ico").write_bytes(ico(frames))
-        (STATIC / "apple-touch-icon.png").write_bytes(opaque(browser, mark, 180))
+        (STATIC / "apple-touch-icon.png").write_bytes(opaque(browser, favicon, 180))
         for size in (192, 512):
-            (STATIC / f"android-chrome-{size}x{size}.png").write_bytes(opaque(browser, mark, size))
+            (STATIC / f"android-chrome-{size}x{size}.png").write_bytes(opaque(browser, favicon, size))
         browser.close()
     print("brand:favicons: OK -> site/static/ (favicon-16x16.png, favicon-32x32.png, favicon.ico,"
           " apple-touch-icon.png, android-chrome-192x192.png, android-chrome-512x512.png)")

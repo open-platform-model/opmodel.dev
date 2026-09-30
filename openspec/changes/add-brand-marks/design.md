@@ -80,7 +80,7 @@ android-chrome-192/512       same composition as apple-touch; opaque
 
 Opaque squares: iOS fills transparent pixels with black and applies its own mask, so these icons carry no rounded corners and no alpha.
 
-**As built (section 2).** "About 70%" and "about 60%" measure the mark's drawn extent (20 of its 24 units), not its viewBox. `favicon.svg` is a `rx="5"` tile with the mark in `<g transform="translate(1.92 1.92) scale(.84)">`, which puts the extent at 70% of the tile and keeps the path data byte-identical to the mark files. The opaque icons centre `opm-mark-dark.svg` at a box of 0.72 of the icon, so its extent is 60%. Chromium writes the transparent PNGs as RGBA (`omit_background`) and the opaque ones as RGB.
+**As built (after the owner chose a placeholder).** The placeholder mark is itself a tile (Decision 3), so `favicon.svg` is that tile scaled to fill the viewBox (`<g transform="translate(-2.4 -2.4) scale(1.2)">`: the tile becomes 0 to 24 with radius 5.4). It is drawn as the tile path in `#0a0a0a` under the O path in `#fafafa`. The O is filled, not knocked out, so the favicon does not depend on the tab strip behind it. `favicon.svg` is also the single source of every raster. The opaque icons centre it at 6/7 of the icon on a full-bleed `#0a0a0a` square: the tile's rounded corners vanish into the background, and a mark drawn at 70% of the tile lands at 60% of the icon. Rendering them from `opm-mark-dark.svg`, as first built, would draw a tile-shaped mark as a light tile inside the dark icon. Chromium writes the transparent PNGs as RGBA (`omit_background`) and the opaque ones as RGB.
 
 ### 3. The mark: one path set, two inks, shown through params
 
@@ -105,16 +105,16 @@ Opaque squares: iOS fills transparent pixels with black and applies its own mask
 - **Hygiene.** Only `<svg>`, `<path>`, `<rect>`, `<circle>`, `<polygon>` and `<g>`; a single `xmlns="http://www.w3.org/2000/svg"`. No `<text>`, `<style>`, `<script>`, `href`, comments, `xlink` or editor namespaces. Under 1 KB. The supply-chain and planning-comment checks scan text outputs, so a published SVG stays free of both.
 - **Candidates.** Up to three are drawn and compared on a contact sheet. The committed one is the worker's recommendation, and the others travel only in the report for the owner.
 
-**Chosen (section 1, 2026-09-30): A, the open ring.** Three candidates went on the contact sheet, each at 16, 24, 32, 64 and 512 px in both inks and reversed on the tile, with pixel zooms of the 16 and 24 px renders:
-- **A, open ring (committed).** A ring 4 units thick (outer radius 10, inner 6), open at its top-right quadrant, with a 7.5-unit square in the opening, 2.5 units from each end of the ring. It reads as an O for Open, the platform, with the module in its opening, and it echoes the "O" of the wordmark beside it. At 16 px inside the tile the ring is about 2 px wide and the counter stays open.
-- **B, quadrant.** A three-quarter disc with the same square set into its open quadrant. The boldest at 16 px, but its radial cut meets at the centre, so it reads as a pie-chart icon.
-- **C, slot.** A platform slab with a slot and the module square above it. The slot closes up at 16 px, and on the tile the square and slot read as a face.
-
-Exploration before the sheet also tried a larger corner square on the disc, a disc behind a square, a square frame open at one corner with a disc, and a circle-and-square plinth; each read as a pie chart, a moon, an image-placeholder icon or a face. The committed path data, on the 24-unit grid:
+**Owner decision (2026-09-30): a placeholder for now.** Three drawn candidates went to the owner, who asked for a placeholder instead; none of them is adopted, and their contact sheet was never committed. The placeholder is deliberately neutral and makes no brand claim:
+- **Mark.** A rounded tile (2 to 22 on the grid, radius 4.5) in the ink, with an O knocked out. An `<img>` SVG cannot load the page's web fonts, and the brief bans `<text>`, so the O is outlined: two ellipses fitted to the O of Geist, measured in Chromium at 1000 px. Geist Bold (700) has side strokes of 0.21 and top and bottom strokes of 0.17 of the O's height. Its top and bottom strokes reach the 2.5-unit minimum only at a height of 14.5 units, which fills 72% of the tile and crowds the margins. So the O is ExtraBold (800), 13 units tall, 12.4 wide, with strokes of 3.1 units at the sides and 2.5 at top and bottom, centred on the tile. The path is one `fill-rule="evenodd"` path: the tile, then the O's outer and inner ellipses.
+- **Placement.** The same path serves the navbar mark (24 px, both inks), the O on the favicon tile (Decision 2), and so every favicon, the web manifest icons and the Open Graph card.
+- **Where a designer looks.** `opm-mark.svg` and `opm-mark-dark.svg` carry a comment naming it a placeholder and saying how to replace it. `README.md` "Brand marks" says the same. The comment breaks the hygiene brief on purpose. Check 10 scans only `*.html`, `*.txt`, `*.md`, `*.xml` and `*.json`, so a comment in a static SVG fails no check.
 
 ```svg
-<path d="M12 2A10 10 0 1 0 22 12H18A6 6 0 1 1 12 6Z"/><rect x="14.5" y="2" width="7.5" height="7.5"/>
+<path fill="#0a0a0a" fill-rule="evenodd" d="M6.5 2H17.5A4.5 4.5 0 0 1 22 6.5V17.5A4.5 4.5 0 0 1 17.5 22H6.5A4.5 4.5 0 0 1 2 17.5V6.5A4.5 4.5 0 0 1 6.5 2ZM12 5.5A6.185 6.5 0 1 0 12 18.5A6.185 6.5 0 1 0 12 5.5ZM12 8.005A3.048 3.995 0 1 0 12 15.995A3.048 3.995 0 1 0 12 8.005Z"/>
 ```
+
+A real mark later is a redraw of the two mark files and `favicon.svg`, then `task brand:favicons brand:og`.
 
 ### 4. The wordmark is live text, typeset in `brand.css`
 
