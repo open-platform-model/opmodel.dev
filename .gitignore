@@ -31,6 +31,9 @@ go.work.sum
 .idea/
 .vscode/
 
+# Agent worktrees
+.claude/worktrees/
+
 # Build artifacts
 bin/
 
