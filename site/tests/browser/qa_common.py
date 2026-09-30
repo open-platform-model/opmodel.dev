@@ -7,6 +7,7 @@ port inside the container, and nothing is published to the host.
 
 import functools
 import http.server
+import json
 import pathlib
 import re
 import threading
@@ -36,6 +37,15 @@ def default_version():
     if not m:
         raise SystemExit("public/_redirects names no /latest/ version")
     return m.group(1)
+
+
+def versions():
+    """The versions of the build, [(name, is_default)] in weight order, from
+    public/build-stamp.json (its "versions" key, which scripts/gen-stamp.sh
+    writes from site/versions.conf); the default version alone if it has none."""
+    stamp = json.loads((PUBLIC / "build-stamp.json").read_text())
+    listed = [(name, bool(v.get("default"))) for name, v in stamp.get("versions", {}).items()]
+    return listed or [(default_version(), True)]
 
 
 def new_page(browser, width, site_theme, os_scheme, phone=False):

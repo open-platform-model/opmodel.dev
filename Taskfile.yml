@@ -56,13 +56,58 @@ tasks:
     cmds:
       - sh site/scripts/run-in-image.sh image
 
-  # Host-side preparation that build and serve run first; nothing to prepare
-  # for one version built from the source roots.
+  # The site versions (site/versions.conf), resolved on the host, where git
+  # works in a worktree; build and serve run versions:prepare first. The
+  # scripts read OPM_VERSIONS and OPM_VERSIONS_MANIFEST from the environment
+  # (never Taskfile vars, which would shadow it); the env map hands on the CLI
+  # form, and the source roots resolve in run-in-image.sh as for a build.
   versions:prepare:
-    desc: Prepare the site versions on the host (no-op for one version)
+    desc: Resolve the site versions from site/versions.conf on the host (build and serve run it first)
+    env: &versions-env
+      OPM_WS: '{{.OPM_WS}}'
+      OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
+      OPM_SRC_OPM: '{{.OPM_SRC_OPM}}'
+      OPM_SRC_CORE: '{{.OPM_SRC_CORE}}'
+      OPM_SRC_CATALOG_OPM: '{{.OPM_SRC_CATALOG_OPM}}'
+      OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
+      OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
+      OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_VERSIONS: '{{.OPM_VERSIONS}}'
+      OPM_VERSIONS_MANIFEST: '{{.OPM_VERSIONS_MANIFEST}}'
     cmds:
-      - cmd: 'true'
-        silent: true
+      # Writes site/.versions/versions.tsv; with OPM_VERSIONS set it only removes a stale one.
+      - sh site/scripts/resolve-versions.sh
+      # The archives of anchored versions and every page's git date; with OPM_VERSIONS set, nothing.
+      - sh site/scripts/materialise.sh
+
+  versions:check:
+    desc: Resolve every site version and print its refs (site/versions.conf, or OPM_VERSIONS_MANIFEST); writes nothing
+    env: *versions-env
+    cmds:
+      - sh site/scripts/resolve-versions.sh --check
+
+  # The two-version test never writes site/public/: it builds into
+  # site/.check/versions-test/. The last steps restore the real manifest's
+  # site/.versions/ as ordinary steps, so a failed restore fails the task and
+  # a leftover test version is caught; the deferred step restores it after a
+  # failure only (Task ignores a failing defer).
+  versions:test:
+    desc: Resolver regression tests (host git), then a two-version build into site/.check/versions-test/ and its assertions
+    env: *versions-env
+    cmds:
+      - sh site/tests/versions/test-resolve.sh
+      - defer: '{{if .EXIT_CODE}}OPM_VERSIONS= OPM_VERSIONS_MANIFEST= sh site/scripts/resolve-versions.sh && OPM_VERSIONS= sh site/scripts/materialise.sh{{end}}'
+      - OPM_VERSIONS= OPM_VERSIONS_MANIFEST=site/tests/versions/two-versions.conf sh site/scripts/resolve-versions.sh
+      - OPM_VERSIONS= sh site/scripts/materialise.sh
+      - sh site/tests/versions/check-two-versions.sh
+      - OPM_VERSIONS= OPM_VERSIONS_MANIFEST= sh site/scripts/resolve-versions.sh
+      - OPM_VERSIONS= sh site/scripts/materialise.sh
+      - |
+        if grep -q '^v0\.9[[:space:]]' site/.versions/versions.tsv || [ -e site/.versions/v0.9 ]; then
+          echo "versions:test: the real manifest was not restored: site/.versions/ still holds the test version v0.9" >&2
+          exit 1
+        fi
+        echo "versions:test: site/.versions/ restored for site/versions.conf"
 
   build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
@@ -103,9 +148,10 @@ tasks:
       - sh site/scripts/run-in-image.sh lint
 
   test:site:
-    desc: Prove the build checks on fixtures (site/tests), in Docker with no network
+    desc: Prove the build checks on fixtures (site/tests, in Docker with no network), then run versions:test
     cmds:
       - sh site/scripts/run-in-image.sh test
+      - task: versions:test
 
   qa:image:
     desc: Build the QA image, opmodel-dev-qa:<12 hex of sha256 of site/tests/browser/Dockerfile>, if the tag is missing

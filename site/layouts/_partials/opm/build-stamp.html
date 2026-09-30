@@ -1,14 +1,37 @@
-{{- /* The footer stamp: the version label and the source commit of each repo
-       the build read, from data/opm/build.json (scripts/gen-stamp.sh writes
-       it from OPM_BUILD_REFS, resolved on the host). A root that is not its
-       own git checkout (the fixtures) shows "none". Called from the Hextra
-       hook custom/footer.html with the page. */ -}}
+{{- /* The footer stamp, from data/opm/build.json (scripts/gen-stamp.sh): the
+       version label, then the refs the version documents. An anchored version
+       (site/versions.conf pins fixed refs) names them: "documents cli X,
+       library L, core Y, catalog Z, operator W, opm S", a ref that is a SHA
+       as seven hex characters, each linked to its commit, with how it was
+       found (the anchor, a pin, an override and its reason) as the link
+       title. A source = main version, and a fixture build, shows the commit
+       of each repo the build read, resolved on the host ("none" for a root
+       that is not its own git checkout). Called from the Hextra hook
+       custom/footer.html with the page. */ -}}
 {{- $label := site.Version.Name -}}
 {{- range site.Params.opm.versions -}}{{- if eq .name site.Version.Name -}}{{- $label = .label | default .name -}}{{- end -}}{{- end -}}
 {{- $sources := dict -}}
-{{- with hugo.Data.opm -}}{{- with .build -}}{{- $sources = .sources | default dict -}}{{- end -}}{{- end -}}
+{{- $ver := dict -}}
+{{- with hugo.Data.opm -}}{{- with .build -}}
+  {{- $sources = .sources | default dict -}}
+  {{- with .versions -}}{{- with index . site.Version.Name -}}{{- $ver = . -}}{{- end -}}{{- end -}}
+{{- end -}}{{- end -}}
 <div class="opm-build-stamp" data-pagefind-ignore="all">
   <span>{{ $label }}</span>
+  {{ if eq $ver.kind "anchored" -}}
+  {{- $refs := $ver.refs | default dict -}}
+  {{- $shown := slice -}}
+  {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- if index $refs . -}}{{- $shown = $shown | append . -}}{{- end -}}{{- end -}}
+  <span class="opm-build-refs">documents
+  {{- range $i, $repo := $shown -}}
+    {{- $r := index $refs $repo -}}
+    {{- $text := $r.ref -}}
+    {{- if findRE `^[0-9a-f]{40}$` $r.ref -}}{{- $text = substr $r.ref 0 7 -}}{{- end -}}
+    {{- $name := index (dict "catalog_opm" "catalog" "opm-operator" "operator") $repo | default $repo -}}
+    {{- if $i }},{{ end }} <span class="opm-build-ref">{{ $name }} <a href="{{ printf "%s/%s/commit/%s" site.Params.opm.github $repo $r.sha }}" title="{{ replaceRE `^([a-z]+):` "$1: " $r.how }}"><code>{{ $text }}</code></a></span>
+  {{- end -}}
+  </span>
+  {{- else -}}
   {{ with $sources -}}
   <span>built from</span>
   {{ range $repo := site.Params.opm.repos -}}
@@ -19,5 +42,6 @@
       <code>{{ $sha }}</code>
     {{- end }}</span>
   {{ end -}}
+  {{- end }}
   {{- end }}
 </div>

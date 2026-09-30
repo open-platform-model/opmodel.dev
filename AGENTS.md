@@ -110,6 +110,15 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 - **URL layout.** Every version lives under `/<version>/`. `/latest/` is the default version and `/` goes to `/latest/` (`public/_redirects`, plus meta-refresh stubs for hosts that ignore it). `/reference-archive/` is reserved. Nothing globs `v*/` or "every top-level directory": the version list is explicit. Today there is one version, `v1.0` (beta), built from each source repo's current checkout.
 - **Reserved sections.** `docs/reference/cli/` and `docs/reference/definitions/` are site-owned: no source page may publish there (the build fails), and generated content goes to `site/.gen/<version>/`, which the build mounts per version. For now `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`.
 
+## Site versions
+
+- **One manifest.** `site/versions.conf` (git-config syntax) is the only list of site versions. Nothing else lists versions, and nothing globs `v*/` or "every top-level directory": the build, Pagefind, the redirects, the root files, the Hugo versions config (`config/<env>/hugo.toml`, generated) and the tests all take the resolved list. An anchored version changes only through a commit to the manifest. `source = main` (every root at its `HEAD`) is allowed for one version, and only until `v1.0.0-beta.N` tags exist.
+- **Where pins come from.** An anchored version's `cli` ref is the anchor. The library comes from its `go.mod`, core from that library's `DefaultSchemaModule` (`opm/schema/loader.go`), opm-operator from its `PinnedOperatorVersion` (`internal/operator/manifest.go`); `catalog` and `opm` are explicit. Never read `cli/hack/platform/`: it is a test fixture. A pin that is not an exact release (a pseudo-version, a `replace`, a major-only module) or that must differ is replaced by `override = <repo> <ref> <reason>`, and the reason is required.
+- **Dialect floors.** Each repository's floor in the manifest is its page-dialect merge. No ref older than its floor builds; `resolve-versions.sh` fails first, naming the repository and the ref.
+- **Git runs on the host.** `task versions:prepare` runs `site/scripts/resolve-versions.sh` (refs and SHAs into `site/.versions/versions.tsv`) and `site/scripts/materialise.sh` (a `git archive` per anchored repository into `site/.versions/<v>/`, and every page's git date into `site/.versions/<v>/lastmod.tsv`, site-owned pages included). In that manifest mode `gen-lastmod.sh` runs no `git`; it runs `git` only in explicit mode, when a caller sets `OPM_VERSIONS` (fixture builds). Both scripts reuse `run-in-image.sh`'s root resolution by sourcing it.
+- **Site-owned pages are in every version.** `site/content/` is mounted into every version, so its links must resolve in every version, older ones included. A `task versions:test` failure naming `(version v0.9)` is fixed by bumping the test SHAs in `site/tests/versions/two-versions.conf` to buildable SHAs after each floor, never by editing the checks.
+- **Files.** `site/versions.conf`, `site/scripts/resolve-versions.sh`, `site/scripts/materialise.sh` and `site/tests/versions/` (`test-resolve.sh`, `two-versions.conf`, `check-two-versions.sh`). `task versions:check` prints what the manifest resolves to. `task versions:test`, which `task test:site` (and so `task ci`) also runs, tests the resolver on fixture repositories and at the real cli `v1.0.0-alpha.25`, then builds two versions from the source roots into `site/.check/versions-test/` and checks them; it never writes `site/public/`, and it restores `site/.versions/` for the real manifest when it ends.
+
 ## Entrypoint
 
 Read these on entry:
@@ -136,6 +145,7 @@ Read these on entry:
 │   ├── Dockerfile         # Build image: Hugo, Pagefind, git (pinned)
 │   ├── NOTICE             # Third-party licences
 │   ├── overrides.sha256   # Upstream theme files behind every override copy
+│   ├── versions.conf      # The site versions (git-config syntax; see ## Site versions)
 │   ├── config/_default/   # hugo.toml
 │   ├── content/           # Site-owned pages
 │   │   ├── _index.md      # Landing (hextra-home)
@@ -146,9 +156,9 @@ Read these on entry:
 │   ├── assets/js/core/    # Override copy of Hextra's sidebar.js (pinned in overrides.sha256)
 │   ├── static/            # Fonts, favicon, images
 │   ├── themes/hextra/     # Vendored Hextra v0.13.0 (+ hextra.COMMIT)
-│   ├── scripts/           # run-in-image.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
+│   ├── scripts/           # run-in-image.sh, resolve-versions.sh, materialise.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
 │   ├── tools/             # Brand rasters: favicons.py, og-card.{py,html} (task brand:*)
-│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, browser/ (QA image and scripts)
+│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, browser/ (QA image and scripts), versions/ (resolver and two-version tests)
 │   └── data/schema/       # Generated JSON (gitignored)
 ├── Taskfile.yml           # Build automation
 ├── go.mod
@@ -160,7 +170,7 @@ Read these on entry:
 - **Go**: 1.25+ (see `go.mod`) for the `docgen` tool.
 - **Docker**: builds and runs the site's images; Hugo, Pagefind and the browsers live only there.
 - **Source repositories**: the build reads `<repo>/docs/site/` from `OPM_WS` (default: the parent of the main checkout, found through git, so it is right inside a worktree). `OPM_SRC_WORKTREE=<name>` reads `<repo>/.claude/worktrees/<name>` instead, and `OPM_SRC_<REPO>` (`OPM_SRC_CATALOG_OPM`, `OPM_SRC_OPM_OPERATOR`, ...) points at one repo. Every root is checked before a container starts. Each root is mounted read-only at `/src/<repo>`, the repo at `/work/repo`.
-- **Git dates** come from `git log` inside the container. A worktree's `.git` file points at a host path the container does not mount, so a build from worktrees has no dates; `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
+- **Git dates** are computed on the host by `task versions:prepare` (`site/scripts/materialise.sh`), because a worktree's `.git` file points at a host path the container does not mount; so a build from worktrees has every date too. Only an explicit `OPM_VERSIONS` build (fixtures) runs `git log` inside the container, where a worktree has no dates. `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
 
 ## Build And Dev Commands
 
@@ -168,14 +178,16 @@ Read these on entry:
 - `task build` — the source lint, generated inputs, `hugo build`, every check and Pagefind, in Docker with no network (output: `site/public/`).
 - `task preview` — serve the built `site/public/` on `SITE_PORT`.
 - `task lint:sources` — the page-dialect lint over the six source repos.
-- `task test:site` — prove every check fails on its fixture (reads only `site/tests/`; writes only `site/.check/tests/`).
+- `task test:site` — prove every check fails on its fixture (the fixtures write only `site/.check/tests/`), then `task versions:test`.
 - `task shots` — build, then screenshot every page with a figure and the extras (landing, a docs page, 404, search) in six variants (light, dark, both theme/OS mismatches, phone light and dark) into `site/.shots/`; fails when figure text drops below 9 px on a phone. Read the PNGs before committing anything visual.
 - `task qa` — `shots`, then the axe WCAG 2.1 A and AA smoke test and the search smoke test.
 - `task ci` — `check`, `image`, `build`, `test:site`.
 - `task image`, `task qa:image` — build an image if its hash tag is missing (the only steps that use the network).
 - `task brand:favicons` — regenerate `site/static/favicon-16x16.png`, `favicon-32x32.png`, `favicon.ico`, `apple-touch-icon.png` and `android-chrome-{192x192,512x512}.png` from the drawn `favicon.svg`, in the QA image with no network. The output is committed and never hand-edited; redraw the SVGs and rerun.
 - `task brand:og` — regenerate `site/static/images/og-default.png` (the Open Graph card) from `hugo.toml`'s `title` and `params.description` and the mark, in the QA image with no network. Never hand-edited; rerun when either text or the mark changes. `README.md` "Brand marks" has the rules.
-- `task versions:prepare` — host-side version preparation that `build` and `serve` run first (nothing to do for one version).
+- `task versions:prepare` — resolve `site/versions.conf` on the host, archive anchored versions and compute every git date; `build` and `serve` run it first.
+- `task versions:check` — print every version's resolved refs and SHAs; writes nothing.
+- `task versions:test` — the resolver tests, then a two-version build into `site/.check/versions-test/` (never `site/public/`) and its assertions.
 - `task clean` — remove generated files.
 - `task build:docgen` — build docgen tool (output: `./bin/docgen`).
 - `task generate:schema`, `task generate:cli`, `task generate` — generate schema docs from CUE, CLI docs from cobra, or both.

@@ -33,12 +33,10 @@ html.dark .opm-version-hint { border-color: var(--hx-color-neutral-600); }
 .opm-version-item[aria-current] { color: var(--hx-color-gray-900); font-weight: 500; }
 html.dark .opm-version-item[aria-current] { color: var(--hx-color-gray-100); }
 
+/* The bar is one line of text that wraps as text: the icon stays inline with
+   the sentence on a phone, and the link does not break inside. */
 .opm-outdated {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem 0.5rem;
+  display: block;
   padding: 0.5rem 1.5rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -47,5 +45,8 @@ html.dark .opm-version-item[aria-current] { color: var(--hx-color-gray-100); }
   background: oklch(96.2% .059 95.617);
   border-bottom: 1px solid oklch(92.4% .12 95.746);
 }
-.opm-outdated a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.opm-outdated svg { display: inline; vertical-align: -3px; margin-inline-end: 0.375rem; }
+.opm-outdated a { margin-inline-start: 0.5rem; white-space: nowrap; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 html.dark .opm-outdated { color: oklch(92.4% .12 95.746); background: oklch(27.9% .077 45.635); border-color: oklch(41.4% .112 45.904); }
+/* Unlayered site CSS beats Hextra's print:hidden utility, so hide it here. */
+@media print { .opm-outdated { display: none; } }

@@ -205,12 +205,14 @@ Each repository's floor is the SHA of its `adopt-hugo-page-dialect` merge commit
 
 | Repository | S change | Floor (S merge SHA) |
 |---|---|---|
-| opm | S1 | recorded by task 1.1 |
-| core | S2 | recorded by task 1.1 |
-| catalog_opm | S3 | recorded by task 1.1 |
-| cli | S4 | recorded by task 1.1 |
-| library | S5 | recorded by task 1.1 |
-| opm-operator | S6 | recorded by task 1.1 |
+| opm | S1 (#6) | `2a73f5282a2b487e209ed2d0717da46c8a17a5da` |
+| core | S2 (#83) | `647dfdcf3c7f0000e1efcf74343e14e4f3a83579` |
+| catalog_opm | S3 (#100) | `2bbf4579bf44c6b77da104733eb727b1e72540d1` |
+| cli | S4 (#246) | `7d8f44b68a86f86ae7a79dfd42a8236bba4e2cb8` |
+| library | S5 (#149) | `e623d40b45976dae83fe0c676a52867374e647e2` |
+| opm-operator | S6 (#159) | `c15d93946d3d067809de4709529f884591b46345` |
+
+Recorded by task 1.1 (2026-09-30) from the SHAs the supervisor handed over at launch. Each is the `docs(site): adopt the hugo page dialect` squash merge on `main`, and each is an ancestor of its repository's `site-src` `HEAD`.
 
 The floor check also applies to `source = main`. It makes a build against a stale checkout, such as the owner's never-pulled main checkouts (trap 25), fail with the repository named, instead of failing later in the lint.
 
@@ -378,6 +380,16 @@ site/.check/versions-test/
     - `v0.9`: labelled "v0.9 (test)", anchored at the cli test SHA, with `catalog` and `opm` at the catalog_opm and opm test SHAs, and overrides for library, core and opm-operator at their test SHAs. Each override's reason is "test pins post-S SHAs, no post-S tag yet".
     The version names are test-only.
   - **The test SHAs** are the six S merge SHAs (cli S4, catalog_opm S3, opm S1, library S5, core S2, opm-operator S6). The S workers only ran the dialect lint; A's real build was the first to exercise link targets, Q2 and the front-matter `errorf`. If A's merge needed source fixes after an S merge, that S snapshot does not build. Then the test SHAs are the buildable post-S SHAs the supervisor names, for example the `site-src` `HEAD`s that A merged against. Task 1.1 records the six test SHAs here. The floors stay at the S merges either way.
+  - **Recorded by task 1.1 (2026-09-30): the test SHAs are the S merge SHAs** of Decision 4. A's merge needed no source fix after an S merge: the only `docs/site` commits after the floors (opm #7, core #82, library #150, opm-operator #160) add or extend pages, and the six S snapshots, extracted with `git archive` and built as one explicit version (`OPM_VERSIONS=v1.0=<the archives>`), pass A's build with every check (56 pages expected, 56 built).
+
+    | Repository | Test SHA |
+    |---|---|
+    | cli | `7d8f44b68a86f86ae7a79dfd42a8236bba4e2cb8` |
+    | catalog_opm | `2bbf4579bf44c6b77da104733eb727b1e72540d1` |
+    | opm | `2a73f5282a2b487e209ed2d0717da46c8a17a5da` |
+    | library | `e623d40b45976dae83fe0c676a52867374e647e2` |
+    | core | `647dfdcf3c7f0000e1efcf74343e14e4f3a83579` |
+    | opm-operator | `c15d93946d3d067809de4709529f884591b46345` |
   - The build MUST NOT write `site/public/`, which E uploads and F deploys, or the real build's `site/.check/<v>/`. Its output goes to `site/.check/versions-test/public/` and `site/.check/versions-test/check/`. Section 4 adds a destination argument and a check-output argument to `build-all.sh` if A's has none; the defaults stay `public` and `.check`.
   - The build does overwrite the generated inputs every build shares: `site/.versions/`, `site/config/{production,development}/` and `site/data/opm/`. The test's final `versions:prepare` with the real manifest restores `site/.versions/`. The next `task build` or `task serve` regenerates the config and the data.
   - It asserts:
@@ -501,9 +513,35 @@ A's plan found that a Taskfile global variable declared with `sh:` shadows an en
 
 Not verified: that Hugo 0.167.0 accepts both keys from a generated file in `build` and `serve` alike.
 
-**Decision**: Spike in task 1.2, three candidate forms (Decision 7). Record the chosen form here.
+Spike, task 1.2 (2026-09-30, image `opmodel-dev-hugo:cc96beb612fe`, Hugo 0.167.0). Scratch edits removed `defaultContentVersion`, `[versions]` and `[[params.opm.versions]]` from `config/_default/hugo.toml` and made `gen-mounts.sh` write them in one of the three forms. Two versions: `v1.0` from the `site-src` roots at `/src`, and `v0.9` from a copy of A's fixture workspace under `site/.versions/v0.9/` (explicit mode, `OPM_VERSIONS="v1.0=/src v0.9=/work/repo/site/.versions/v0.9"`). Each form ran twice, once with `v1.0` as the default and once with `v0.9`, so a form whose default key Hugo ignored could not pass by Hugo falling back to the lowest weight.
+- `task build`: all three forms pass. Q2 is green for both versions (`v1.0` 56 pages expected and built, `v0.9` 21 and 21); `/latest/` points at the generated default (`url=/v0.9/` with `v0.9` as the default); the outdated bar appears only on the non-default version; the switch shows both labels, which come only from the generated `[[params.opm.versions]]`.
+- `task serve` (`SITE_PORT=1314`, stopped with one SIGINT to the process group): all three forms pass. All 75 sidebar URLs of both versions plus each version's home and docs home answer 200; `/latest/` refreshes to the generated default; the labels come from the generated file.
+- Hugo keeps pages mounted from under the dot-directory `site/.versions/`: `v0.9`'s 21 fixture pages all publish, in `build` and `serve`.
+
+**Decision**: Form (a): `gen-mounts.sh` writes `config/<env>/hugo.toml` beside `config/<env>/module.toml`, holding `defaultContentVersion`, `[versions]` and `[[params.opm.versions]]`. It is the first form that passes, and the simplest: one generated file per environment, no environment variable and no extra `--config` argument, and A's ignore and `clean` rules already cover `config/production/` and `config/development/` whole. `[[params.opm.versions]]` merges into `_default`'s `[params.opm]` (its `github`, `repos` and `collapseInactive` stay).
 
 **Rationale**: It is the one unverified assumption that changes where generated files live.
+
+### A's merged `main` (task 1.1)
+
+**Context**: This design was drafted beside A's. Task 1.1 re-read A's merged `main` (e7d07b4) for each assumption.
+
+**Explored**, confirmed unless marked:
+- `build` and `serve` run `versions:prepare` first (`deps: [versions:prepare]`). `versions:prepare` has no `env:` map, so a task CLI var (`task build OPM_WS=...`) reaches it only once this change gives it one; section 1 adds the same keys as A's `&hugo-env`.
+- `OPM_VERSIONS`: `build` and `serve` hand it on through `env: *hugo-env` as `'{{.OPM_VERSIONS}}'`, which is empty when unset; `run-in-image.sh` passes `--env OPM_VERSIONS=...` into the container only when it is non-empty. A host `OPM_VERSIONS` therefore reaches the container. `test:site` has no `env:` map, so an exported host value would reach its container too, but `test-site.sh` sets `OPM_VERSIONS` itself for every build, so it never matters.
+- **Refuted in part**: no Taskfile variable holds the six host roots or `OPM_WS`. The Taskfile only hands the environment and CLI forms to `site/scripts/run-in-image.sh`, whose `sources()` resolves and checks the roots (`MOUNTS`, `REFS`). This change reuses it without editing the script: `resolve-versions.sh`, `materialise.sh` and `versions:test` source `run-in-image.sh` in a subshell as `sh -c '. "$0" >/dev/null; sources; ...' site/scripts/run-in-image.sh tag`. Mode `tag` only prints the image tag, which is discarded, and `$0` is the script's own path, so its repository root is right. The consequence: every mode, `--pins` included, needs all six roots to pass A's check (the root exists and holds `docs/site`) before this change's own root checks run.
+- `build-all.sh` takes no destination or check-output argument: it builds into `public/` and `check-pages.sh` writes `.check/<v>/` (it reads a `PUBLIC` environment variable, but only for its reads). Section 4 adds both.
+- `build-all.sh` reads the default version from `config/_default/hugo.toml` with `sed`, as the prototype did. It is the only writer of `public/_redirects`, the root `index.html` and the root `404.html`.
+- `custom/head-end.html` publishes the `/latest/` stubs through `.Site.Version.IsDefault` and names no version.
+- `gen-lastmod.sh` keys site-owned pages as `opmodel.dev/site/content/<path>`, walks every mounted page (the site's `content/` and each root's `<repo>/docs/site/`, per version) and counts a page without a date as a miss. `OPM_REQUIRE_DATES` comes from the host environment (`run-in-image.sh` passes it; `build` hands on the CLI form).
+- No script, task or live document runs a fixture-workspace build through `task build` or `task serve`; `test-site.sh` sets `OPM_VERSIONS` itself. The only such command is in A's archived design (its section 1 answers ran `OPM_WS=<wt>/site/tests/fixtures/ws task hugo:serve`), which is history and stays as it is.
+- A keeps the "v1.0 (beta)" label in `[[params.opm.versions]]` in `config/_default/hugo.toml`.
+- `site/.gitignore` and `task clean` cover `config/production/` and `config/development/` whole, and `.versions/`.
+- Two findings outside the list. The build stamp `data/opm/build.json` is written by `site/scripts/gen-stamp.sh`, A's section 2 refinement, not by `build-all.sh`; so the `versions` key of Decision 8 lands there, a file the proposal's Touches do not name. And A's `version-switch.html`, `version-links.html` and `banner.html` already list every version by label once there are two, keep the nearest-parent fallback, mark the default and show a bar on every non-default version; section 3 changes the bar's wording and the stamp and links, not the switch's structure.
+
+**Decision**: Build on A's `main` as found. Reuse `run-in-image.sh` by sourcing it; edit `gen-stamp.sh` for the `versions` key.
+
+**Rationale**: Both keep one copy of each rule. Sourcing needs no edit to A's script; the stamp key belongs in the one script that writes the stamp.
 
 ### Dates for site-owned pages
 
@@ -514,6 +552,41 @@ Not verified: that Hugo 0.167.0 accepts both keys from a generated file in `buil
 **Decision**: `materialise.sh` also writes the site-owned rows, from the opmodel.dev checkout on the host, into every version's `lastmod.tsv`. In manifest mode gen-lastmod runs no `git` and still counts misses over every page (Decision 6).
 
 **Rationale**: One date source per mode. Worktree builds date every page, so `OPM_REQUIRE_DATES=1` becomes a local gate instead of a first failure on the PR's workflow run. The alternative, a container-side pass for site-owned pages beside the host rows, keeps two date sources and leaves worktree builds without site-owned dates.
+
+### N-version outputs (section 4)
+
+**Context**: Decision 10 and tasks 4.1, 4.2 and 4.4.
+
+**Explored**: the two-version build (`two-versions.conf`, 2026-09-30).
+- 4.1: `robots.txt` names `/v1.0/sitemap.xml` and `/v0.9/sitemap.xml`; each sitemap lists only its own version's URLs (58 and 56); each version publishes its own `llms.txt` and `404.html`; the root `404.html` is `v1.0`'s; Hugo writes no root sitemap. `layouts/robots.txt` and `layouts/sitemap.xml` needed no edit.
+- 4.2: A's `build-all.sh` had neither argument. It now takes `--public DIR` and `--check DIR` (relative to `SITE_DIR`, defaults `public` and `.check`), passes `--destination` to Hugo, and exports `PUBLIC` and `CHECK_DIR` for `check-pages.sh`, which already read `PUBLIC` and now writes `nav-order.txt` under `CHECK_DIR`. A's messages read the same with the defaults.
+- 4.4: the planning-round ruling allows the line, so `test:site` ends with `task: versions:test`. `task ci` therefore runs the resolver tests and the two-version build; `test:site` now also reads the source roots and writes `site/.check/versions-test/`, `site/.versions/`, `site/config/<env>/` and `site/data/opm/`.
+
+**Decision**: As above. `check-two-versions.sh` builds through `run-in-image.sh`'s sourced functions and fails when anything under `site/public/` or under `site/.check/` outside `versions-test/` changed during its run.
+
+**Rationale**: The deploy artifact and the real check output stay untouched, which the test proves instead of assuming.
+
+### Supervisor rulings after verify (2026-09-30)
+
+**Context**: The verify report named three items outside the change's Touches.
+
+**Decision**: All accepted by the supervisor.
+- The `versions` key of `data/opm/build.json` lands in `site/scripts/gen-stamp.sh`, the stamp's one writer since A's section 2, not in `build-all.sh`.
+- One extra docs commit, `docs(site): describe the versions manifest`, corrects the lines this change made stale outside its two `## Site versions` headings: `AGENTS.md` Environment Notes (git dates), the `versions:prepare` and `test:site` lines of Build And Dev Commands (plus `versions:check` and `versions:test`), the layout tree (`versions.conf`, the host scripts, `tests/versions/`); `README.md` Tasks block, directory tree and Implementation Status; the `test:site` description in `Taskfile.yml`.
+- The branch merges `origin/main` (the figures and CI changes), keeping E's `## CI` and this change's `## Site versions` in `README.md`; the same docs commit corrects E's CI "Dates" bullet, which said worktree builds have no dates.
+
+**Rationale**: Stale lines in the repository's guide would contradict the rules the new headings state.
+
+### PR review hardening (2026-09-30)
+
+**Context**: The supervisor's review of the pull request found no blocker and asked for one more commit, `fix(site): harden the versions test and document its limits`.
+
+**Decision**:
+- `README.md` and `AGENTS.md` "Site versions" say that site-owned pages build into every version, so their links must resolve in every version, and that a `versions:test` failure naming `(version v0.9)` is fixed by bumping the test SHAs in `two-versions.conf` to buildable post-floor SHAs, never by editing the checks.
+- `check-two-versions.sh` proves that v0.9's source pages come from the anchored refs: per repository, the archive and the published v0.9 pages equal `git ls-tree -r --name-only <test SHA> docs/site`; every page added after a test SHA publishes in v1.0 only (one of them is `/docs/extending/write-a-blueprint/`, added to catalog_opm after its floor 2bbf457, asserted by name while catalog_opm's `HEAD` has it).
+- `resolve-versions.sh` in write mode removes `versions.tsv` on any failure (an `EXIT` trap). `versions:test` restores the real manifest as ordinary steps and fails if `site/.versions/` still holds v0.9; its defer runs only after a failure (`{{.EXIT_CODE}}`), because Task ignores a failing defer.
+
+**Follow-up, not in this change**: once `v1.0` moves onto tags, `build-stamp.json` `sources` (and E's CI job summary, which lists it) still reports the roots the build read, not what a published anchored version documents. Either `gen-stamp.sh` emits `sources` only for a `source = main` version, or the summary reads `.versions[].refs`.
 
 ### Release visibility of `docs` commits
 

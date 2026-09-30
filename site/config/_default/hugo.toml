@@ -12,14 +12,12 @@ enableGitInfo = false
 # fails the build on a page that does not exist in the current version.
 refLinksErrorLevel = 'error'
 
-# One version, v1.0, under /v1.0/. The mounts that feed it are generated from
-# OPM_VERSIONS into config/{production,development}/module.toml (gitignored)
-# by scripts/gen-mounts.sh.
-defaultContentVersion = 'v1.0'
+# Every version under /<version>/. The versions come from site/versions.conf:
+# scripts/gen-mounts.sh writes defaultContentVersion, [versions] and
+# params.opm.versions (name and label) into config/{production,development}/
+# hugo.toml, and the mounts that feed each version into module.toml beside it
+# (all gitignored).
 defaultContentVersionInSubdir = true
-[versions]
-  [versions.'v1.0']
-    weight = 1
 
 [outputs]
   home = ['html', 'llms']
@@ -111,10 +109,8 @@ defaultContentVersionInSubdir = true
     # Sidebar groups outside the current page's path start collapsed.
     collapseInactive = true
     repos = ['opm', 'core', 'catalog_opm', 'cli', 'library', 'opm-operator']
-  # An array, so no param key contains a dot.
-  [[params.opm.versions]]
-    name = 'v1.0'
-    label = 'v1.0 (beta)'
+    # params.opm.versions, an array of {name, label} (so no param key holds a
+    # dot), is generated into config/<environment>/hugo.toml.
 
 [menus]
   [[menus.main]]

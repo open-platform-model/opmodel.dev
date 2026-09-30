@@ -18,8 +18,9 @@
 #          _index.md, a swallowed page);
 #   stray  fails on a file under public/<version>/ that is not a known output
 #          type, or a .md that is not a page's Markdown output;
-#   nav    writes SITE_DIR/.check/<version>/nav-order.txt: the sidebar's links
-#          on the version's docs home, in document order;
+#   nav    writes SITE_DIR/.check/<version>/nav-order.txt (CHECK_DIR, default
+#          .check): the sidebar's links on the version's docs home, in
+#          document order;
 #   links  fails when a root-relative href, src or data-url in any published
 #          HTML file (every version, the /latest/ stubs, the root files) names
 #          nothing under public/: a file, or a directory with an index.html.
@@ -32,6 +33,7 @@ REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 mode=$1; shift
 PUBLIC=${PUBLIC:-public}
+CHECK_DIR=${CHECK_DIR:-.check}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 rc=0
 
@@ -84,15 +86,15 @@ for pair in "$@"; do
   done)
   if [ -n "$stray" ]; then rc=1; echo "STRAY FAIL $v: files that are no known output:"; echo "$stray" | sed 's/^/  /'; fi
 
-  mkdir -p ".check/$v"
+  mkdir -p "$CHECK_DIR/$v"
   home="$PUBLIC/$v/docs/index.html"
   if [ -f "$home" ]; then
     tr '\n' ' ' < "$home" | sed -n 's#.*<aside[^>]*hextra-sidebar-container##p' | sed 's#</aside>.*##' |
-      grep -oE 'href="?[^" >]+' | sed -E 's#^href="?##' | grep '^/' > ".check/$v/nav-order.txt" || true
+      grep -oE 'href="?[^" >]+' | sed -E 's#^href="?##' | grep '^/' > "$CHECK_DIR/$v/nav-order.txt" || true
   else
-    : > ".check/$v/nav-order.txt"
+    : > "$CHECK_DIR/$v/nav-order.txt"
   fi
-  echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/$v.have" | tr -d ' ') built, $(wc -l < ".check/$v/nav-order.txt" | tr -d ' ') sidebar links in .check/$v/nav-order.txt"
+  echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/$v.have" | tr -d ' ') built, $(wc -l < "$CHECK_DIR/$v/nav-order.txt" | tr -d ' ') sidebar links in $CHECK_DIR/$v/nav-order.txt"
 done
 
 if [ "$mode" = post ]; then
