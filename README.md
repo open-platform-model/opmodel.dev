@@ -162,6 +162,10 @@ Rules for page authors and for anyone changing the site's layouts or styles.
 - **Table of contents.** From 80 rem (1280 px) the page's headings are the right rail, where the current heading's entry is bold and barred. Below 80 rem the rail is hidden, and the page's h2 headings are listed under its entry in the sidebar (the phone menu below 48 rem).
 - **Section index pages list their children as generated cards** (`site/layouts/_partials/opm/section-children.html`): subsections first, then pages grouped by type (tutorials, how-to guides, explanations, reference), each group ordered by `weight`, then title. Nobody writes a child list by hand, in a site-owned overview or a source page.
 - **Search** indexes only `main#content > .content`. Three things there are deliberate: the lead is indexed and is the page's Pagefind `description` metadata (the search sub-line); the section cards carry `data-pagefind-ignore`, so a section page does not match every child; and the `crumbs` metadata starts below the docs root, so no result reads "Documentation / ...". A change to the markup under `.content` keeps all three true and keeps `task qa`'s search smoke test green.
+- **Breadcrumb.** It is a `nav` landmark holding a list, with the current page marked `aria-current="page"`. The crumbs wrap instead of clipping; below 48 rem the docs-root crumb is hidden, since the sidebar's first row and the navbar's Docs link already lead there.
+- **Two theme override copies exist only for these fixes**, each pinned in `site/overrides.sha256`. Delete each, and its line, when upstream Hextra fixes the problem:
+  - `site/layouts/_partials/breadcrumb.html`: Hextra's breadcrumb is a `div` of `div`s with no `nav`, no list and no `aria-current`, and it clips crumbs on a phone.
+  - `site/assets/js/core/sidebar.js`: Hextra always scrolls the sidebar to put the current page near its top, so the phone menu opened scrolled past the section root. The copy scrolls only when the current page's entry is out of view.
 
 ## License
 

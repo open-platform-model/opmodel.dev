@@ -1,5 +1,5 @@
 /* Navigation aids: the table of contents (Hextra's right rail and the h2
-   list under the current page's sidebar entry). */
+   list under the current page's sidebar entry) and the breadcrumb. */
 
 /* The right rail (nav.hextra-toc, shown from 80rem). Hextra's scrollspy
    (core/toc-scroll.js) marks the current heading's link hextra-toc-active and
@@ -23,4 +23,28 @@ html.dark .hextra-toc a.hextra-toc-active { box-shadow: inset 2px 0 0 var(--hx-c
    sorts earlier; unlayered, it also beats the list's hx:md:hidden utility. */
 @media (min-width: 48rem) and (max-width: 79.99rem) {
   .opm-sb .opm-sb-sub.opm-sb-toc { display: flex; }
+}
+
+/* The breadcrumb (layouts/_partials/breadcrumb.html): nav > ol, the current
+   page marked aria-current. The crumbs wrap instead of clipping, at every
+   width, so no crumb is ever cut off. Below 48rem each crumb may wrap inside
+   too, and the docs-root crumb is hidden: it is also the sidebar's first row
+   and the navbar's Docs link. On the docs root itself the only crumb is the
+   current page, which stays. */
+.opm-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.opm-crumbs li { display: flex; align-items: center; gap: 0.25rem; min-width: 0; white-space: nowrap; }
+.opm-crumbs [aria-current="page"] { font-weight: 500; color: var(--hx-color-gray-700); }
+html.dark .opm-crumbs [aria-current="page"] { color: var(--hx-color-gray-100); }
+@media (max-width: 47.99rem) {
+  .opm-crumbs li { white-space: normal; }
+  .opm-crumbs li:first-child:not(:last-child) { display: none; }
 }

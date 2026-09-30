@@ -42,11 +42,13 @@ FIGURES = 'figure:has(svg[role="img"])'
 
 # Viewport shots at a size of their own, one entry each, in light and dark,
 # into site/.shots/<page>/<name>-<theme>.png:
-#   (url under the version, name, width, height, phone)
+#   (url under the version, name, width, height, phone, action before the shot)
 SIZED_EXTRAS = [
     # Between 48rem and 80rem the rail is hidden and the current page's h2
     # list sits under its sidebar entry.
-    ("/docs/start/quickstart/", "tablet", 1024, 768, False),
+    ("/docs/start/quickstart/", "tablet", 1024, 768, False, None),
+    # The phone menu, opened: it starts at the section root.
+    ("/docs/start/quickstart/", "drawer", 390, 844, True, "drawer"),
 ]
 
 # Sticky and fixed elements (the navbar) would cover the top of a tall figure
@@ -85,7 +87,7 @@ def figure_pages(version):
 
 def shoot_sized_extras(browser, base, version, errors):
     """The SIZED_EXTRAS entries, each in light and dark."""
-    for path, name, width, height, phone in SIZED_EXTRAS:
+    for path, name, width, height, phone, action in SIZED_EXTRAS:
         url = f"/{version}{path}"
         folder = OUT / slug(url)
         folder.mkdir(parents=True, exist_ok=True)
@@ -94,6 +96,9 @@ def shoot_sized_extras(browser, base, version, errors):
             page.set_viewport_size({"width": width, "height": height})
             page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
             page.goto(base + url, wait_until="networkidle")
+            if action == "drawer":
+                page.locator(".hextra-hamburger-menu").click()
+                page.wait_for_timeout(400)
             page.screenshot(path=str(folder / f"{name}-{theme}.png"))
             page.context.close()
         print(f"{url}: {name} {width}x{height} x 2 themes -> .shots/{slug(url)}/")

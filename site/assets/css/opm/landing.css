@@ -3,3 +3,21 @@
 .opm-hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 3.5rem; }
 .opm-hero .hextra-feature-grid { width: 100%; }
 .opm-hero .hextra-feature-card { min-height: 10rem; }
+
+/* The hero's top: text and actions, then the ModuleToCluster figure; two
+   columns from 64rem. The feature grid stays below it, inside .opm-hero, so
+   it keeps the hero's width and centring. The space before the grid moves
+   from the actions to the two columns. */
+.opm-hero-main { display: grid; gap: 2.5rem 3rem; margin-bottom: 3.5rem; }
+.opm-hero-text .opm-hero-actions { margin-bottom: 0; }
+@media (min-width: 64rem) {
+  .opm-hero-main { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: center; }
+}
+.opm-hero-figure .opm-fig { margin: 0 auto; }
+
+/* Quieter feature cards: a smaller title and icon, the text in the body
+   grey. Their glow gradients are gone from content/_index.md. */
+.opm-hero .hextra-feature-card h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+.opm-hero .hextra-feature-card h3 svg { height: 1.125rem; width: auto; }
+.opm-hero .hextra-feature-card p { font-size: 0.875rem; line-height: 1.375rem; color: var(--hx-color-gray-600); text-wrap: pretty; }
+html.dark .opm-hero .hextra-feature-card p { color: var(--hx-color-gray-400); }
