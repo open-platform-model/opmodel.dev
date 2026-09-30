@@ -202,13 +202,13 @@ jobs:
     vars:
       ACTIONLINT_IMAGE: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
     cmds:
-      - docker run --rm --network none --user {{.UID}}:{{.GID}} --volume {{.ROOT_DIR}}:/repo:ro --workdir /repo {{.ACTIONLINT_IMAGE}} -color {{.CLI_ARGS}}
+      - docker run --rm --network none --user "$(id -u):$(id -g)" --volume "{{.ROOT_DIR}}:/repo:ro" --workdir /repo {{.ACTIONLINT_IMAGE}} -color {{.CLI_ARGS}}
 ```
 
 - The image var is task-local, so the edit stays inside one task. B and M also add tasks to `Taskfile.yml`; separate tasks merge cleanly.
 - The container runs read-only, with no network, as the calling user. It has no `:z` label (trap 23).
 - `-color` gives readable logs. `{{.CLI_ARGS}}` passes extra flags, for example `task ci:lint -- -verbose`.
-- If A's Taskfile no longer defines `UID` and `GID`, use `$(id -u):$(id -g)`.
+- A's merged Taskfile defines no `UID` or `GID` var, so the task uses `$(id -u):$(id -g)`, which Task's shell interpreter expands (checked at apply time, 2026-09-30).
 - It stays out of `task ci`, because A owns that target's definition (orchestration.md section 6). The workflow calls both.
 
 ### 9. Pins
@@ -224,6 +224,8 @@ jobs:
 | `rhysd/actionlint` | `1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667` | the multi-arch index digest of the latest release, resolved 2026-09-30 |
 
 At apply time, check `actions/upload-artifact` and `rhysd/actionlint` for a newer release. If there is one, resolve its tag to a commit SHA or index digest, use it, and record it here. The org pins stay as the other repos have them.
+
+Checked at apply time (2026-09-30): the latest `actions/upload-artifact` release is still v7.0.1 (tag `v7.0.1` resolves to commit `043fb46d...`), and the latest `rhysd/actionlint` is still 1.7.12 (Docker Hub gives the tag the index digest above). Both pins stand. The org pins match cli, library and opm-operator `origin/main`.
 
 ### 10. `pr-title.yml`: cli's check with this repo's commit types
 
@@ -252,9 +254,14 @@ At apply time, check `actions/upload-artifact` and `rhysd/actionlint` for a newe
 **Context**: Two facts can only be read from A's merged `main`:
 - whether the build passes with `OPM_REQUIRE_DATES=1` on real clones laid out as CI lays them out, and what `build-stamp.json` looks like;
 - whether `task qa` builds `site/public` itself, and whether it reads any source root (decision 7's fallback).
-**Explored**: tasks 1.2 and 1.3.
-**Decision**: (record the stamp's key names, the `git status --porcelain` output after `task ci`, the `task --dry qa` result, and whether `qa` reads any source root)
-**Rationale**: (record why the browser job keeps decision 7's default, or switches to the artifact, and with how many checkouts)
+**Explored**: tasks 1.2 and 1.3, on 2026-09-30 (Task 3.52.0, Docker 29.8.1, image `opmodel-dev-hugo:cc96beb612fe`). The seven repos were cloned from GitHub into a scratch directory, side by side, at `main` with full history: opmodel.dev e7d07b4, opm 94c9289, core 748dfc7, catalog_opm 7d2e1dd, cli 025e1b6, library c99403c, opm-operator 546d649.
+- `OPM_REQUIRE_DATES=1 task ci` in the opmodel.dev clone passed. `OPM_WS` resolved to the scratch directory, the parent of the clone. Inside the container git read every mounted clone: `gen-lastmod: 56 dates, 0 pages without a git date`. The build summary printed `v1.0: 56 pages` and `build-all: OK in 1 s -> /work/repo/site/public (266 files, 4.6M)`; `find site/public -type f | wc -l` agreed (266). `test:site` passed 57 cases.
+- `site/public/build-stamp.json` is `{"sources": {"opm": "<sha>", "core": ..., "catalog_opm": ..., "cli": ..., "library": ..., "opm-operator": ...}}`: one top-level key, `sources`, holding the six repo names, each with the full 40-hex SHA. Each equalled `git -C <clone> rev-parse HEAD`.
+- `git status --porcelain --untracked-files=all -- . ':(exclude).task'` after `task ci` printed nothing; without the exclusion it printed nothing either (`task ci` does not run `build:docgen`, so the tracked `.task/checksum/build-docgen` did not change).
+- `task --dry qa` prints `run-in-image.sh qa-image`, then `run-in-image.sh build`, then `run-in-image.sh qa`: `qa` builds `site/public` itself (`task: build` in its `cmds`). The printed commands name no `/src/<repo>` and no source path, because the mounts are resolved inside `run-in-image.sh build`, whose `sources()` reads and mounts all six source roots and stops before any container when one is missing.
+- `OPM_SRC_WORKTREE=absent task --dry qa` exits 0 and prints the same three commands, with no source path: the Taskfile has no global dynamic (`sh:`) var. The dry run proves nothing about the sources, though, because the `build` it would run reads all six.
+**Decision**: The summary reads `.sources` from `build-stamp.json` and counts `find site/public -type f`. The clean-tree step keeps its `.task/` exclusion (the tracked checksum file changes whenever a task with `sources:` runs). The browser job keeps decision 7's default: its own seven checkouts, Task, and `task qa`, in parallel with `build`, with no `needs:` and no artifact download.
+**Rationale**: `qa` rebuilds `site/public` before it takes screenshots, so a downloaded `site-public` artifact would be overwritten, and the rebuild reads all six source roots, so the job needs every checkout (a missing root would stop `run-in-image.sh` before any container, and without that check it would become a root-owned empty directory, trap 22). With `OPM_REQUIRE_DATES=1` at workflow level, `qa`'s own build requires dates too, which real clones satisfy. Two parallel jobs build the site twice; that costs runner minutes, not wall time.
 
 ## Interface (orchestration.md section 6)
 
