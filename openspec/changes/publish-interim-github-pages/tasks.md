@@ -97,8 +97,8 @@ Gates, run on the whole worktree at every section end:
 
 ## 3. The interim GitHub Pages deploy (CI, README)
 
-- [ ] 3.1 Finding 5: the pins. For `actions/configure-pages`, `actions/upload-pages-artifact` and `actions/deploy-pages`, read the latest release (`gh api repos/actions/<name>/releases/latest --jq .tag_name`) and its commit (`gh api repos/actions/<name>/git/ref/tags/<tag>`). If the ref is an annotated tag, dereference it to the commit. Record finding 5, and update decision 9's table if a release is newer.
-- [ ] 3.2 `.github/workflows/site.yml` (decisions 8 and 9).
+- [x] 3.1 Finding 5: the pins. For `actions/configure-pages`, `actions/upload-pages-artifact` and `actions/deploy-pages`, read the latest release (`gh api repos/actions/<name>/releases/latest --jq .tag_name`) and its commit (`gh api repos/actions/<name>/git/ref/tags/<tag>`). If the ref is an annotated tag, dereference it to the commit. Record finding 5, and update decision 9's table if a release is newer.
+- [x] 3.2 `.github/workflows/site.yml` (decisions 8 and 9).
   - Replace the dates comment in the workflow `env`, and add `PAGES_BASE_URL` with its comment.
   - Add the two steps at the end of `build`, after the `build-stamp` upload.
   - Add the job `pages-deploy` after `browser`.
@@ -108,14 +108,14 @@ Gates, run on the whole worktree at every section end:
   - Verify: there is no workflow-level `concurrency:`, and `grep -n 'OPM_BASE_URL:' <wt>/.github/workflows/site.yml` hits only the Pages build step.
   - Verify: the `upload-pages-artifact` step has no `if:` (it runs on every event), and `pages-deploy` has the `if:` of decision 9.
   - Verify: `git -C <wt> diff origin/main -- .github/workflows/site.yml` changes no existing line of `build` or `browser`. The only existing lines it changes are the dates comment.
-- [ ] 3.3 The Pages build step, reproduced locally with CI's dates rule: `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build` is green. Then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` again.
-- [ ] 3.4 `README.md`, `## CI` (decision 10).
+- [x] 3.3 The Pages build step, reproduced locally with CI's dates rule: `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build` is green. Then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` again.
+- [x] 3.4 `README.md`, `## CI` (decision 10).
   - Add a row to the CI table for the Pages build.
   - Add a sentence to the "Summary and artifacts" bullet about the Pages summary line and the `github-pages` artifact.
   - Add `### GitHub Pages (interim)` at the end of `## CI`, with decision 10's five parts.
   - Verify: `grep -n -e 'build_type=workflow' -e 'gh api -X DELETE' -e 'noindex, nofollow' -e 'deployment-branch-policies' -e 'url=/opmodel.dev/latest/' -e 'Go to the docs' <wt>/README.md` hits each term inside the new subsection. Every check there is a literal command with its expected output, and part 2 says that only the HTML pages carry `noindex`.
   - Verify: no `## Deploy` heading is added, and `git -C <wt> diff origin/main -- README.md` touches only `## CI` and the two lines from task 2.9.
-- [ ] 3.5 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `task -d <wt> ci:lint` and `git -C <wt> diff --check` green. Stage `.github/workflows/site.yml`, `README.md`, `openspec/changes/publish-interim-github-pages/design.md` and `openspec/changes/publish-interim-github-pages/tasks.md`, then commit `ci: deploy the site to github pages for now`.
+- [x] 3.5 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `task -d <wt> ci:lint` and `git -C <wt> diff --check` green. Stage `.github/workflows/site.yml`, `README.md`, `openspec/changes/publish-interim-github-pages/design.md` and `openspec/changes/publish-interim-github-pages/tasks.md`, then commit `ci: deploy the site to github pages for now`.
 
 ## 4. Verify, report and archive (orchestration.md section 7, steps 6 and 7)
 

@@ -19,10 +19,18 @@ permissions:
   contents: read
 
 env:
-  # A page without a git date fails the build. Only CI can require it: here
-  # every source is a real clone with full history, which the build image's
-  # git can read (a worktree's .git file points at an unmounted host path).
+  # A page without a git date fails the build. Dates are computed on the host
+  # by versions:prepare (materialise.sh), where git can read every source, so
+  # a real build's container runs no git. CI can require them because every
+  # source is a full clone (fetch-depth: 0), so every page has history. Locally
+  # a page that is not committed yet has no date, so a local build leaves this
+  # off.
   OPM_REQUIRE_DATES: '1'
+  # The interim GitHub Pages site, until the Cloudflare deploy replaces it
+  # (README.md, "GitHub Pages (interim)"). Never name it OPM_BASE_URL here:
+  # every task build of the run, task ci's included, would build for this
+  # path.
+  PAGES_BASE_URL: https://open-platform-model.github.io/opmodel.dev/
 
 jobs:
   build:
@@ -150,6 +158,22 @@ jobs:
           path: opmodel.dev/site/public/build-stamp.json
           if-no-files-found: error
           retention-days: 90
+      - name: Build for GitHub Pages (interim)
+        # The same sources, dates and checks, for the project site's path, into
+        # site/public/ after every step that reads the default build has run.
+        # It runs on pull requests too, so a change that breaks the path fails
+        # there.
+        env:
+          OPM_BASE_URL: ${{ env.PAGES_BASE_URL }}
+        run: |
+          task build
+          echo "GitHub Pages build for $OPM_BASE_URL: $(find site/public -type f | wc -l) files" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the GitHub Pages artifact
+        # Every event, so a pull request proves the tar and upload of the real
+        # Pages tree. Only pages-deploy is limited to main. It expires in a day.
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: opmodel.dev/site/public
 
   browser:
     name: Browser QA
@@ -237,3 +261,47 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
+
+  # The interim GitHub Pages deploy (README.md, "GitHub Pages (interim)"). It
+  # publishes the Pages artifact the build job uploaded; it checks nothing out
+  # and builds nothing, so the token that can publish never runs the build.
+  pages-deploy:
+    name: Deploy to GitHub Pages (interim)
+    needs: [build, browser]
+    # github.repository is set on every event; the schedule payload has no
+    # repository object, so github.event.repository.fork would compare null.
+    if: >-
+      github.repository == 'open-platform-model/opmodel.dev' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:               # this job only; the workflow keeps contents: read
+      pages: write             # create the Pages deployment
+      id-token: write          # deploy-pages proves the run's identity to Pages
+    environment:
+      name: github-pages       # branch policy: main only (owner setting)
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:               # never cancel a deploy; a newer run waits its turn
+      group: pages-deploy
+      cancel-in-progress: false
+    steps:
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: The build targets this Pages site
+        # A custom domain on the Pages site, or a renamed repository, moves the
+        # site to a URL the build did not target: stop before publishing.
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |   # base_url has no trailing slash
+          if [ "${SITE_URL%/}/" != "$PAGES_BASE_URL" ]; then
+            echo "::error::GitHub Pages serves $SITE_URL, but the site was built for $PAGES_BASE_URL (README.md, GitHub Pages (interim))"
+            exit 1
+          fi
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: Summary
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          { echo '### GitHub Pages (interim)'; echo; echo "Deployed $GITHUB_SHA to $PAGE_URL"; } >> "$GITHUB_STEP_SUMMARY"

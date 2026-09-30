@@ -120,16 +120,80 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 | Lint the workflows | `task ci:lint`: actionlint, with its bundled shellcheck, from a digest-pinned image (`task ci:lint -- -verbose` names each file) |
 | Check, build and test the site | `task ci`: `check`, `image`, `build`, `test:site` |
 | The build leaves the tree clean | `task ci`, then `git status --porcelain` |
+| Build for GitHub Pages (interim) | `OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task build`, after the steps above (see GitHub Pages (interim) below) |
 
 - **Clean tree.** CI fails when `task ci` leaves the tree dirty, `.task/` excluded (Task's checksum files; one of them is tracked). Two examples: `go fmt` rewrote unformatted Go (`task check` formats but never fails), or a build step wrote a file that is not gitignored.
 - **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`. Every checkout has full history and tags (`fetch-depth: 0`, which the git dates and the resolver tests of `task versions:test` need) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
 - **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
-- **Summary and artifacts.** The job summary lists the six source SHAs from `site/public/build-stamp.json` and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days.
+- **Summary and artifacts.** The job summary lists the six source SHAs from `site/public/build-stamp.json` and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
 - **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same seven checkouts, since that build reads every source repository), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
 - **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, Go comes from `go.mod`, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
 - **Concurrency.** It is set per job, one group per job (`<workflow>-<ref>-<job>`), and a newer run cancels the older run's job. It is never set at workflow level, which would cancel a deploy job with the rest of a run; and two jobs never share one cancelling group, because they would cancel each other. A deploy job uses its own group, without `cancel-in-progress`. The `opmodel.dev` working directory is a per-job `defaults` entry for the same reason, never workflow-level: a deploy job runs a step before its checkout.
 - **Source repositories.** The nightly run is how a merge in a source repository reaches CI; no source repository dispatches a run. A source page that breaks the lint or a link fails the nightly run and every opmodel.dev pull request until it is fixed in its own repository, never here. GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
 - **Pull request titles.** The `PR Title` workflow (`.github/workflows/pr-title.yml`) fails a pull request whose title is not a Conventional Commit with this repository's types (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`; the "Commit Standards" in `openspec/config.yaml`) and a lower-case subject. The squash merge keeps a single commit's subject, but a pull request with several commits, as every OpenSpec change has, lands on `main` under its title. The workflow runs on `pull_request_target`, which reads the workflow from `main`, so a change to it first applies to the pull request after it merges.
+
+### GitHub Pages (interim)
+
+Until the Cloudflare deploy replaces it, the site is published at https://open-platform-model.github.io/opmodel.dev/. It is public and linkable, but interim: the documentation is not finished, and the address goes away when the site moves to `opmodel.dev`.
+
+**What and when.** The `build` job builds the site a second time for that URL (`PAGES_BASE_URL` in the workflow, passed to `task build` as `OPM_BASE_URL`), from the same checkouts, dates and checks, and uploads it as the `github-pages` artifact on every run, pull requests included. The `pages-deploy` job publishes that artifact on pushes to `main`, the nightly run and manual runs of `main`, and only after `build` and `browser` pass (`needs: [build, browser]`). It never runs on a pull request, and the `github-pages` environment allows only `main`. Every HTML page of this build carries `<meta name="robots" content="noindex, nofollow">`, because its host is not `opmodel.dev` (`params.opm.indexedHost`).
+
+**How this host differs** from the Cloudflare plan:
+
+- It ignores `_redirects`, so there are no 302s: `/` and `/latest/` are meta-refresh pages (the root `index.html` and the `/latest/` stubs), and `/latest/` works only for HTML pages.
+- It serves only the root `404.html`, for a missing path at any depth.
+- It sends no custom headers, so there is no `X-Robots-Tag`, and a `robots.txt` under a path is ignored.
+
+So only the HTML pages carry `noindex`. The Markdown twins, `llms.txt`, `sitemap.xml` and `build-stamp.json` cannot; they stay out of search results only because nothing indexable links to them.
+
+**The owner's setting.** Pages must be on with source GitHub Actions: Settings > Pages > Build and deployment > Source: GitHub Actions (repository admin), or:
+
+```bash
+gh api -X POST repos/open-platform-model/opmodel.dev/pages -f build_type=workflow
+```
+
+On a 422, add `-f 'source[branch]=main' -f 'source[path]=/'`. If the site exists with another source, use `gh api -X PUT repos/open-platform-model/opmodel.dev/pages -f build_type=workflow`. Check both settings:
+
+```bash
+gh api repos/open-platform-model/opmodel.dev/pages --jq .build_type
+# workflow
+gh api repos/open-platform-model/opmodel.dev/environments/github-pages/deployment-branch-policies --jq '[.branch_policies[].name]'
+# ["main"]
+```
+
+A deploy while Pages is off fails at `configure-pages`, and nothing is published; once Pages is on, `gh workflow run Site --ref main` runs it again. The job also stops before publishing when Pages serves another URL than `PAGES_BASE_URL` (a custom domain on the Pages site, a renamed repository). A failed deploy leaves the previous one serving.
+
+**Checking a deploy.** Each command prints what follows it:
+
+```bash
+curl -sS https://open-platform-model.github.io/opmodel.dev/ | grep -o 'url=[^"]*'
+# url=/opmodel.dev/latest/
+curl -sS https://open-platform-model.github.io/opmodel.dev/latest/ | grep -o 'url=[^"]*'
+# url=/opmodel.dev/v1.0/
+curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/opmodel.dev/v1.0/docs/
+# 200
+curl -sS https://open-platform-model.github.io/opmodel.dev/v1.0/docs/ | grep -c 'noindex, nofollow'
+# 1
+curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/opmodel.dev/v1.0/no-such-page/
+# 404
+curl -sS https://open-platform-model.github.io/opmodel.dev/v1.0/no-such-page/ | grep -o 'href=[^ >]*>Go to the docs'
+# href=/opmodel.dev/v1.0/docs/>Go to the docs
+curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/opmodel.dev/fonts/Geist-Variable.woff2
+# 200
+curl -sS https://open-platform-model.github.io/opmodel.dev/build-stamp.json
+# the six source SHAs of the run's job summary
+```
+
+Search runs only in a browser, so check it once by hand: on https://open-platform-model.github.io/opmodel.dev/v1.0/docs/, search for `quickstart`; every result opens a page under `/opmodel.dev/v1.0/`.
+
+**Retirement.** The Cloudflare change removes the `pages-deploy` job, the two GitHub Pages steps of `build`, `PAGES_BASE_URL`, this subsection and its row in the table above. `OPM_BASE_URL`, the base-path checks and the `noindex` rule stay. After the first Cloudflare deploy is verified, the owner turns Pages off and deletes its environment (repository settings, the owner's actions; Settings > Pages works too):
+
+```bash
+gh api -X DELETE repos/open-platform-model/opmodel.dev/pages
+gh api -X DELETE repos/open-platform-model/opmodel.dev/environments/github-pages
+curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/opmodel.dev/
+# 404
+```
 
 ## Site versions
 
