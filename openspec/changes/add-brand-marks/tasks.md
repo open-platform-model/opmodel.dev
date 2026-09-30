@@ -47,8 +47,8 @@ Throwaway renders (tasks 1.4 and 2.8) run in the QA image with the flags from 1.
 
 ## 2. The favicon set and the Open Graph image
 
-- [ ] 2.1 Write `site/static/favicon.svg` per design.md Decision 2: the chosen path data in `#fafafa` on a `#0a0a0a` rounded tile. Do not add `favicon-dark.svg`. Verify: the hygiene grep and the byte limit of 1.5 pass on it.
-- [ ] 2.2 Add `site/tools/favicons.py` per Decisions 2 and 5, plus the task `brand:favicons` in `Taskfile.yml`. The task builds the QA image the way `task qa` does and runs the tool offline with the flags from 1.2.
+- [x] 2.1 Write `site/static/favicon.svg` per design.md Decision 2: the chosen path data in `#fafafa` on a `#0a0a0a` rounded tile. Do not add `favicon-dark.svg`. Verify: the hygiene grep and the byte limit of 1.5 pass on it.
+- [x] 2.2 Add `site/tools/favicons.py` per Decisions 2 and 5, plus the task `brand:favicons` in `Taskfile.yml`. The task builds the QA image the way `task qa` does and runs the tool offline with the flags from 1.2.
   - The tool renders `favicon-16x16.png` and `favicon-32x32.png` from `favicon.svg`.
   - It renders `apple-touch-icon.png` (180) and `android-chrome-192x192.png` / `-512x512.png` (opaque, full-bleed) from `images/opm-mark-dark.svg` on the tile colour.
   - It packs `favicon.ico` from 16, 32 and 48 px PNG frames with `struct`.
@@ -57,23 +57,23 @@ Throwaway renders (tasks 1.4 and 2.8) run in the QA image with the flags from 1.
   - `file` reports each PNG at its exact size, and `favicon.ico` as an icon resource with 3 icons;
   - `ls -l` shows every output owned by your user;
   - `git -C <wt> status --short --untracked-files=all` lists exactly these paths: this change's `tasks.md` (ticked boxes), `Taskfile.yml`, `site/tools/favicons.py`, and under `site/static/` the files `favicon.svg`, `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png` and `android-chrome-512x512.png`.
-- [ ] 2.3 Write `site/static/site.webmanifest` as design.md Decision 7 shows. Verify: it parses as JSON in the QA image (`python3 -m json.tool`).
-- [ ] 2.4 Add `site/tools/og-card.html` and `site/tools/og-card.py` per Decision 6: adapted from the prototype (read-only), or edited if A ported them. Add the task `brand:og`, which runs like `brand:favicons`.
+- [x] 2.3 Write `site/static/site.webmanifest` as design.md Decision 7 shows. Verify: it parses as JSON in the QA image (`python3 -m json.tool`).
+- [x] 2.4 Add `site/tools/og-card.html` and `site/tools/og-card.py` per Decision 6: adapted from the prototype (read-only), or edited if A ported them. Add the task `brand:og`, which runs like `brand:favicons`.
   - The card reads `title` and `params.description` from `site/config/_default/hugo.toml` with `tomllib`, and inlines `images/opm-mark-dark.svg`.
   - It has no gradients and no version label.
   - If `params.description` is missing (from 1.2), add it to `hugo.toml` first.
 
   Run `task -d <wt> brand:og`. Verify: `file site/static/images/og-default.png` reports 1200 x 630; read the PNG.
-- [ ] 2.5 Set `params.images` per Decision 6, using the form 1.3 selected. If 1.3 could not check `og:image`, start with the root-relative form and switch to the absolute URL if either check below misses. Verify after a build, in `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`:
+- [x] 2.5 Set `params.images` per Decision 6, using the form 1.3 selected. If 1.3 could not check `og:image`, start with the root-relative form and switch to the absolute URL if either check below misses. Verify after a build, in `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`:
   - `og:image` and `twitter:image` each name the card and each resolves;
   - `site/public/images/og-default.png` exists.
-- [ ] 2.6 Head asset check, over the same two pages. Each of these resolves, and `cmp` shows the file byte-identical to its `site/static/` source, which proves no Hextra copy publishes at that path:
+- [x] 2.6 Head asset check, over the same two pages. Each of these resolves, and `cmp` shows the file byte-identical to its `site/static/` source, which proves no Hextra copy publishes at that path:
   - every `rel="icon"`, `rel="apple-touch-icon"` and `rel="manifest"` href;
   - both navbar logo `<img src>` values;
   - the `og:image` and `twitter:image` URLs.
 
   Verify also that `site/public/site.webmanifest` names "Open Platform Model".
-- [ ] 2.7 Durable decisions.
+- [x] 2.7 Durable decisions.
   - Add a `## Brand marks` heading to `README.md` that carries every README entry of design.md "Durable decisions":
     - the drawn sources, and the generated files with their two tasks;
     - the mark brief;
@@ -83,13 +83,13 @@ Throwaway renders (tasks 1.4 and 2.8) run in the QA image with the flags from 1.
   - In `AGENTS.md`, add `task brand:favicons` and `task brand:og` under Build And Dev Commands, each naming the files it regenerates and saying they are never hand-edited. If the Repository Layout tree lists `site/` subdirectories, add `site/tools/` to it.
 
   Verify: each README bullet of that section appears under the heading, and `grep -n 'brand:' <wt>/AGENTS.md` shows both tasks.
-- [ ] 2.8 Build the owner's review sheet under `site/.shots/brand/`, as the note above the sections says, then copy it to your scratch directory:
+- [x] 2.8 Build the owner's review sheet under `site/.shots/brand/`, as the note above the sections says, then copy it to your scratch directory:
   - the favicon at 16 and 32 px on a light and a dark tab-strip background;
   - the 180, 192 and 512 px icons on a checkerboard, to prove they are opaque;
   - `og-default.png` at full size and at 600x315.
 
   Verify: read the scratch copy, and `git -C <wt> status --short --untracked-files=all` lists nothing from the render. Keep its scratch path and the contact sheet's from 1.4 for the report.
-- [ ] 2.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green (PNGs read), then commit `feat(site): add the favicon set and the open graph image`
+- [x] 2.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green (PNGs read), then commit `feat(site): add the favicon set and the open graph image`
 
 ## After the last section (orchestration.md section 7, steps 6 to 8)
 

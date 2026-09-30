@@ -80,6 +80,8 @@ android-chrome-192/512       same composition as apple-touch; opaque
 
 Opaque squares: iOS fills transparent pixels with black and applies its own mask, so these icons carry no rounded corners and no alpha.
 
+**As built (section 2).** "About 70%" and "about 60%" measure the mark's drawn extent (20 of its 24 units), not its viewBox. `favicon.svg` is a `rx="5"` tile with the mark in `<g transform="translate(1.92 1.92) scale(.84)">`, which puts the extent at 70% of the tile and keeps the path data byte-identical to the mark files. The opaque icons centre `opm-mark-dark.svg` at a box of 0.72 of the icon, so its extent is 60%. Chromium writes the transparent PNGs as RGBA (`omit_background`) and the opaque ones as RGB.
+
 ### 3. The mark: one path set, two inks, shown through params
 
 `opm-mark.svg` (`#0a0a0a`) and `opm-mark-dark.svg` (`#fafafa`) carry identical path data. An `<img>` SVG cannot inherit `currentColor` from the page, so Hextra's logo contract needs two files.
@@ -153,7 +155,7 @@ Starting values, for the owner's review:
 
 - **Text.** The title and description come from `site/config/_default/hugo.toml` (`title`, `params.description`), read with Python's `tomllib`, so the card cannot drift from the site's own text.
 - **Mark.** Inlined from `site/static/images/opm-mark-dark.svg`.
-- **Fonts.** Geist and Geist Mono from `/work/repo/site/static/fonts/`.
+- **Fonts.** Geist and Geist Mono from `/work/repo/site/static/fonts/`. As built, `og-card.py` embeds them as `data:` URIs and loads the filled card with `set_content`, so no filled copy is written to disk and no `file://` font rule applies. It fails if either font did not load.
 - **Colours.** The neutral skin's: background `#0a0a0a`, text `#fafafa`, secondary text `#a3a3a3`, footer `#737373`. No gradients.
 - **Layout.** The mark and "Documentation" at top left, the title, the description, and `opmodel.dev` in Geist Mono at the foot.
 - **No version label.** One image serves every version and would go stale.

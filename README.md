@@ -79,6 +79,7 @@ opmodel.dev/
 │   ├── static/                 # Fonts, favicon, images
 │   ├── themes/hextra/          # Vendored Hextra v0.13.0 (runtime files only; hextra.COMMIT)
 │   ├── scripts/                # Build, checks, lint, dev server, vendoring, host-side runner
+│   ├── tools/                  # Brand rasters: favicons.py, og-card.{py,html} (task brand:*)
 │   └── tests/                  # Fixture workspace, lint and check cases, dialect tree, browser QA
 ├── Taskfile.yml
 └── README.md
@@ -98,6 +99,8 @@ task ci                # check, image, build, test:site
 task check             # Go fmt, vet and test, and openspec validate
 task image             # Build the site's image if its tag is missing
 task qa:image          # Build the QA image if its tag is missing
+task brand:favicons    # Regenerate the favicon PNGs and favicon.ico from the drawn SVGs
+task brand:og          # Regenerate the Open Graph card, site/static/images/og-default.png
 task versions:prepare  # Host-side version preparation (nothing to do for one version)
 task clean             # Remove generated files
 task build:docgen      # Build the docgen tool
@@ -138,6 +141,15 @@ A figure is inline SVG drawn by hand in the site engine.
 4. Run `task shots` and read the PNGs: light, dark, both theme and OS mismatches, and phone width. The run fails when any figure text drops below 9 px on a phone.
 
 See the main [OPM documentation](https://github.com/open-platform-model) for general contribution guidelines.
+
+## Brand marks
+
+- **Drawn sources.** Three hand-written SVGs: `site/static/images/opm-mark.svg` (the mark in `#0a0a0a`, for the light theme), `site/static/images/opm-mark-dark.svg` (the same path data in `#fafafa`, for the dark theme) and `site/static/favicon.svg` (the same path data in `#fafafa` on a `#0a0a0a` rounded tile). A redraw edits all three.
+- **Generated files.** Every raster is generated and never hand-edited. `task brand:favicons` writes `site/static/favicon-16x16.png`, `favicon-32x32.png` and `favicon.ico` (16, 32 and 48 px frames) from `favicon.svg`, and `apple-touch-icon.png`, `android-chrome-192x192.png` and `android-chrome-512x512.png` (opaque, full-bleed) from `opm-mark-dark.svg`. `task brand:og` writes `site/static/images/og-default.png`, the 1200x630 Open Graph card, from `site/tools/og-card.html`. Both run `site/tools/*.py` in the QA image with no network; the site build never runs them, and their output is committed.
+- **The mark brief.** Original, drawn from simple geometry for OPM; not traced or adapted from an icon set, and not Hextra's hexagon, the Kubernetes wheel or the CUE logo. One ink at full opacity: shapes are separated by gaps, never by tints or opacity. A square `viewBox="0 0 24 24"` with no stroke, gap or feature narrower than 2.5 units, filled shapes preferred. Legible at 16 px on the tile, 24 px in the navbar, 64 and 512 px, in both inks. Only `<svg>`, `<path>`, `<rect>`, `<circle>`, `<polygon>` and `<g>`, one `xmlns`, no `<text>`, `<style>`, `<script>`, `href`, comments, `xlink` or editor namespaces, and under 1 KB.
+- **Favicons replace the theme's by name.** Hextra's `favicons.html` links `favicon.ico`, `favicon.svg`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png` and `site.webmanifest`, and its manifest names the two `android-chrome-*.png` icons. Same-named files in `site/static/` win over the theme's, so no theme file is overridden. There is deliberately no `favicon-dark.svg`: the tile carries its own contrast on light and dark tab strips, and without that file Hextra's favicon swap stays off. A Hextra re-pin that changes this set is not caught by the drift guard; check it against `favicons.html`.
+- **The wordmark is text.** The navbar title is the live site title, typeset in `site/assets/css/opm/brand.css` (Geist, weight 600, -0.01em tracking) through the hooks `opm-brand`, `opm-title-long` and `opm-title-short` in `site/layouts/_partials/navbar-title.html`, never through Hextra's `hx:` classes. The mark beside it is set by `params.navbar.logo` in `site/config/_default/hugo.toml`.
+- **Keep the card current.** Rerun `task brand:og` when `title` or `params.description` in `hugo.toml` changes, and both tasks after a redraw.
 
 ## License
 
