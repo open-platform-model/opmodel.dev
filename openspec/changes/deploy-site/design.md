@@ -4,7 +4,15 @@ This change starts after E (`add-site-ci`) merges. By then, `main` holds:
 - A's Hugo build (`orchestration.md` section 6). `task build` writes `site/public/`, including `_redirects` (`/ /latest/ 302`, `/latest/* /v1.0/:splat 302`), a root `index.html` refresh to `/latest/`, the `/latest/` meta-refresh stubs, a root `404.html`, a per-version `404.html`, `robots.txt` and `build-stamp.json`. Static files publish once at the root (trap 9). `baseURL` is `https://opmodel.dev/` (trap 7).
 - E's `.github/workflows/site.yml` (workflow `Site`). It has jobs `build` and `browser`, a concurrency group per job and none at workflow level, seven `path:` checkouts, and an artifact `site-public` holding the whole `site/public` tree. It also has `task ci:lint` (actionlint by digest). E's design names these as its hand-off to F.
 
-Nothing is hosted today. `opmodel.dev` is parked at Namecheap: its apex has no TLS, and `www` serves a parking page (checked 2026-09-30). The repo has no GitHub environment.
+Nothing is hosted today. `opmodel.dev` is parked at Namecheap: its apex has no TLS, and `www` serves a parking page (checked 2026-09-30). The repo has no GitHub environment. (Re-gate, 2026-09-30: the owner has since enabled GitHub Pages, and the environment `github-pages` exists; see below.)
+
+**Re-gate, 2026-09-30.** The owner put the site on GitHub Pages for now and moved Cloudflare to after more of the documentation is written. The change `publish-interim-github-pages` lands before this one, so `main` also holds:
+- `OPM_BASE_URL`, a build input that is unset in every build this change deploys, the base-path handling in the build and its checks, and a `test:site` case for it;
+- a robots `noindex` meta tag on every page of a build whose base URL host is not `params.opm.indexedHost` (`opmodel.dev`);
+- in `site.yml`, the workflow env `PAGES_BASE_URL`, two steps at the end of `build` (a second `task build` for the Pages URL, then `upload-pages-artifact`), and the job `pages-deploy` in the environment `github-pages`;
+- in `README.md`, `### GitHub Pages (interim)` under `## CI`.
+
+Section 3 retires the deploy pieces (decision 11). The `site-public` artifact this change deploys is uploaded before the Pages pass rebuilds `site/public/`, so it holds the `https://opmodel.dev/` build.
 
 A's plan leaves `TODO.md` item 3.2 (Deployment) to this change. It still lists three options (A GitHub Pages, B Cloudflare Pages, C Netlify) and ends with `**Decision**: TBD based on infrastructure preferences.`
 
@@ -266,7 +274,27 @@ It sits under `## Deploy`, as `### Go live`, in owner order:
 - **Owner prerequisites:** no Cloudflare "project" exists for Workers, but the account's `workers.dev` subdomain must be registered. The `production` environment must have no required reviewers.
 - **Fork guard:** `github.repository == 'open-platform-model/opmodel.dev'`, not `github.event.repository.fork == false` (decision 8).
 - **`TODO.md` item 3.2** joins the Touches list, because A's plan hands it to this change.
-- **Two implementation sections, as planned, plus a protocol section.** `tasks.md` section 3 follows the worker protocol (verify, report, archive) and builds nothing. The report counts only the implementation sections: `sections: 2/2`.
+- **Three implementation sections, plus a protocol section.** The plan had two; section 3, the retirement of the interim GitHub Pages deploy, came with the 2026-09-30 re-gate (decision 11). `tasks.md` section 4 follows the worker protocol (verify, report, archive) and builds nothing. The report counts only the implementation sections: `sections: 3/3`.
+
+### 11. The interim GitHub Pages deploy retires here, in its own section
+
+Section 3 removes what `publish-interim-github-pages` added for the deploy, and nothing else:
+
+```text
+.github/workflows/site.yml   - env PAGES_BASE_URL (and its comment)
+                             - build: "Build for GitHub Pages (interim)" and the upload-pages-artifact step
+                             - job pages-deploy
+README.md                    - ## CI: ### GitHub Pages (interim), its table row, its "Summary and artifacts" sentence
+kept                         OPM_BASE_URL and the base-path handling, the subpath test:site case,
+                             the indexed-host noindex rule, hugo.toml baseURL = 'https://opmodel.dev/' (never changed)
+```
+
+- **The deploy is the `https://opmodel.dev/` build.** `deploy` ships `site-public`, which `build` uploads before the Pages pass. No step of this change sets `OPM_BASE_URL`, so nothing needs to switch "back".
+- **The `noindex` rule stays.** It keys on the host: `opmodel.dev` is indexed, and the `workers.dev` preview is built for `https://opmodel.dev/`, so its pages carry no tag. The `_headers` rule of decision 4 gives the preview its `noindex`. The rule adds nothing to this change's output, and removing it would take the indexing guard away from any future host.
+- **The base-path support stays.** It is tested and costs nothing while unset. Removing it would reopen the four faults the interim change fixed.
+- **Its own section and commit, after the README section.** Sections 1 and 2 leave both deploys in the workflow, and `main` stays releasable at every boundary. As its own commit, the retirement can move into the go-live change if the owner wants the github.io copy kept current until the DNS go (proposal, "For the owner and the supervisor").
+- **Owner steps after the merge**, repo settings and never a task: once the first Cloudflare deploy is verified, the owner turns Pages off and deletes the `github-pages` environment, and the supervisor confirms that the github.io URL returns 404. The interim README runbook is gone by then, so the report carries the commands (task 4.2).
+- **F's checks never run against Pages.** The smoke test, `check-deploy.sh` and the first-deploy curl apply to Cloudflare only. Pages serves no 302s and no headers.
 
 ## Research & Decisions
 
@@ -283,8 +311,8 @@ It sits under `## Deploy`, as `### Go live`, in owner order:
 **Rationale**: `github.event.repository` is absent on `schedule`. The artifact is the checked tree, and `site/public` has no hidden file.
 
 ### Spike findings (section 1, filled in at apply time)
-**Context**: Seven facts can be read only from A's and E's merged `main`, or from a running wrangler. They are numbered "finding 1" to "finding 7", never S1 to S7: in this change set, S1-S6 are the source-repo changes.
-**Explored**: tasks 1.1 to 1.5, and 1.9.
+**Context**: Eight facts can be read only from the merged `main` (A, E and `publish-interim-github-pages`), or from a running wrangler. They are numbered "finding 1" to "finding 8", never S1 to S8: in this change set, S1-S6 are the source-repo changes.
+**Explored**: tasks 1.1 to 1.5, 1.9 and 3.1.
 **Decision**: Record here:
 - Finding 1: E's merged `site.yml`: job ids, the artifact name and whether it holds every file of `site/public`, the concurrency placement, the pins and the Task version.
 - Finding 2: in a clone of opmodel.dev `main` with no sibling repos, whether A's Taskfile compiles with its `sh:` vars evaluated (`task --dry check`; `--list` evaluates none), task 1.2. Then whether this branch's `deploy:dry-run`, `deploy:smoke` and `deploy:publish` behave there as in the worktree, with the artifact copied in, task 1.9.
@@ -293,6 +321,7 @@ It sits under `## Deploy`, as `### Go live`, in owner order:
 - Finding 5: whether `wrangler dev` applies `_redirects`, `_headers` and `not_found_handling` as decision 6 expects, including the `workers.dev` host rule. Also whether any wrangler call writes `.wrangler/` beside its config on the read-only mount, and so needs decision 6's staging fallback.
 - Finding 6: the fingerprinted paths in A's `site/public`, the final immutable rules, the hash pattern, and the file count against 20,000.
 - Finding 7: whether `task build` stays green with `_headers` in `site/static/`: the stray-file, planning-comment and supply-chain checks, and `_headers` at the root of `site/public`.
+- Finding 8: the interim GitHub Pages pieces on `main`, as `publish-interim-github-pages` left them, before section 3 removes them (task 3.1).
 **Rationale**: (record why each decision above held or changed)
 
 ## Interface (orchestration.md section 6)
@@ -306,6 +335,7 @@ It sits under `## Deploy`, as `### Go live`, in owner order:
   - checks 7 (stray files, per version), 10 (planning comments, by extension) and 11 (supply chain, HTML, CSS and JS), which must stay green with `_headers` published;
   - E's jobs `build` and `browser`, its artifact `site-public`, its per-job concurrency rule and its pins.
 - **Changes:** nothing A or E defines.
+- **Removes:** the interim deploy of `publish-interim-github-pages`: the job `pages-deploy`, its two `build` steps, `PAGES_BASE_URL` and its README subsection (decision 11). It keeps that change's `OPM_BASE_URL`, base-path handling and indexed-host rule, and relies on `OPM_BASE_URL` being unset in the build that uploads `site-public`.
 
 ## Risks / Trade-offs
 
@@ -324,6 +354,7 @@ It sits under `## Deploy`, as `### Go live`, in owner order:
 - [`upload-artifact` skips hidden files] -> `site/public` has none today. If one ever appears, E's upload step needs `include-hidden-files: true`, and `check-deploy.sh`'s root-file list catches the loss of the files the routing needs.
 - [Builds against stale sources] (trap 25) -> Local gates run with `OPM_SRC_WORKTREE=site-src`.
 - [Old Astro tasks] (trap 35) -> This change starts after A's cutover. Its tasks have new names.
+- [The github.io copy stops updating at the merge and stays public until the owner turns Pages off] -> The report hands the owner the commands (task 4.2), and the supervisor confirms the 404. If the owner wants it current until go-live, section 3 moves to the go-live change (decision 11).
 
 ## Durable decisions
 
@@ -338,6 +369,7 @@ All land in `README.md`, `## Deploy`, in section 2:
 - **The go-live runbook.**
 - **`TODO.md` item 3.2** names the chosen setup (Workers static assets, deployed from the `Site` workflow) and keeps open checkboxes only for the owner's go-live steps, pointing at the runbook. Section 2.
 - **Spike findings** stay with the change.
+- **The interim deploy's retirement** stays with the change. Section 3 only removes text; the base-path and indexing rules that `publish-interim-github-pages` put in `AGENTS.md` stay true and need no edit.
 
 ## Open Questions
 

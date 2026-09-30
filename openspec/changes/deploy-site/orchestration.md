@@ -58,7 +58,8 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 | M | opmodel.dev | `add-brand-marks` | OpenSpec `docs-site-change` | `feat/add-brand-marks` | 2 | A merged | verify green; after E; and the owner approved the marks | supervisor | `task check`; `task ci`; `task qa` |
 | B | opmodel.dev | `version-site-from-tags` | OpenSpec `docs-site-change` | `feat/version-site-from-tags` | 2 | A merged | verify green; after E | supervisor | `task check`; `task ci`; `task qa` |
 | I1b | workspace root | `describe-hugo-site` | plain PR | `docs/describe-hugo-site` | 2 | A merged | checklist verify green | supervisor | `git diff --check`; checklist |
-| F | opmodel.dev | `deploy-site` | OpenSpec `docs-site-change` | `ci/deploy-site` | 3 | E merged, and the owner prerequisites exist | verify green and reviewed; after the merge, the supervisor verifies the first deploy by curl | **owner** | `task check`; `task ci`; `task ci:lint`; a secret-free deploy dry run if the product has one. Nothing can deploy before the merge |
+| G | opmodel.dev | `publish-interim-github-pages` | OpenSpec `docs-site-change` | `ci/publish-interim-github-pages` | 3 | owner decision 2026-09-30 (GitHub Pages now, Cloudflare later); A, B, C, D, E, M merged; Pages enabled with source GitHub Actions (done) | verify green; the Site workflow green on the PR; the owner accepts publishing every page as it is (0018:OQ15), recorded in the PR body; after the merge, the supervisor verifies the first Pages deploy by curl | **owner** | `task check`; `OPM_SRC_WORKTREE=site-src task ci`; `task qa`; `task ci:lint` |
+| F | opmodel.dev | `deploy-site` | OpenSpec `docs-site-change` | `ci/deploy-site` | 4 | G merged or dropped, the owner's go for Cloudflare (after more documentation is written), and the owner prerequisites exist | verify green and reviewed; after the merge, the supervisor verifies the first deploy by curl | **owner** | `task check`; `task ci`; `task ci:lint`; a secret-free deploy dry run if the product has one. Nothing can deploy before the merge |
 
 **What each change delivers, in one line.**
 - W0: the OpenSpec workspace, schema, skills and `openspec:check` in opmodel.dev.
@@ -72,7 +73,8 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 - M: wordmark, mark, favicons and OG image.
 - B: manifest-driven, tag-based versions.
 - I1b: the root `AGENTS.md` opmodel.dev row.
-- F: Cloudflare deploy; its first deploy runs, and is verified, after the owner merges F.
+- G: an interim GitHub Pages deploy at https://open-platform-model.github.io/opmodel.dev/, with a base-path-safe build and `noindex` off `opmodel.dev`.
+- F: Cloudflare deploy; it retires G's Pages job. Its first deploy runs, and is verified, after the owner merges F.
 
 **Hand-offs.**
 - I1a -> S: the rules S adopts.
@@ -80,6 +82,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 - S1-S6 -> A: sources in the dialect.
 - A -> everything in wave 2: section 6.
 - E -> F: `site.yml`, into which F adds the deploy job, and `task ci:lint`.
+- G -> F: `OPM_BASE_URL` and the base-path handling (kept), and the `pages-deploy` job, the Pages build steps, `PAGES_BASE_URL` and the README "GitHub Pages (interim)" subsection (F removes them).
 
 **Merge order.**
 1. W0.
@@ -88,8 +91,9 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 4. A (owner).
 5. E.
 6. B, C, D and M in any order; I1b.
-7. F (owner). The supervisor then verifies the first deploy.
-8. The DNS cutover is the owner's action, on the owner's go (O2). The supervisor recommends having C, D, M and F merged first. B is not on the go-live path.
+7. G (owner), after the owner accepts 0018:OQ15 publication. The supervisor then verifies the first Pages deploy.
+8. F (owner), on the owner's Cloudflare go. The supervisor then verifies the first deploy; the owner turns Pages off after it.
+9. The DNS cutover is the owner's action, on the owner's go (O2). The supervisor recommends having C, D, M and F merged first. B is not on the go-live path.
 
 **Known consequences.**
 - Once S1-S6 merge, the old Astro build on opmodel.dev `main` renders degraded or fails. For example, Astro's glob loader ignores `_index.md`. This is accepted; the site is not live.
@@ -446,6 +450,7 @@ A may refine names only by reporting them under `deviations` and getting the sup
 | `OPM_BUILD_REFS` | `repo=sha ...`, resolved on the host by the Taskfile (`git rev-parse HEAD` works in worktrees there) | set by the Taskfile; never set by hand |
 | `OPM_VERSIONS` | Internal seam: `name=root ...`, where each root holds `<repo>/docs/site`. B's resolver feeds it. `run-in-image.sh` passes it into the container only when the caller set it. After B merges, a fixture build (a source root that is not its own git top level) must set `OPM_VERSIONS=v1.0=/src` explicitly | `v1.0=/src` |
 | `OPM_VERSIONS_MANIFEST` | Added by B: path to an alternative versions manifest (tests) | `site/versions.conf` (B) |
+| `OPM_BASE_URL` | Added by G: the site's base URL, which may carry a path (for example `https://open-platform-model.github.io/opmodel.dev/`). Passed into the container only by `run-in-image.sh build`; `qa`, `shots` and `test-site.sh` always build the default. Unset means `hugo.toml`'s `https://opmodel.dev/` | unset |
 | `SITE_DIR` | Container path of the site tree the scripts act on; `test:site` points it at per-case copies under `site/.check/tests/<case>/site/` | `/work/repo/site` |
 
 **Container paths.** The opmodel.dev worktree is mounted at `/work/repo` (read-write). Each source root is mounted read-only at `/src/<repo>`, with no `:z`.
@@ -508,6 +513,8 @@ A may refine names only by reporting them under `deviations` and getting the sup
 11. Supply chain: no third-party or CDN URL in the output.
 12. The redirect files are present.
 13. Git dates, when `OPM_REQUIRE_DATES=1`.
+
+Added by G: the root `index.html` refreshes to `${BASE_PATH}/latest/`; the link crawl strips the base path, fails any root-relative URL outside it, and reads CSS `url()`; check 11 allows the build's own base URL as a literal prefix; every page carries `<meta name="robots" content="noindex, nofollow">` when the base URL's host is not `params.opm.indexedHost` (`opmodel.dev`), and a missing param fails the build; `params.images` has no leading slash.
 
 ## 7. Worker protocol
 
@@ -624,7 +631,9 @@ Report in the `opsx:verify` shape: Summary, CRITICAL, WARNING, SUGGESTION, Final
 
 **Page the human (owner) for:**
 - nothing before wave 1: the round-1 items were settled on 2026-09-30 (dialect extras: supervisor ruling in section 4; F pre-merge preview: not planned). The supervisor TELLS the owner, without asking, that the S4-S6 merges open or grow release PRs in cli, library and opm-operator, and that `v1.0` stays on `main` until every repo has a tag cut after its S merge (core and catalog_opm hide `docs` commits, so they need another releasable commit or a `Release-As:` footer);
-- reviewing and merging A and F;
+- reviewing and merging A, G and F; before G merges, the owner's explicit acceptance of publishing every page as it is (0018:OQ15);
+- the result of G's first Pages deploy, verified by the supervisor by curl;
+- turning GitHub Pages off and deleting the `github-pages` environment after F's first Cloudflare deploy is verified;
 - the Cloudflare account and project, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and the `production` environment, before F section 1;
 - the result of F's first deploy on the preview host;
 - the DNS step (Namecheap zone export, nameserver move, custom-domain binding, go-live), on the owner's go; the supervisor recommends having C, D, M and F merged first;
