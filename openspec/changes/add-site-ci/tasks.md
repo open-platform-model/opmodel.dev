@@ -67,13 +67,13 @@ Section 2 also runs `OPM_SRC_WORKTREE=site-src task -d <wt> qa`, the command its
 
 ## 3. Pull request titles (CI, README)
 
-- [ ] 3.1 Write `<wt>/.github/workflows/pr-title.yml` from cli's copy, per design.md decision 10. Read it with `git -C WS/cli fetch origin`, then `git -C WS/cli show origin/main:.github/workflows/pr-title.yml`.
+- [x] 3.1 Write `<wt>/.github/workflows/pr-title.yml` from cli's copy, per design.md decision 10. Read it with `git -C WS/cli fetch origin`, then `git -C WS/cli show origin/main:.github/workflows/pr-title.yml`.
   - Keep: `pull_request_target` with its four activity types, `permissions: pull-requests: read`, the action's SHA pin, `requireScope: false`, and the lowercase subject pattern with its error text.
   - Set `types` to `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`.
   - Rewrite the header comment for this repo: the squash title is `COMMIT_OR_PR_TITLE`, and there is no release-please.
   - Verify: the `types` list equals the types under "Commit Standards" in `<wt>/openspec/config.yaml`, and `task -d <wt> ci:lint -- -verbose` is green and names both workflow files.
-- [ ] 3.2 Add to `README.md` `## CI`: PR titles must be Conventional Commits with this repo's types, because a pull request with several commits lands on `main` under its title. Say also that the check first runs on the pull request after this change merges, because `pull_request_target` reads `main`'s workflow.
-- [ ] 3.3 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `task -d <wt> ci:lint` green. Then commit `ci: check pull request titles`.
+- [x] 3.2 Add to `README.md` `## CI`: PR titles must be Conventional Commits with this repo's types, because a pull request with several commits lands on `main` under its title. Say also that the check first runs on the pull request after this change merges, because `pull_request_target` reads `main`'s workflow.
+- [x] 3.3 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `task -d <wt> ci:lint` green. Then commit `ci: check pull request titles`.
 
 ## After section 3 (orchestration.md section 7, steps 6 to 8; not tasks)
 
