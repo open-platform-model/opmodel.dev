@@ -1,0 +1,132 @@
+name: docs-site-change
+version: 1
+description: Docs site change workflow - proposal -> design -> tasks (no specs artifact)
+# Why a project-local schema: this repo's behaviour is the site it builds. The
+# built site and the checks that run on it (the source lint, the page-set,
+# link and supply-chain checks, the browser QA) are the contract. A prose spec
+# would be a copy no gate keeps honest. This schema therefore has NO specs
+# artifact. `openspec validate` still asks for spec deltas regardless of
+# schema, so every change's .openspec.yaml sets `skip_specs: true`; the
+# openspec-new-change and openspec-propose skills write that marker at
+# creation time.
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Why the change is needed and what it changes, with the config or tree before and after
+    template: proposal.md
+    instruction: |
+      Create the proposal document that establishes WHY this change is needed.
+
+      Sections:
+      - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
+      - **What Changes**: Bullet list of changes. Be specific about site config, layouts and
+        overrides, build scripts, checks, Taskfile targets, the build image, or removals.
+        Mark breaking changes with **BREAKING**: a changed URL, a removed page or version, a
+        dialect rule that rejects source pages it used to accept.
+      - **Before / After**: The config keys or directory tree the change touches, as a
+        snippet or tree, not prose. For something new, "Before" is "none". This block is the
+        review surface: it carries what a spec would have carried, so a reviewer sees the
+        intended result before any code exists. Keep it to what changes.
+      - **Impact**: The files and build inputs reached; every source repo whose `docs/site`
+        pages, front matter or links the change forces to change, and what each has to do
+        (a follow-up in that repo, never an edit here); the published URLs or versions
+        affected; and `Depends on:` for any change or merge this one waits for.
+      - **Enhancement**: When the change implements decisions from an entry in the sibling
+        `enhancements/` repo, cite the entry and decision numbers (`0018:D8`) instead of
+        restating the design, and create `enhancement.yaml` in this change directory now.
+
+      This schema has no specs artifact. Do not add a Capabilities section and do not
+      create a `specs/` directory. The change's `.openspec.yaml` carries
+      `skip_specs: true`; if it is missing, add it before continuing.
+
+      Keep it concise (1-2 pages). Focus on the "why" not the "how" -
+      implementation details belong in design.md.
+    requires: []
+
+  - id: design
+    generates: design.md
+    description: Technical design with decisions, and which decisions outlive the change
+    template: design.md
+    instruction: |
+      Create the design document that explains HOW to implement the change.
+
+      Sections:
+      - **Context**: Only the current state and constraints needed to explain the approach.
+        Reference the proposal for motivation instead of restating it.
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes. Add only
+        design-level boundaries; the proposal owns scope.
+      - **Decisions**: Key technical choices with rationale (why X over Y?). Include the
+        alternatives considered. Show the config, the tree or the template: the site's
+        shape IS the design.
+      - **Research & Decisions**: Required when exploration was done (a build experiment,
+        a measured Hugo or theme behaviour). Use the format from `openspec/config.yaml`.
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong.
+        Format: [Risk] -> Mitigation.
+      - **Durable decisions**: Every decision a FUTURE site maintainer or page author
+        needs to know, with where it lands at archive time: `AGENTS.md`,
+        `CONSTITUTION.md`, `README.md`, a contributor note, or "stays with the change".
+        An archived change must never be the only home of a site or authoring rule.
+        If nothing is durable, write "None." rather than omitting the section.
+      - **Open Questions**: Unknowns that can safely be answered later without changing the
+        approach or the task breakdown. Omit if none. A question that would change the
+        approach is not open; resolve it now by asking the user.
+
+      Name every file under `site/` the change touches, and say whether the build gains or
+      loses an input (a mount, a source repo, a vendored file, a pinned tool). Call out any
+      change to published URLs, the version set, or the theme override set: those break
+      readers or the drift guard in ways an added page does not.
+
+      Focus on architecture and approach, not line-by-line implementation.
+    requires:
+      - proposal
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create the task list that breaks down the implementation work.
+
+      Before writing tasks, check design.md for Open Questions. If any of them
+      would change what gets built, resolve them with the user first; do not
+      bake an unstated assumption into the task list.
+
+      **IMPORTANT: Follow the template below exactly.** The apply phase parses
+      checkbox format to track progress. Tasks not using `- [ ]` won't be tracked.
+
+      Guidelines:
+      - Group tasks by area (site config, layouts and overrides, build scripts and checks,
+        Taskfile and image, docgen, CI) under ## numbered headings
+      - Each task MUST be a checkbox: `- [ ] X.Y Task description`
+      - Every ## section ends green and closes with a commit task naming its Conventional
+        Commit; at most about five sections
+      - Order tasks by dependency (what must be done first?)
+      - Every verification task names an observable check (a built page, a rendered
+        screenshot, a check script's result), run in Docker
+      - Include a task that lands each durable decision from design.md in its target file
+      - Each section's last task runs the gates (`task check`, plus the site build gate and
+        `task qa` when anything visual changes) and makes the commit; there is no trailing
+        Verification section
+      - Delete the Durable decisions section when design.md says "None."
+
+      Example:
+      ```
+      ## 1. Search results page
+
+      - [ ] 1.1 Override the search results partial; verify the query term is highlighted on the built page
+      - [ ] 1.2 Extend the search smoke test with a two-word query
+      - [ ] 1.3 `task check`, `task build` and `task qa` green (screenshots read), then commit `feat(site): highlight the query in search results`
+      ```
+
+      Reference the proposal for what needs to be built and the design for how to build it.
+      Each task should be verifiable: you know when it's done.
+    requires:
+      - design
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Read context files, work through pending tasks section by section, mark complete as you go.
+    Each section closes with its commit task; pause only at a section boundary or on a blocker,
+    and report uncommitted work when you do.

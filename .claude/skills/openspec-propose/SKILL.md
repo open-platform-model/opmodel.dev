@@ -1,0 +1,177 @@
+---
+name: openspec-propose
+description: Propose a new change with all artifacts generated in one step. Use when the user wants to quickly describe what they want to build and get a complete proposal with design, specs, and tasks ready for implementation.
+allowed-tools: Bash(openspec:*)
+license: MIT
+compatibility: Requires openspec CLI.
+metadata:
+  author: openspec
+  version: "1.0"
+  generatedBy: "1.12.0"
+---
+
+Propose a new change - create the change and generate all artifacts in one step.
+
+**Planning boundary**: This workflow creates planning artifacts only. The user request that selected or triggered this workflow authorizes planning only, even if it asks to build or fix something. Do not edit project code. After the planning artifacts are complete, stop. Do not start implementation in the same response, even if the initial request asks for it. Wait for a new user request after the artifacts are presented; then start the apply workflow.
+
+I'll create a change with the artifacts your schema defines. With the default spec-driven schema that is:
+- proposal.md (what & why)
+- `specs/<capability-path>/spec.md` (what the system must do - a delta, not the main spec)
+- design.md (how)
+- tasks.md (implementation steps)
+
+`<capability-path>` is the spec directory relative to `specs/` (for example, `user-auth` or `identity/user-auth`). Preserve an existing capability's full path and follow the project's established organization for new capabilities.
+
+When the user is ready to implement, they must start the apply workflow explicitly.
+
+---
+
+**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
+
+**Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
+
+**Steps**
+
+1. **Understand the request and clarify material ambiguity**
+
+   If no clear input is provided, ask the user (open-ended, no preset options):
+   > "What change do you want to work on? Describe what you want to build or fix."
+
+   From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+
+   **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
+
+   If the request contains ambiguity that would materially affect scope, externally observable behavior, compatibility, or acceptance criteria, ask the user before creating the change. For minor details, make a reasonable assumption and record it in the planning artifacts.
+
+2. **Determine the workflow schema**
+
+   This repo's default is the project-local `docs-site-change` schema (`openspec/config.yaml`),
+   which has NO specs artifact: proposal → design → tasks. Always omit `--schema`. Never select
+   `spec-driven` here, even if asked for "the default workflow"; explain that in this repo the
+   built site and its checks are the contract, and a prose spec would be a copy no gate keeps
+   honest (see `openspec/config.yaml`, "The Built Site Is the Contract").
+
+3. **Create the change directory**
+
+   If a registered store is selected, append `--store "<store-id>"` to this command and each
+   later OpenSpec command shown below that accepts `--store`.
+
+   ```bash
+   openspec new change "<name>"
+   ```
+   This creates a scaffolded change in the planning home resolved by the CLI, using this
+   repo's project-local `docs-site-change` schema (proposal → design → tasks, NO specs artifact).
+   Never pass `--schema spec-driven`.
+
+   **Then, in the same step, write the change metadata (REPO-LOCAL PATCH, mandatory):**
+   `openspec validate` rejects a change without spec deltas unless its metadata says so, and
+   this schema never produces deltas. Overwrite `<changeRoot>/.openspec.yaml` with:
+   ```yaml
+   schema: docs-site-change
+   created: <YYYY-MM-DD>
+   skip_specs: true
+   ```
+   Do not create a `specs/` directory inside the change, now or later.
+
+   **Declare the enhancement now, not at archive time (REPO-LOCAL PATCH, mandatory when it applies):**
+   if the change implements decisions from an entry in the workspace-root `enhancements/` repo,
+   write `<changeRoot>/enhancement.yaml` while the entry is still in context:
+   ```yaml
+   implements:
+     - enhancement: "NNNN"
+       decisions: [D1, D2]
+       resolves: []
+   ```
+   `enhancements/schema.cue` `#ChangeDeclaration` validates it (`enhancement` is the four-digit id,
+   `decisions` are `Dn`, `resolves` are `OQn`). This file is the ONLY link between an OpenSpec change
+   and the enhancement it implements: `task enhancements:delivery:log FROM=<change-dir>` reads it at
+   archive time, and `task enhancements:delivery:reconcile` reports every change that declared one and
+   was never logged. Written later, from an archived change, the context needed to get the decision
+   numbers right is gone.
+
+   If the change genuinely implements no enhancement, omit the file entirely. That is a normal and
+   valid outcome that needs no note. Never write an empty `implements` list: the schema rejects it.
+
+4. **Get the artifact build order**
+   ```bash
+   openspec status --change "<name>" --json
+   ```
+   Parse the JSON to get:
+   - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
+   - `artifacts`: list of all artifacts, each with its `status` and its `requires` edges (the artifact IDs it directly depends on)
+   - `planningHome`, `changeRoot`, `artifactPaths`, and `actionContext`: path and scope context. Use these instead of assuming repo-local paths.
+
+5. **Create every artifact in the required set**
+
+   Use a todo list to track progress through the artifacts.
+
+   Loop through artifacts in dependency order (artifacts with no pending dependencies first):
+
+   a. **For each artifact that is `ready` (dependencies satisfied)**:
+      - Get instructions:
+        ```bash
+        openspec instructions <artifact-id> --change "<name>" --json
+        ```
+      - The instructions JSON includes:
+        - `context`: Project background (constraints for you - do NOT include in output)
+        - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
+        - `template`: The structure to use for your output file
+        - `instruction`: Schema-specific guidance for this artifact type
+        - `skipped`/`warning`: present when the change declares skip_specs and this artifact must NOT be created - stop and pick another artifact
+        - `resolvedOutputPath`: Resolved path or pattern to write the artifact
+        - `dependencies`: Completed artifacts to read for context
+      - Read any completed dependency files for context - always re-read them from disk, even if you saw them earlier in the conversation (the user may have edited them)
+      - **Inspect the relevant project before drafting**: Read `context` and `rules` first, then inspect relevant implementation, nearby tests, configuration, and documentation outside `openspec/`. Keep inspection read-only and proportional to the change; reuse findings for later artifacts and inspect more only as needed.
+        - Identify the target project from the request and project context; the planning home may be separate from the code. If the target is unclear, ask. For greenfield or non-code changes, inspect the available structure and relevant documents. If source is unavailable, state the limitation and ask when it materially affects the plan.
+        - Ground scope, approach, and tasks in what you find. Distinguish observed behavior from assumptions and proposed additions; surface conflicts with existing specs instead of silently deciding which is correct.
+        - Do this discovery now, rather than leaving generic "explore the codebase" or "make a plan" tasks for implementation. Keep any necessary follow-up investigation specific to an unresolved question.
+      - If the `instruction` field delegates creation to a specific skill or command, invoke it to produce the artifact instead of writing the file yourself, then verify the artifact file exists at `resolvedOutputPath`
+      - Otherwise create the artifact file using `template` as the structure and write it to `resolvedOutputPath`. If `resolvedOutputPath` is a glob, follow `instruction` to choose the concrete file path
+      - Apply `context` and `rules` as constraints - but do NOT copy them into the file
+      - Show brief progress: "Created <artifact-id>"
+
+   b. **Continue until every artifact in the required set exists (not just `apply.requires`)**
+      - After creating each artifact, re-run `openspec status --change "<name>" --json`
+      - The required set is `applyRequires` plus every artifact reachable from those by following the `requires` edges in `status --json` - walk them transitively (spec-driven closes over proposal, specs, design, tasks). Leave artifacts outside that set alone
+      - `status` is file-existence only, so an `applyRequires` artifact reading `done` does NOT mean its dependencies exist - writing `tasks.md` early marks `tasks` done while `specs` was never written. Use each artifact's `requires` edges, not its `status`, to build the required set: a `done` artifact still lists what it depends on
+      - An artifact already reading `status: "skipped"` is satisfied: the change declares `skip_specs` in `.openspec.yaml`, so its files must NOT exist. Never try to create one
+      - Create every artifact in the required set that is missing, then re-check - creating one can unblock others
+      - Skip one only when `status` already reports it `skipped`, or when its own `instruction` says it is conditional: run `openspec instructions <artifact-id> --change "<name>" --json` and skip only if its `instruction` field marks it optional (e.g. "create only if..."). Spec-driven's `design.md` qualifies; `specs` qualifies only via the `skipped` status above, never by your own judgment. Tell the user, and do not reconsider it
+      - Dependencies are enablers, not gates: if a required artifact is still `blocked` only because you skipped a conditional dependency, write it anyway
+      - Stop when every artifact in the required set is `done`, `skipped`, or was deliberately skipped
+
+   c. **If an artifact requires user input** (unclear context):
+      - Ask the user to clarify
+      - Then continue with creation
+
+6. **Show final status**
+   ```bash
+   openspec status --change "<name>"
+   ```
+
+**Output**
+
+After completing all artifacts, summarize:
+- Change name and location
+- List of artifacts created with brief descriptions, plus any conditional artifact you skipped and why
+- What's ready: "All artifacts needed for implementation are ready."
+- Prompt: "The artifacts are ready for review. When you are ready, run `/openspec-apply-change` or ask me to apply this change."
+
+**Artifact Creation Guidelines**
+
+- Follow the `instruction` field from `openspec instructions` for each artifact type - it is the authoritative guidance, even for familiar artifact names
+- If the `instruction` field directs you to use a specific skill or command to create the artifact, invoke it instead of writing the artifact directly
+- The schema defines what each artifact should contain - follow it
+- Read dependency artifacts for context before creating new ones
+- Use `template` as the structure for your output file - fill in its sections
+- **IMPORTANT**: `context` and `rules` are constraints for YOU, not content for the file
+  - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
+  - These guide what you write, but should never appear in the output
+
+**Guardrails**
+- The request that invoked this workflow authorizes planning only. Any implementation or apply instruction in that request does not carry forward. Do NOT implement the change, start the apply workflow, or edit project code during this workflow. After presenting the artifacts, stop and wait for a new user request to start the apply workflow
+- Create every artifact the apply phase transitively depends on, not just the ids listed in `apply.requires`
+- Always read dependency artifacts before creating a new one - re-read from disk, not from conversation memory (files may have changed since you last saw them)
+- Ask about ambiguities that would materially change scope, externally observable behavior, compatibility, or acceptance criteria; for minor details, make reasonable assumptions and record them
+- If a change with that name already exists, ask if user wants to continue it or create a new one
+- Verify each artifact file exists after writing before proceeding to next
