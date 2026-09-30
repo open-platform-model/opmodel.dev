@@ -6,8 +6,8 @@ Throwaway renders (tasks 1.4 and 2.8) run in the QA image with the flags from 1.
 
 ## 1. Spike on A's baseline, then the wordmark and mark
 
-- [ ] 1.1 Baseline. Check that the six `WS/<repo>/.claude/worktrees/site-src` directories exist (trap 22), then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` on the untouched branch. Verify: it is green and `<wt>/site/public/v1.0/index.html` exists.
-- [ ] 1.2 A1 and A4 (read only). Record in design.md what `main` holds:
+- [x] 1.1 Baseline. Check that the six `WS/<repo>/.claude/worktrees/site-src` directories exist (trap 22), then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` on the untouched branch. Verify: it is green and `<wt>/site/public/v1.0/index.html` exists.
+- [x] 1.2 A1 and A4 (read only). Record in design.md what `main` holds:
   - the placeholder files under `site/static/` and `site/static/images/`;
   - `params.images`, `params.description` and `[params.navbar]` in `site/config/_default/hugo.toml`;
   - whether `site/tools/og-card.*` exists;
@@ -19,31 +19,31 @@ Throwaway renders (tasks 1.4 and 2.8) run in the QA image with the flags from 1.
   - that the vendored `layouts/_partials/head.html` calls `twitter_cards.html` and the theme ships no copy of it.
 
   Verify: design.md names each item. If the title carries no class hook other than Hextra's `hx:` utilities, stop and report under `deviations` (B owns the file).
-- [ ] 1.3 A2 and A3 (probe). If `main` has no `site/static/favicon.svg`, write a throwaway one (any valid SVG), then build.
+- [x] 1.3 A2 and A3 (probe). If `main` has no `site/static/favicon.svg`, write a throwaway one (any valid SVG), then build.
   - A2: `cmp <wt>/site/static/favicon.svg <wt>/site/public/favicon.svg` succeeds, so the site's static wins over Hextra's.
   - A3: in `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`, each of these resolves: every `rel="icon"`, `rel="apple-touch-icon"` and `rel="manifest"` href; both navbar logo `<img src>` values; the `og:image` content; the `twitter:image` content. `twitter:image` comes from Hugo's embedded template, not Hextra's, so a pass for `og:image` says nothing about it (design.md Context). If `main` renders no `og:image`, make that check in 2.5 instead.
 
   Delete the throwaway file and record the results in design.md. A failure of A2, or of A3 for a favicon, manifest or logo URL, means stop and report. A failure for `og:image` or `twitter:image` only selects Decision 6's absolute URL.
-- [ ] 1.4 Draw up to three candidate marks to design.md's mark brief. Render each at 16, 24, 32, 64 and 512 px, in both inks and reversed on the `#0a0a0a` tile, onto one contact-sheet PNG under `site/.shots/brand/`, as the note above the sections says. This also proves A5. Copy the sheet to your scratch directory. Verify:
+- [x] 1.4 Draw up to three candidate marks to design.md's mark brief. Render each at 16, 24, 32, 64 and 512 px, in both inks and reversed on the `#0a0a0a` tile, onto one contact-sheet PNG under `site/.shots/brand/`, as the note above the sections says. This also proves A5. Copy the sheet to your scratch directory. Verify:
   - `git -C <wt> status --short --untracked-files=all` lists nothing from the render: only this change's `design.md` and `tasks.md`;
   - `ls -l` shows the sheet owned by your user;
   - read the scratch copy, pick one, and write in design.md (Decision 3) which one and why. Only the chosen candidate enters the repo.
-- [ ] 1.5 Write `site/static/images/opm-mark.svg` (`#0a0a0a`) and `site/static/images/opm-mark-dark.svg` (`#fafafa`) with the chosen path data. Verify:
+- [x] 1.5 Write `site/static/images/opm-mark.svg` (`#0a0a0a`) and `site/static/images/opm-mark-dark.svg` (`#fafafa`) with the chosen path data. Verify:
   - the two files are identical once both colours are replaced by one token (`sed` and `diff`);
   - `grep -E '<text|<style|<script|href|<!--|xlink|inkscape|sodipodi'` finds nothing in either;
   - each is under 1024 bytes (`wc -c`).
-- [ ] 1.6 In `site/config/_default/hugo.toml`, set `[params.navbar]` `displayLogo`, `displayTitle` and `[params.navbar.logo]` per design.md Decision 3. Verify, after `OPM_SRC_WORKTREE=site-src task -d <wt> build`, in `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`:
+- [x] 1.6 In `site/config/_default/hugo.toml`, set `[params.navbar]` `displayLogo`, `displayTitle` and `[params.navbar.logo]` per design.md Decision 3. Verify, after `OPM_SRC_WORKTREE=site-src task -d <wt> build`, in `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`:
   - there are two logo `<img>` elements, each with width and height 24;
   - each `src` resolves, and `cmp` shows the files byte-identical to `site/static/images/opm-mark.svg` and `site/static/images/opm-mark-dark.svg`.
-- [ ] 1.7 Add `site/assets/css/opm/brand.css` per Decision 4, selecting only the hooks recorded in 1.2. Verify:
+- [x] 1.7 Add `site/assets/css/opm/brand.css` per Decision 4, selecting only the hooks recorded in 1.2. Verify:
   - the fingerprinted stylesheet under `site/public/` carries the rules. It is minified: no space after `:`, `,` or `;`, none around `{`, no final `;` and no leading zero. So with the starting values, `grep -F 'letter-spacing:-.01em'` matches, and so does `grep -F` for each selector `brand.css` uses (for example `.opm-brand .opm-title-long`). If you changed a value, grep for its minified form;
   - `grep -n 'hx\\:' <wt>/site/assets/css/opm/brand.css` prints nothing.
-- [ ] 1.8 Run `OPM_SRC_WORKTREE=site-src task -d <wt> qa` and read the shots of the landing and one docs page in all six variants. Verify:
+- [x] 1.8 Run `OPM_SRC_WORKTREE=site-src task -d <wt> qa` and read the shots of the landing and one docs page in all six variants. Verify:
   - the mark and wordmark are legible in light and dark;
   - in both site/OS mismatch variants the logo follows the site theme, not the OS;
   - at phone width the header does not overflow;
   - the a11y and search smoke tests pass.
-- [ ] 1.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green (PNGs read), then commit `feat(site): add the opm wordmark and mark`
+- [x] 1.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green (PNGs read), then commit `feat(site): add the opm wordmark and mark`
 
 ## 2. The favicon set and the Open Graph image
 

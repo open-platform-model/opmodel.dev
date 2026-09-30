@@ -103,6 +103,17 @@ Opaque squares: iOS fills transparent pixels with black and applies its own mask
 - **Hygiene.** Only `<svg>`, `<path>`, `<rect>`, `<circle>`, `<polygon>` and `<g>`; a single `xmlns="http://www.w3.org/2000/svg"`. No `<text>`, `<style>`, `<script>`, `href`, comments, `xlink` or editor namespaces. Under 1 KB. The supply-chain and planning-comment checks scan text outputs, so a published SVG stays free of both.
 - **Candidates.** Up to three are drawn and compared on a contact sheet. The committed one is the worker's recommendation, and the others travel only in the report for the owner.
 
+**Chosen (section 1, 2026-09-30): A, the open ring.** Three candidates went on the contact sheet, each at 16, 24, 32, 64 and 512 px in both inks and reversed on the tile, with pixel zooms of the 16 and 24 px renders:
+- **A, open ring (committed).** A ring 4 units thick (outer radius 10, inner 6), open at its top-right quadrant, with a 7.5-unit square in the opening, 2.5 units from each end of the ring. It reads as an O for Open, the platform, with the module in its opening, and it echoes the "O" of the wordmark beside it. At 16 px inside the tile the ring is about 2 px wide and the counter stays open.
+- **B, quadrant.** A three-quarter disc with the same square set into its open quadrant. The boldest at 16 px, but its radial cut meets at the centre, so it reads as a pie-chart icon.
+- **C, slot.** A platform slab with a slot and the module square above it. The slot closes up at 16 px, and on the tile the square and slot read as a face.
+
+Exploration before the sheet also tried a larger corner square on the disc, a disc behind a square, a square frame open at one corner with a disc, and a circle-and-square plinth; each read as a pie chart, a moon, an image-placeholder icon or a face. The committed path data, on the 24-unit grid:
+
+```svg
+<path d="M12 2A10 10 0 1 0 22 12H18A6 6 0 1 1 12 6Z"/><rect x="14.5" y="2" width="7.5" height="7.5"/>
+```
+
 ### 4. The wordmark is live text, typeset in `brand.css`
 
 The wordmark is `.Site.Title` ("Open Platform Model"), set in Geist, with "OPM" at phone width wherever A's override provides a short title.
@@ -154,6 +165,8 @@ Starting values, for the owner's review:
 
 If section 1 shows that the root-relative form does not resolve to the file for `og:image` or for `twitter:image`, write `https://opmodel.dev/images/og-default.png` instead. Both templates pass an absolute URL through unchanged. Record the choice here.
 
+**Chosen (section 1, 2026-09-30): the root-relative form.** A already sets `images = ['/images/og-default.png']`, and on `/v1.0/` and `/v1.0/docs/start/what-is-opm/` both `og:image` and `twitter:image` render `https://opmodel.dev/images/og-default.png`, with no version prefix, which maps to `site/public/images/og-default.png` (A3). No absolute URL is needed.
+
 ### 7. The web manifest
 
 ```json
@@ -195,6 +208,20 @@ The migration plan sends section 1's shots to the owner. They reach the owner in
 | A3 | Head and navbar asset URLs resolve at the root under the versions dimension | In `site/public/v1.0/index.html` and one deep docs page, every `<link rel="icon">`, `rel="apple-touch-icon"`, `rel="manifest"` href, both navbar logo `<img src>` values, and the `og:image` and `twitter:image` URLs map (host stripped) to a file under `site/public/` | Favicons, manifest or logo: stop and report (an A or B defect; a fix needs an override or B's file). `og:image` or `twitter:image`: use the absolute URL (Decision 6) |
 | A4 | Hextra v0.13.0's `favicons.html`, `favicon.js` and `static/` match the set read at 275e2ad | Read the vendored files | Follow v0.13.0's set; record it here |
 | A5 | The QA image runs a Playwright script with `--network none --user <uid>:<gid>`, the worktree root as its only mount, and writes into the gitignored `site/.shots/brand/` | Render the contact sheet this way | Mirror A's `qa` flags; if it still fails, stop and report |
+
+**Results (section 1, 2026-09-30; `main` at e7d07b4, images `opmodel-dev-hugo:cc96beb612fe` and `opmodel-dev-qa:ca08c2e70f2e`).** Every assumption holds; nothing stops the change.
+- **A1, what `main` holds.**
+  - Placeholders: `site/static/favicon.svg` and `site/static/images/{opm-mark.svg,opm-mark-dark.svg,og-default.png}`, byte-identical to the prototype's (the stacked-layers glyph with 70% and 45% opacity strokes; the 1200x630 gradient card). No other favicon file, no `site.webmanifest` and no `site/tools/` exist in `site/`.
+  - `site/config/_default/hugo.toml` already has `params.description` ("A declarative platform model for describing applications and their infrastructure requirements."), `params.images = ['/images/og-default.png']`, and `[params.navbar]` with `displayTitle = true`, `displayLogo = true` and `[params.navbar.logo]` pointing at the two mark files at 22 px. Section 1 only sets the logo to 24 px; section 2 keeps `params.images` and rewrites its "placeholder" comment.
+  - Fonts: `site/static/fonts/Geist-Variable.woff2`, `GeistMono-Variable.woff2` and `GEIST-LICENSE.txt` (OFL-1.1, listed in `site/NOTICE`).
+  - Hooks: `navbar-title.html` puts `opm-brand` on the wrapper `<div>` and `opm-title-long` / `opm-title-short` on the two title `<span>`s, beside Hextra's `hx:` utilities (`hx:font-extrabold` on each span). The logos are two `<img>`s with `hx:block hx:dark:hidden` and `hx:hidden hx:dark:block` and the alt texts "Logo" and "Dark Logo".
+  - `site/assets/css/opm/brand.css` already exists: A put the long/short title switch there (`.opm-title-short` hidden; under 30rem the long title hides and the short one shows). This change keeps those rules and adds the wordmark rule above them.
+  - QA image: `task qa:image` runs `site/scripts/run-in-image.sh qa-image`, which builds `site/tests/browser/Dockerfile` with no context as `opmodel-dev-qa:<first 12 hex of its sha256>` when the tag is missing; `run-in-image.sh qa-tag` prints the tag. `qa` and `shots` run it as `docker run --rm --init --user <uid>:<gid> --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 --volume <wt>:/work/repo --network none --entrypoint sh <tag> -c ...`. The image has Python 3.12.3, so `tomllib` and `struct` are there; it has no Pillow.
+  - `site/.gitignore` ignores `.shots/`. `shots.py` removes all of `site/.shots/` on every run, so a sheet under `site/.shots/brand/` lasts only until the next `task qa`.
+- **A4, Hextra's favicon set.** The vendored v0.13.0 `layouts/_partials/favicons.html`, `assets/js/core/favicon.js`, `layouts/_partials/head.html`, `layouts/_partials/opengraph.html` and every file in `static/` are byte-identical to the prototype's copy at 275e2ad. `favicons.html` links `favicon.ico` (`rel="icon shortcut"`, 32x32), `favicon.svg` (`id="favicon-svg"`), `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png` (180x180) and `site.webmanifest`, each through `relURL`. The theme's `static/` holds those files, the two `android-chrome-*.png` its manifest names (`"name": "Hextra"`, `"display": "standalone"`), and `images/logo.svg` / `logo-dark.svg`. `favicon.js` swaps in `favicon-dark.svg` only when `fileExists "static/favicon-dark.svg"`, and no such file exists. `head.html` calls `partial "twitter_cards.html"` (line 29); neither the theme nor `site/layouts/` has that partial, so Hugo's embedded template renders it.
+- **A2.** `main` already has a `site/static/favicon.svg`, so no throwaway file was needed: after the baseline build `cmp site/static/favicon.svg site/public/favicon.svg` succeeds, and the published file differs from the theme's. The site's `static/` wins under A's generated mounts.
+- **A3.** On `site/public/v1.0/index.html` and `site/public/v1.0/docs/start/what-is-opm/index.html`, every head asset resolves at the root, with no version prefix: `/favicon.ico`, `/favicon.svg`, `/favicon-16x16.png`, `/favicon-32x32.png`, `/apple-touch-icon.png`, `/site.webmanifest`, the logos `/images/opm-mark.svg` and `/images/opm-mark-dark.svg`, and `og:image` and `twitter:image`, both `https://opmodel.dev/images/og-default.png`. Decision 6 keeps the root-relative form.
+- **A5.** The contact sheet rendered in the QA image with `--rm --init --network none --user <uid>:<gid> --env HOME=/tmp`, the worktree root as its only mount, into `site/.shots/brand/`. The files are owned by the host user, and `git status --short --untracked-files=all` stayed empty. Fonts reach a `file://` page as `data:` URIs, which needs no file access rule.
 
 ## Research & Decisions
 

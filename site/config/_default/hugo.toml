@@ -58,11 +58,13 @@ defaultContentVersionInSubdir = true
     displayTitle = true
     displayLogo = true
     width = 'wide'
+    # The OPM mark: one path set in two inks (static/images/), switched by
+    # the site theme. Drawn on a 24-unit grid, shown at 24 px.
     [params.navbar.logo]
       path = 'images/opm-mark.svg'
       dark = 'images/opm-mark-dark.svg'
-      width = 22
-      height = 22
+      width = 24
+      height = 24
   [params.page]
     width = 'wide'
     [params.page.contextMenu]
