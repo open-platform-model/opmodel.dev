@@ -170,6 +170,25 @@ tasks:
     cmds:
       - sh site/scripts/run-in-image.sh test
 
+  hugo:qa:image:
+    desc: Build the QA image, opmodel-dev-qa:<12 hex of sha256 of site/tests/browser/Dockerfile>, if the tag is missing
+    cmds:
+      - sh site/scripts/run-in-image.sh qa-image
+
+  hugo:shots:
+    desc: Build the site, then screenshot every figure page and the extras in six variants into site/.shots/
+    deps: [hugo:qa:image]
+    cmds:
+      - task: hugo:build
+      - sh site/scripts/run-in-image.sh shots
+
+  hugo:qa:
+    desc: Build the site, then the screenshots, the axe accessibility and the search smoke tests (no network, no port)
+    deps: [hugo:qa:image]
+    cmds:
+      - task: hugo:build
+      - sh site/scripts/run-in-image.sh qa
+
   hugo:ci:
     desc: What CI runs for the site - check, the image, the build and the site tests
     cmds:

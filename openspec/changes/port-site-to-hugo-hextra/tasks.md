@@ -157,18 +157,18 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
 
 ## 4. Browser QA
 
-- [ ] 4.1 Add `site/tests/browser/Dockerfile`: Playwright python 1.63.0 by digest, and axe-core 4.10.3 from its npm registry tarball, checked by SHA-256, with no npm and no committed copy. Add a `hugo:qa:image` task that tags it `opmodel-dev-qa:<first 12 hex of sha256 of the file>` and builds it only when that tag is missing (design decision 4). Verify: `docker image inspect` finds the tag, and a second `task -d <wt> hugo:qa:image` builds nothing.
-- [ ] 4.2 Add `site/tests/browser/shots.py`, ported from `site/shots/shoot.py` and P `scripts/shots.py`:
+- [x] 4.1 Add `site/tests/browser/Dockerfile`: Playwright python 1.63.0 by digest, and axe-core 4.10.3 from its npm registry tarball, checked by SHA-256, with no npm and no committed copy. Add a `hugo:qa:image` task that tags it `opmodel-dev-qa:<first 12 hex of sha256 of the file>` and builds it only when that tag is missing (design decision 4). Verify: `docker image inspect` finds the tag, and a second `task -d <wt> hugo:qa:image` builds nothing.
+- [x] 4.2 Add `site/tests/browser/shots.py`, ported from `site/shots/shoot.py` and P `scripts/shots.py`:
   - it serves `site/public/` inside the container and publishes no port;
   - it reads the default version from the build output, not a glob;
   - it sets the theme with Hextra's `color-theme` key;
   - it shoots every page with a figure, plus the landing, one docs page, the 404 page and the open search palette;
   - each in six variants (light, dark, switch-dark-os-light, switch-light-os-dark, phone-light, phone-dark), into `site/.shots/<page>/<n>-<variant>.png`, where `<n>` numbers only drawn figures (`figure:has(svg[role="img"])`, as `shoot.py` selects them) in page order, so a "Figure pending" stub takes no number;
   - it fails when any SVG text is under 9 px at 390 px.
-- [ ] 4.3 Add `site/tests/browser/a11y.py` and `site/tests/browser/search.py`. `a11y.py` runs axe on key pages for WCAG 2.1 A and AA, light and dark, and fails on any violation. `search.py` runs a query in `v1.0` and fails when the expected page is not among the first results.
-- [ ] 4.4 Add `hugo:shots` (`hugo:qa:image` and a build first, then `shots.py`) and `hugo:qa` (shots, a11y and search), run with `--network none`, `--user <uid>:<gid>` and no published port. Verify: during `task -d <wt> hugo:qa`, `docker ps` shows no port mapping for the QA container.
-- [ ] 4.5 Run `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:qa` and read the PNGs: light, dark, both theme/OS mismatches and phone, for the landing, `/docs/start/`, one docs page and the 404 page. Fix what they show, in this change's own files only.
-- [ ] 4.6 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build`, `task -d <wt> hugo:test:site` and `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:qa` (PNGs read); all must be green. Then commit `test(site): screenshot and smoke-test the hugo build`.
+- [x] 4.3 Add `site/tests/browser/a11y.py` and `site/tests/browser/search.py`. `a11y.py` runs axe on key pages for WCAG 2.1 A and AA, light and dark, and fails on any violation. `search.py` runs a query in `v1.0` and fails when the expected page is not among the first results.
+- [x] 4.4 Add `hugo:shots` (`hugo:qa:image` and a build first, then `shots.py`) and `hugo:qa` (shots, a11y and search), run with `--network none`, `--user <uid>:<gid>` and no published port. Verify: during `task -d <wt> hugo:qa`, `docker ps` shows no port mapping for the QA container.
+- [x] 4.5 Run `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:qa` and read the PNGs: light, dark, both theme/OS mismatches and phone, for the landing, `/docs/start/`, one docs page and the 404 page. Fix what they show, in this change's own files only.
+- [x] 4.6 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build`, `task -d <wt> hugo:test:site` and `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:qa` (PNGs read); all must be green. Then commit `test(site): screenshot and smoke-test the hugo build`.
 
 ## 5. Cutover
 

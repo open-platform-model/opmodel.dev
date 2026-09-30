@@ -9,6 +9,12 @@
   {{- $css := . | resources.Concat "css/opm.css" | minify | fingerprint -}}
   <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
 {{- end -}}
+{{- /* Hextra makes a code block keyboard-focusable (tabindex=0) only when it
+       scrolls, and measures that at DOMContentLoaded; a web font that loads
+       later can make a block scroll without it (axe:
+       scrollable-region-focusable). Once fonts load, this re-runs Hextra's own
+       check through the resize event it already listens to. */ -}}
+<script>document.fonts&&document.fonts.addEventListener("loadingdone",function(){window.dispatchEvent(new Event("resize"))})</script>
 {{- /* /latest/<path>/ stubs (a meta refresh, noindex) for every page of the
        default version, published at the root outside the version prefix, for
        hosts that ignore public/_redirects (scripts/build-all.sh writes it). */ -}}

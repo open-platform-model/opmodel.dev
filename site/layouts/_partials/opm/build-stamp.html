@@ -7,7 +7,7 @@
 {{- range site.Params.opm.versions -}}{{- if eq .name site.Version.Name -}}{{- $label = .label | default .name -}}{{- end -}}{{- end -}}
 {{- $sources := dict -}}
 {{- with hugo.Data.opm -}}{{- with .build -}}{{- $sources = .sources | default dict -}}{{- end -}}{{- end -}}
-<div class="opm-build-stamp hx:py-6 hx:text-xs" data-pagefind-ignore="all">
+<div class="opm-build-stamp" data-pagefind-ignore="all">
   <span>{{ $label }}</span>
   {{ with $sources -}}
   <span>built from</span>

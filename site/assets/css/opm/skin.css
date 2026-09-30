@@ -39,3 +39,5 @@ html.dark {
    property resolves where it is declared, so the computed
    --hx-color-primary-* values are overridden, not --primary-lightness. */
 html.dark .opm-hero-actions a:first-of-type { --hx-color-white: oklch(20.5% 0 0); --hx-color-primary-600: oklch(92.2% 0 0); --hx-color-primary-700: oklch(87% 0 0); }
+/* The 404 page's primary button has the same problem in dark mode. */
+html.dark .opm-button:not(.opm-button-secondary) { color: oklch(20.5% 0 0); }

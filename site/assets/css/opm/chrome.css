@@ -7,7 +7,7 @@
 .opm-edit:hover { color: var(--hx-color-gray-900); }
 html.dark .opm-edit:hover { color: var(--hx-color-gray-100); }
 
-.opm-build-stamp { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; color: var(--hx-color-gray-600); }
+.opm-build-stamp { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding-block: 1.5rem; font-size: 0.75rem; line-height: 1rem; color: var(--hx-color-gray-600); }
 html.dark .opm-build-stamp { color: var(--hx-color-gray-400); }
 .opm-build-stamp a { text-decoration: underline; text-underline-offset: 2px; }
 
@@ -27,6 +27,7 @@ html.dark .opm-button-secondary { border-color: var(--hx-color-neutral-700); }
 html:not(.dark) .chroma .nb { color: #0550ae; }
 html:not(.dark) .chroma :is(.c, .c1, .cm, .ch, .cs) { color: #57606a; }
 html:not(.dark) .chroma :is(.s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx) { color: #b31d28; }
+html:not(.dark) .chroma :is(.m, .mb, .mf, .mh, .mi, .il, .mo) { color: #0550ae; }
 html.dark .chroma .nb { color: #79c0ff; }
 /* Links inside alerts: Hextra's primary-600 on the tinted alert is under 4.5:1. */
 .hextra-alert a { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight: 500; }

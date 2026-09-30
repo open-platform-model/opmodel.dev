@@ -10,6 +10,10 @@
 #   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh lint     the source lint over the six source roots, --network none
 #   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only, mounts no source root
+#   run-in-image.sh qa-image build opmodel-dev-qa:<first 12 hex of sha256(site/tests/browser/Dockerfile)> if missing (network)
+#   run-in-image.sh qa-tag   print that tag
+#   run-in-image.sh shots    site/tests/browser/shots.py over the built site/public/, --network none -> site/.shots/
+#   run-in-image.sh qa       shots.py, then a11y.py and search.py, --network none, no published port
 #
 # Environment. Each is read from the environment first; an empty value counts as unset.
 #   OPM_WS             workspace root. Default: the parent of the opmodel.dev main checkout, from
@@ -31,6 +35,7 @@
 set -eu
 REPOS="opm core catalog_opm cli library opm-operator"
 DOCKERFILE=site/Dockerfile.hugo
+QA_DOCKERFILE=site/tests/browser/Dockerfile
 
 repo=$(cd "$(dirname "$0")/../.." && pwd -P)
 cd "$repo"
@@ -40,17 +45,20 @@ die() { echo "run-in-image: $*" >&2; exit 1; }
 envval() { printenv "$1" 2>/dev/null || true; }
 
 tag() { echo "opmodel-dev-hugo:$(sha256sum "$DOCKERFILE" | cut -c1-12)"; }
+qa_tag() { echo "opmodel-dev-qa:$(sha256sum "$QA_DOCKERFILE" | cut -c1-12)"; }
 
-image() {
-  t=$(tag)
-  if docker image inspect "$t" >/dev/null 2>&1; then
-    echo "image: $t present"
+# build_image TAG DOCKERFILE: build it with no context, only when the tag is missing.
+build_image() {
+  if docker image inspect "$1" >/dev/null 2>&1; then
+    echo "image: $1 present"
   else
-    echo "image: building $t from $DOCKERFILE"
-    docker build --quiet --tag "$t" - < "$DOCKERFILE" >/dev/null
-    echo "image: built $t"
+    echo "image: building $1 from $2"
+    docker build --quiet --tag "$1" - < "$2" >/dev/null
+    echo "image: built $1"
   fi
 }
+image() { build_image "$(tag)" "$DOCKERFILE"; }
+qa_image() { build_image "$(qa_tag)" "$QA_DOCKERFILE"; }
 
 # Resolves and checks every source root; sets MOUNTS (docker -v flags) and REFS.
 sources() {
@@ -132,5 +140,13 @@ case "$mode" in
   test)
     image >/dev/null
     run --network none --entrypoint sh "$(tag)" /work/repo/site/scripts/test-site.sh ;;
-  *) sed -n '2,11p' "$0" >&2; exit 2 ;;
+  qa-tag) qa_tag ;;
+  qa-image) qa_image ;;
+  shots|qa)
+    [ -f site/public/_redirects ] || die "site/public/ holds no build; run the build task first"
+    qa_image >/dev/null
+    b=/work/repo/site/tests/browser
+    if [ "$mode" = shots ]; then cmd="python3 $b/shots.py"; else cmd="python3 $b/shots.py && python3 $b/a11y.py && python3 $b/search.py"; fi
+    run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
+  *) sed -n '2,15p' "$0" >&2; exit 2 ;;
 esac
