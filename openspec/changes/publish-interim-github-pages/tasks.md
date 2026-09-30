@@ -14,15 +14,15 @@ Gates, run on the whole worktree at every section end:
 
 ## 1. Spike: the base URL as a build input (Taskfile, site/scripts)
 
-- [ ] 1.1 Preconditions. If any check fails, stop with nothing edited and report it.
+- [x] 1.1 Preconditions. If any check fails, stop with nothing edited and report it.
   - `task -d <wt> --list` names `ci`, `ci:lint`, `qa`, `versions:prepare` and `brand:og`.
   - `<wt>/site/versions.conf` exists.
   - `<wt>/.github/workflows/site.yml` has the jobs `build` and `browser`, and `grep -n -i pages <wt>/.github/workflows/site.yml` prints nothing.
   - `git -C WS/<repo>/.claude/worktrees/site-src rev-parse HEAD` prints a SHA for each of opm, core, catalog_opm, cli, library and opm-operator.
   - The audit's faults are still there: `grep -n 'url("/fonts' <wt>/site/assets/css/opm/base.css`, `grep -n '"start_url": "/"' <wt>/site/static/site.webmanifest` and `grep -n 'url=/latest/' <wt>/site/scripts/build-all.sh` each hit.
   - Pages, read-only: `gh api repos/open-platform-model/opmodel.dev/pages --jq '.build_type + " " + .html_url'` prints `workflow https://open-platform-model.github.io/opmodel.dev/`, and `gh api repos/open-platform-model/opmodel.dev/environments/github-pages/deployment-branch-policies --jq '[.branch_policies[].name]'` prints `["main"]`. If either differs, record it for the report's `questions`: it gates the owner's merge, not this work.
-- [ ] 1.2 Spike, finding 2: the baseline and its noise. Run `OPM_SRC_WORKTREE=site-src task -d <wt> build` on the unchanged tree, and copy `<wt>/site/public` to `<scratch>/public-a`. Build again and copy it to `<scratch>/public-b`. Run `diff -r <scratch>/public-a <scratch>/public-b`. Record finding 2: the two are identical, or which files differ. `public-a` is the baseline for tasks 1.3 and 2.8.
-- [ ] 1.3 The input (design.md decision 1).
+- [x] 1.2 Spike, finding 2: the baseline and its noise. Run `OPM_SRC_WORKTREE=site-src task -d <wt> build` on the unchanged tree, and copy `<wt>/site/public` to `<scratch>/public-a`. Build again and copy it to `<scratch>/public-b`. Run `diff -r <scratch>/public-a <scratch>/public-b`. Record finding 2: the two are identical, or which files differ. `public-a` is the baseline for tasks 1.3 and 2.8.
+- [x] 1.3 The input (design.md decision 1).
   - `Taskfile.yml`: make the `build` task's command `OPM_BASE_URL={{shellQuote (.OPM_BASE_URL | default "")}} sh site/scripts/run-in-image.sh build`. Do not add `OPM_BASE_URL` to the `&hugo-env` anchor: an `env:` entry loses to an exported variable in Task 3.52.0 (design.md decision 7).
   - `site/scripts/run-in-image.sh`: pass `--env OPM_BASE_URL=<value>` in the `build` case only, and only when it is non-empty. Leave `run()` alone. Document the variable in the header.
   - `site/scripts/build-all.sh`: resolve `BASE_URL`, validate it, pass `--baseURL` only when `OPM_BASE_URL` is set, and export `BASE_URL` and `BASE_PATH`. Document them in the header.
@@ -30,7 +30,7 @@ Gates, run on the whole worktree at every section end:
   - Verify: `OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://pages.example/opm/docs task -d <wt> build` fails with the base URL message and prints no `== hugo build`.
   - Verify: `grep -n OPM_BASE_URL <wt>/site/scripts/run-in-image.sh` hits only the header and the `build` case.
   - Verify: `OPM_BASE_URL=https://pages.example/opm/docs/ OPM_SRC_WORKTREE=site-src task -d <wt> --dry build` prints a line `OPM_BASE_URL=https://pages.example/opm/docs/ sh site/scripts/run-in-image.sh build`, and `env -u OPM_BASE_URL OPM_SRC_WORKTREE=site-src task -d <wt> --dry build` prints `OPM_BASE_URL='' sh site/scripts/run-in-image.sh build`.
-- [ ] 1.4 Spike, findings 1 and 4: the real site under the Pages path. Run `OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build`.
+- [x] 1.4 Spike, findings 1 and 4: the real site under the Pages path. Run `OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build`.
   - It is expected to fail at `check-pages (post)` with `LINK FAIL`, because the crawl does not strip the base path yet. If an earlier step fails, stop and report.
   - Record the time to that point and the file count of `site/public` (finding 4).
   - Then scan `<wt>/site/public` on the host with `grep` and `find` only; nothing there runs. Record finding 1 (design.md lists the four scans):
@@ -42,7 +42,7 @@ Gates, run on the whole worktree at every section end:
     - on one docs page: the robots meta (expected: Hextra's `index, follow` only), `og:url`, canonical, `og:image`, `twitter:image` and `itemprop` `image`; the Pagefind adapter's bundle path; `llms.txt`'s `Site:` line.
   - The expected hits are the five known faults only: the root `index.html` (`/latest/`), the two font URLs, `start_url`, and `twitter:image` and `itemprop` `image` on every page (`https://open-platform-model.github.io/images/og-default.png`). Any other hit is outside the audit and the review. Stop and report it with the file and the template that writes it. A fix in a site-owned layout, hook, asset or config joins section 2 on the supervisor's OK; a fix that needs a new override copy is a scope question. A hit in a source repo's page text is a scope question too.
   - Finally run `OPM_SRC_WORKTREE=site-src task -d <wt> build` again, so that `site/public` holds the default build.
-- [ ] 1.5 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `git -C <wt> diff --check` green. Stage `Taskfile.yml`, `site/scripts/run-in-image.sh`, `site/scripts/build-all.sh`, `openspec/changes/publish-interim-github-pages/design.md` and `openspec/changes/publish-interim-github-pages/tasks.md`. Then commit `feat(site): take the base url as a build input`.
+- [x] 1.5 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` and `git -C <wt> diff --check` green. Stage `Taskfile.yml`, `site/scripts/run-in-image.sh`, `site/scripts/build-all.sh`, `openspec/changes/publish-interim-github-pages/design.md` and `openspec/changes/publish-interim-github-pages/tasks.md`. Then commit `feat(site): take the base url as a build input`.
 
 ## 2. A base-path-safe build, its checks and the regression test (site assets, layouts, config, scripts, tests, Taskfile, AGENTS.md, README.md)
 

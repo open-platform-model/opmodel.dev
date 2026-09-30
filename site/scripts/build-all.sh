@@ -17,6 +17,14 @@
 #                         task versions:prepare resolved into .versions/versions.tsv
 #      OPM_REQUIRE_DATES  1: a page without a git date fails the build
 #      OPM_BUILD_REFS     repo=sha ..., resolved on the host (the build stamp)
+#      OPM_BASE_URL       the site's base URL for this build: an absolute http(s)
+#                         URL ending in /, which may carry a path
+#                         (https://example.org/docs/). Passed to hugo as
+#                         --baseURL only when set; unset, hugo.toml's baseURL
+#                         holds and the hugo invocation is unchanged
+#
+# Exports to the checks: BASE_URL, the resolved base URL, and BASE_PATH, its
+# path without the trailing slash ("" at a host root, /docs under a path).
 set -eu
 SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 SITE_DIR=${SITE_DIR:-$(cd "$SCRIPTS/.." && pwd)}
@@ -35,6 +43,17 @@ while [ $# -gt 0 ]; do
   esac
 done
 export PUBLIC CHECK_DIR
+# The base URL: OPM_BASE_URL, else hugo.toml's baseURL. Without the trailing
+# slash Hugo joins paths wrongly and silently, so the build fails first.
+OPM_BASE_URL=${OPM_BASE_URL:-}
+BASE_URL=${OPM_BASE_URL:-$(sed -n "s/^baseURL = '\(.*\)'\$/\1/p" config/_default/hugo.toml)}
+case "$BASE_URL" in
+  http://?*/|https://?*/) ;;
+  *) fail "build-all: the base URL must be an absolute http(s) URL ending in / (OPM_BASE_URL, else hugo.toml's baseURL): '$BASE_URL'" ;;
+esac
+BASE_PATH=/${BASE_URL#*://*/}; BASE_PATH=${BASE_PATH%/}
+export BASE_URL BASE_PATH
+echo "build-all: base URL $BASE_URL${BASE_PATH:+ (base path $BASE_PATH)}"
 # The versions, in weight order, and the default one (/latest/ and / point at
 # it): an explicit OPM_VERSIONS (the first is the default), else the resolved
 # .versions/versions.tsv (a source = main version reads /src, an anchored one
@@ -73,7 +92,8 @@ sh "$SCRIPTS/gen-mounts.sh" config/production/module.toml $VERSIONS
 sh "$SCRIPTS/check-pages.sh" pre $VERSIONS
 
 step "hugo build ($(hugo version | cut -d' ' -f1-2))"
-hugo build --gc --cleanDestinationDir --panicOnWarning --logLevel warn --destination "$PUBLIC"
+if [ -n "$OPM_BASE_URL" ]; then set -- --baseURL "$OPM_BASE_URL"; else set --; fi
+hugo build --gc --cleanDestinationDir --panicOnWarning --logLevel warn --destination "$PUBLIC" "$@"
 
 step "root files and search, per version"
 [ -f "$PUBLIC/$DEFAULT/404.html" ] || fail "ROOT FAIL: $PUBLIC/$DEFAULT/404.html was not built"

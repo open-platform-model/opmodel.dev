@@ -383,7 +383,20 @@ jobs:
 - Finding 3: the default build after section 1 is identical to the baseline; after section 2 it differs only as decision 2 says.
 - Finding 4: the Pages pass's time and file count for the real site.
 - Finding 5: the action pins at apply time.
-**Rationale**: (record why each decision held or changed)
+
+Recorded at apply time (2026-09-30, sources at the six `site-src` worktrees: opm 94c9289, core 748dfc7, catalog_opm 3cb3344, cli 025e1b6, library c99403c, opm-operator 546d649):
+- **Finding 2 (task 1.2).** Two default builds of the unchanged tree are not byte-identical. They differ in exactly two places, both outside this change's reach: `v1.0/llms.txt` line 76 (`Generated on <UTC time>`), and the Pagefind index, whose content-hashed names differ from run to run (`v1.0/pagefind/index/en_<hash>.pf_index`, `v1.0/pagefind/pagefind.en_<hash>.pf_meta`, and the hash inside `v1.0/pagefind/pagefind-entry.json`; `page_count` stays 57). Every other file of the 275 is identical. This is the noise every later output diff ignores.
+- **Finding 3, first half (task 1.3).** With `OPM_BASE_URL` unset, the section 1 build's `site/public` differs from the baseline `public-a` only in finding 2's noise.
+- **Finding 1 (task 1.4).** The real site built for `https://open-platform-model.github.io/opmodel.dev/` ran green through Hugo, the root files and Pagefind, and failed at `check-pages (post)` with `LINK FAIL` (130 URLs, every one prefixed with `/opmodel.dev/`), as expected. The scans of `site/public` found the five known faults and nothing else:
+  - HTML root-relative values outside `/opmodel.dev/` (`href`, `src`, `data-url`, `srcset` entries, `poster`, `data`, `xlink:href`): one, `href=/latest/` in the root `index.html` (with its `url=/latest/` refresh). No `url()` in a `style` attribute or `<style>` block is root-relative.
+  - CSS: the two font URLs in `css/opm.min.<hash>.css`, `url(/fonts/Geist-Variable.woff2` and `url(/fonts/GeistMono-Variable.woff2`.
+  - Absolute URLs on `open-platform-model.github.io` outside the base URL: one URL, `https://open-platform-model.github.io/images/og-default.png`, 120 times: `twitter:image` and `itemprop="image"` in each of the 60 HTML pages that carry them (58 version pages and the two `404.html`). `og:url`, canonical, `og:image`, `sitemap.xml`, `robots.txt` and `llms.txt` all stay under the base URL.
+  - JS outside `*/pagefind/*`: no root-path string literal. The Pagefind adapter publishes at the root as `v1.0.en.pagefind.min.<hash>.js`, and its bundle path is the literal `"/opmodel.dev/v1.0/pagefind/"`.
+  - `site.webmanifest`: `"start_url": "/"` only; the icons are relative.
+  - On `v1.0/docs/index.html`: the only robots meta is Hextra's `index, follow`; `og:url` and canonical are `https://open-platform-model.github.io/opmodel.dev/v1.0/docs/`; `og:image` is `https://open-platform-model.github.io/opmodel.dev/images/og-default.png`; `twitter:image` and `itemprop` `image` are `https://open-platform-model.github.io/images/og-default.png` (fault 5). `llms.txt` says `Site: https://open-platform-model.github.io/opmodel.dev/`.
+- **Finding 4, first pass (task 1.4).** The whole `task build` to the crawl failure took about 1 s of wall clock on the host, with 275 files in `site/public` (the same count as the default build).
+
+**Rationale**: Findings 1 and 3 hold decisions 1 and 2 as planned: the input changes nothing when unset, and the subpath build's only faults are the five that decision 2 fixes, so no fix outside the planned files and no override copy is needed. Finding 2 adds no decision; the output diffs of tasks 1.3 and 2.8 filter its two noise sources.
 
 ## Interface (orchestration.md section 6)
 

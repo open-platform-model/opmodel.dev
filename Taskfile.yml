@@ -109,6 +109,12 @@ tasks:
         fi
         echo "versions:test: site/.versions/ restored for site/versions.conf"
 
+  # OPM_BASE_URL (the site's base URL, which may carry a path) reaches the
+  # build through an assignment in the command, never through the env map: in
+  # Task 3.52.0 an env entry loses to an exported variable, so a caller that
+  # passes '' could not force the default. The template var comes from a call
+  # var, a CLI var (task build OPM_BASE_URL=<url>) or the environment, in that
+  # order; empty means hugo.toml's baseURL.
   build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
     deps: [versions:prepare]
@@ -125,7 +131,7 @@ tasks:
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       SITE_PORT: '{{.SITE_PORT}}'
     cmds:
-      - sh site/scripts/run-in-image.sh build
+      - OPM_BASE_URL={{shellQuote (.OPM_BASE_URL | default "")}} sh site/scripts/run-in-image.sh build
 
   serve:
     desc: Run the dev server on http://127.0.0.1:${SITE_PORT:-1313}/, reading the sources in place
