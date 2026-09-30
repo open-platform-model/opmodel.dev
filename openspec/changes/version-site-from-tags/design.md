@@ -553,6 +553,19 @@ Spike, task 1.2 (2026-09-30, image `opmodel-dev-hugo:cc96beb612fe`, Hugo 0.167.0
 
 **Rationale**: One date source per mode. Worktree builds date every page, so `OPM_REQUIRE_DATES=1` becomes a local gate instead of a first failure on the PR's workflow run. The alternative, a container-side pass for site-owned pages beside the host rows, keeps two date sources and leaves worktree builds without site-owned dates.
 
+### N-version outputs (section 4)
+
+**Context**: Decision 10 and tasks 4.1, 4.2 and 4.4.
+
+**Explored**: the two-version build (`two-versions.conf`, 2026-09-30).
+- 4.1: `robots.txt` names `/v1.0/sitemap.xml` and `/v0.9/sitemap.xml`; each sitemap lists only its own version's URLs (58 and 56); each version publishes its own `llms.txt` and `404.html`; the root `404.html` is `v1.0`'s; Hugo writes no root sitemap. `layouts/robots.txt` and `layouts/sitemap.xml` needed no edit.
+- 4.2: A's `build-all.sh` had neither argument. It now takes `--public DIR` and `--check DIR` (relative to `SITE_DIR`, defaults `public` and `.check`), passes `--destination` to Hugo, and exports `PUBLIC` and `CHECK_DIR` for `check-pages.sh`, which already read `PUBLIC` and now writes `nav-order.txt` under `CHECK_DIR`. A's messages read the same with the defaults.
+- 4.4: the planning-round ruling allows the line, so `test:site` ends with `task: versions:test`. `task ci` therefore runs the resolver tests and the two-version build; `test:site` now also reads the source roots and writes `site/.check/versions-test/`, `site/.versions/`, `site/config/<env>/` and `site/data/opm/`.
+
+**Decision**: As above. `check-two-versions.sh` builds through `run-in-image.sh`'s sourced functions and fails when anything under `site/public/` or under `site/.check/` outside `versions-test/` changed during its run.
+
+**Rationale**: The deploy artifact and the real check output stay untouched, which the test proves instead of assuming.
+
 ### Release visibility of `docs` commits
 
 **Context**: Whether the S merges produce tags.

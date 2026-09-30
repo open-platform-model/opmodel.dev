@@ -130,15 +130,15 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
 
 ## 4. N-version outputs and the two-version regression test
 
-- [ ] 4.1 On the two-version build:
+- [x] 4.1 On the two-version build:
   - `site/public/robots.txt` names `/v1.0/sitemap.xml` and `/v0.9/sitemap.xml`;
   - each sitemap lists only its own version's URLs;
   - each version has its own `llms.txt` and `404.html`;
   - the root `404.html` is `v1.0`'s.
 
   Edit `site/layouts/robots.txt` or `site/layouts/sitemap.xml` only if one of these fails, and report the edit under `deviations`.
-- [ ] 4.2 If A's `build-all.sh` has no destination argument, or no way to keep its `.check/` output apart, add both with unchanged defaults (`public`, `.check`). The two-version build then writes its site to `site/.check/versions-test/public/` and its `<v>/nav-order.txt` to `site/.check/versions-test/check/`, never `site/public/` or the real `site/.check/<v>/` (design.md Decision 11).
-- [ ] 4.3 Add `site/tests/versions/check-two-versions.sh`, with every Decision 11 assertion. Its header comment says the test never writes `site/public/`. Extend `versions:test` to:
+- [x] 4.2 If A's `build-all.sh` has no destination argument, or no way to keep its `.check/` output apart, add both with unchanged defaults (`public`, `.check`). The two-version build then writes its site to `site/.check/versions-test/public/` and its `<v>/nav-order.txt` to `site/.check/versions-test/check/`, never `site/public/` or the real `site/.check/<v>/` (design.md Decision 11).
+- [x] 4.3 Add `site/tests/versions/check-two-versions.sh`, with every Decision 11 assertion. Its header comment says the test never writes `site/public/`. Extend `versions:test` to:
   1. run `versions:prepare` with the two-version manifest;
   2. build into `site/.check/versions-test/public/`, with the check output in `site/.check/versions-test/check/`;
   3. run the assertions;
@@ -148,9 +148,9 @@ The two-version manifest `site/tests/versions/two-versions.conf` (task 2.4) is t
   - `OPM_SRC_WORKTREE=site-src task versions:test` passes;
   - `site/public/build-stamp.json` is byte-identical before and after it, and `site/.check/versions-test/repos/` survives the build;
   - on a scratch edit that drops the outdated bar, it fails, naming the assertion. Revert the scratch edit.
-- [ ] 4.4 Only if the supervisor allowed it (design.md "Open Questions"): add one line to A's `test:site` that runs `versions:test`. Otherwise skip this task, and name the missing CI step under `follow-ups`.
-- [ ] 4.5 Extend the search smoke test in `site/tests/browser/` to query every version listed in `build-stamp.json` `versions`, in its own test function beside A's. Verify: `task qa` on the two-version build searches both versions and passes. Then rebuild with the real manifest.
-- [ ] 4.6 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` on the real build with the PNGs read. When all are green, commit `test(site): build two tagged versions in the regression suite`.
+- [x] 4.4 Only if the supervisor allowed it (design.md "Open Questions"): add one line to A's `test:site` that runs `versions:test`. Otherwise skip this task, and name the missing CI step under `follow-ups`.
+- [x] 4.5 Extend the search smoke test in `site/tests/browser/` to query every version listed in `build-stamp.json` `versions`, in its own test function beside A's. Verify: `task qa` on the two-version build searches both versions and passes. Then rebuild with the real manifest.
+- [x] 4.6 Run the gates: `task check`, `OPM_SRC_WORKTREE=site-src task versions:test`, `OPM_SRC_WORKTREE=site-src task ci`, `OPM_REQUIRE_DATES=1 OPM_SRC_WORKTREE=site-src task build`, and `task qa` on the real build with the PNGs read. When all are green, commit `test(site): build two tagged versions in the regression suite`.
 
 ## 5. Verify and hand off (orchestration.md section 7, steps 6 and 7)
 

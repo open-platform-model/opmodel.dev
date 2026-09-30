@@ -86,11 +86,18 @@ tasks:
     cmds:
       - sh site/scripts/resolve-versions.sh --check
 
+  # The two-version test never writes site/public/: it builds into
+  # site/.check/versions-test/, and the deferred step restores the real
+  # manifest's site/.versions/ even when an assertion fails.
   versions:test:
-    desc: Resolver regression tests on fixture repositories and the real pins (host git)
+    desc: Resolver regression tests (host git), then a two-version build into site/.check/versions-test/ and its assertions
     env: *versions-env
     cmds:
       - sh site/tests/versions/test-resolve.sh
+      - defer: OPM_VERSIONS= OPM_VERSIONS_MANIFEST= sh site/scripts/resolve-versions.sh && OPM_VERSIONS= sh site/scripts/materialise.sh
+      - OPM_VERSIONS= OPM_VERSIONS_MANIFEST=site/tests/versions/two-versions.conf sh site/scripts/resolve-versions.sh
+      - OPM_VERSIONS= sh site/scripts/materialise.sh
+      - sh site/tests/versions/check-two-versions.sh
 
   build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
@@ -134,6 +141,7 @@ tasks:
     desc: Prove the build checks on fixtures (site/tests), in Docker with no network
     cmds:
       - sh site/scripts/run-in-image.sh test
+      - task: versions:test
 
   qa:image:
     desc: Build the QA image, opmodel-dev-qa:<12 hex of sha256 of site/tests/browser/Dockerfile>, if the tag is missing

@@ -127,7 +127,7 @@ Moving `v1.0` onto beta tags is this edit (the tag names are examples):
 
 Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds, and no tag cut before it can: the resolver fails first, naming the repository and the ref. So each repository needs a tag cut after its floor before `v1.0` can move onto tags.
 
-`OPM_VERSIONS_MANIFEST=<file>` selects another manifest; the regression tests use `site/tests/versions/two-versions.conf`. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
+`OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) builds `site/tests/versions/two-versions.conf`, which adds a test version, into `site/.check/versions-test/`, never `site/public/`. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
 
 ## Implementation Status
 
