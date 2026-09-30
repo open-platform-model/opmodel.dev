@@ -1,0 +1,3 @@
++ /content/docs/concepts/no-description.md: missing description
++ bad-type.md: type must be tutorial, how-to, explanation or reference (got "guide")
++ typed/_index.md: a section overview (_index.md) declares no type (got "explanation")

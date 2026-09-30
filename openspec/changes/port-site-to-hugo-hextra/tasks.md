@@ -124,7 +124,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
 
 ## 3. Checks and their regression tests
 
-- [ ] 3.1 Add a failing tree under `site/tests/lint/` for each rule beyond O4's list, plus one clean tree that passes:
+- [x] 3.1 Add a failing tree under `site/tests/lint/` for each rule beyond O4's list, plus one clean tree that passes:
   - front-matter keys `aliases`, `draft` and `slug`;
   - relative, `.md`, version-prefixed and slashless `/docs/` links, inline and as reference definitions;
   - raw `href=` and `src=`;
@@ -138,7 +138,7 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - `import ... from` and `:::` inside a fence.
 
   Verify: each failing tree prints its file and line, and exits 1.
-- [ ] 3.2 Add one failing case per build check under `site/tests/checks/`:
+- [x] 3.2 Add one failing case per build check under `site/tests/checks/`:
   - (1) a scratch copy of the theme with one pinned file changed;
   - (3) a site-owned test page with a missing description, a leaf with an invalid type, and an `_index.md` with a type;
   - (4) a broken link;
@@ -151,9 +151,9 @@ Starts when S1-S6 are merged and the six `site-src` worktrees exist (`orchestrat
   - (11) a CDN URL;
   - (12) a missing redirect file;
   - (13) a page with no git date under `OPM_REQUIRE_DATES=1`.
-- [ ] 3.3 Add `site/tests/dialect/`. It checks that alerts with a bold title line render as Hextra alerts, and that the line after a CUE `""` is tokenised as a name, not swallowed by a string (`render-codeblock-cue.html`).
-- [ ] 3.4 Complete `site/scripts/test-site.sh` (design decision 15). It reads no input from `/proto` or the host's `/tmp`, and only fixtures under `site/tests/`: never `site-src` or a main checkout. The container's own `/tmp`, which the lint's `mktemp` uses, is fine. It runs every case on its own copy under `site/.check/tests/<case>/`, so in the worktree it writes only under `site/.check/tests/`. It builds its own prerequisites, prints `ok` or `FAIL` per case, and exits non-zero on any unexpected result. Add `hugo:ci`: `check`, `hugo:image`, `hugo:build`, `hugo:test:site`. Verify: after `task -d <wt> clean`, `task -d <wt> hugo:test:site` is green and prints `ok` for every case in 1.12 and 3.1-3.3, and `git -C <wt> status --short --ignored site` then lists no generated path outside `site/.check/`.
-- [ ] 3.5 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `test(site): prove each build check fails when it should`.
+- [x] 3.3 Add `site/tests/dialect/`. It checks that alerts with a bold title line render as Hextra alerts, and that the line after a CUE `""` is tokenised as a name, not swallowed by a string (`render-codeblock-cue.html`).
+- [x] 3.4 Complete `site/scripts/test-site.sh` (design decision 15). It reads no input from `/proto` or the host's `/tmp`, and only fixtures under `site/tests/`: never `site-src` or a main checkout. The container's own `/tmp`, which the lint's `mktemp` uses, is fine. It runs every case on its own copy under `site/.check/tests/<case>/`, so in the worktree it writes only under `site/.check/tests/`. It builds its own prerequisites, prints `ok` or `FAIL` per case, and exits non-zero on any unexpected result. Add `hugo:ci`: `check`, `hugo:image`, `hugo:build`, `hugo:test:site`. Verify: after `task -d <wt> clean`, `task -d <wt> hugo:test:site` is green and prints `ok` for every case in 1.12 and 3.1-3.3, and `git -C <wt> status --short --ignored site` then lists no generated path outside `site/.check/`.
+- [x] 3.5 Run `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> hugo:build` and `task -d <wt> hugo:test:site`; all must be green. Then commit `test(site): prove each build check fails when it should`.
 
 ## 4. Browser QA
 

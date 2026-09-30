@@ -1,20 +1,28 @@
 #!/bin/sh
 # Regression tests for the site build: the fixture workspace builds green and
-# renders the page dialect, and every check fails when it should. Runs in the
-# build image with no network (site/scripts/run-in-image.sh test). It reads
-# only fixtures under site/tests/, never a source checkout, and writes only
-# under site/.check/tests/: each case runs on its own copy of the site
-# (site/ less its generated paths and tests/) with SITE_DIR pointing at it,
-# so a test run never touches site/public/ or a real build's generated config.
+# renders the page dialect, the source lint rejects every form the dialect
+# forbids, and every build check fails when it should. Runs in the build image
+# with no network (site/scripts/run-in-image.sh test). It reads only fixtures
+# under site/tests/, never a source checkout, and writes only under
+# site/.check/tests/: each case runs on its own copies of the fixture
+# workspace and of the site (site/ less its generated paths and tests/), with
+# SITE_DIR pointing at the copy, so a test run never touches site/public/ or a
+# real build's generated config. Scratch files go to the container's own
+# /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
-#   site/tests/lint/<case>/                    a tree laid over a copy of the fixture
-#                                              workspace, plus "expect": the one
-#                                              violation, "<path>:<line>: <message>"
-#   site/tests/checks/<case>/                  a tree laid over a copy of the fixture
-#                                              workspace, plus "expect": lines "+ text"
-#                                              the failed build must print and "- text"
-#                                              it must not
+#   site/tests/lint/<case>/                    lint cases
+#   site/tests/checks/<case>/                  build-check cases
+#   site/tests/dialect/                        a tree whose build must render the dialect
+#
+# A case directory holds any of:
+#   <repo>/docs/site/...  pages laid over the copy of the fixture workspace
+#   site/...              files laid over the copy of the site (site-owned pages, config)
+#   setup.sh              run after the copies, with SITE and WS set to them
+#   env                   KEY=VALUE lines exported for the build (checks only)
+#   expect                lint: one "<path>:<line>: <message>" line per violation,
+#                         none for a clean tree; checks: "+ text" lines the failed
+#                         build must print and "- text" lines it must not
 #
 # Prints "ok" or "FAIL" per case; exits 1 on any unexpected result.
 set -u
@@ -24,6 +32,8 @@ TESTS=$SITE/tests
 WS=$TESTS/fixtures/ws
 OUT=$SITE/.check/tests
 REPOS="opm core catalog_opm cli library opm-operator"
+# Only the git-dates case turns this on; CI may export it for real builds.
+export OPM_REQUIRE_DATES=0
 pass=0; fail=0
 
 ok() { echo "ok   $1: $2"; pass=$((pass + 1)); }
@@ -43,18 +53,35 @@ copy_site() {
   rm -rf "$d/config/production" "$d/config/development" "$d/data/opm"
 }
 
-# copy_ws CASE [OVERLAY]: the fixture workspace at OUT/CASE/ws, with OVERLAY's
-# tree laid over it (its "expect" file left out).
+# copy_ws CASE: the fixture workspace at OUT/CASE/ws.
 copy_ws() {
-  d=$OUT/$1/ws
-  mkdir -p "$d"
-  cp -R "$WS/." "$d/"
-  if [ -n "${2:-}" ]; then cp -R "$2/." "$d/"; rm -f "$d/expect"; fi
+  mkdir -p "$OUT/$1/ws"
+  cp -R "$WS/." "$OUT/$1/ws/"
+}
+
+# overlay CASE DIR: lay DIR's repo trees over the workspace copy and its site/
+# tree over the site copy, then run its setup.sh.
+overlay() {
+  for r in $REPOS; do
+    [ -d "$2/$r" ] && cp -R "$2/$r" "$OUT/$1/ws/"
+  done
+  if [ -d "$2/site" ]; then cp -R "$2/site/." "$OUT/$1/site/"; fi
+  if [ -f "$2/setup.sh" ]; then SITE=$OUT/$1/site WS=$OUT/$1/ws sh "$2/setup.sh"; fi
+  return 0
 }
 
 roots() { for r in $REPOS; do printf ' %s/%s/docs/site' "$1" "$r"; done; }
 
-# count PATTERN FILE: lines of grep -oE matches.
+# build CASE ROOT [ENVFILE]: build-all.sh on the case's site copy, into its log.
+build() {
+  (
+    # shellcheck disable=SC1090 # the case's own env file
+    if [ -n "${3:-}" ] && [ -f "$3" ]; then set -a; . "$3"; set +a; fi
+    SITE_DIR=$OUT/$1/site OPM_VERSIONS=v1.0=$2 sh "$SCRIPTS/build-all.sh"
+  ) > "$OUT/$1/log" 2>&1
+}
+
+# count PATTERN FILE: the number of grep -oE matches.
 count() { grep -oE "$1" "$2" 2>/dev/null | wc -l | tr -d ' '; }
 
 # line_of URL FILE: the line number of URL in a nav-order file, or 0.
@@ -64,27 +91,36 @@ rm -rf "$OUT"
 mkdir -p "$OUT"
 
 # ---------------------------------------------------------------------------
-# Lint: each case has exactly the one violation its expect file names.
+# Lint: each case prints exactly the violations its expect file names, each
+# with its file and line, and exits 1 (0 for a clean tree).
 for c in "$TESTS"/lint/*/; do
   c=${c%/}; name=lint/${c##*/}
-  copy_ws "$name" "$c"
+  copy_ws "$name"; overlay "$name" "$c"
   log=$OUT/$name/log
   # shellcheck disable=SC2046 # roots holds no spaces
   sh "$SCRIPTS/lint-sources.sh" $(roots "$OUT/$name/ws") > "$log" 2>&1; rc=$?
-  want="$OUT/$name/ws/$(head -n 1 "$c/expect")"
-  if [ $rc -eq 1 ] && grep -q 'opm-dialect-lint: 1 violation' "$log" && awk -v w="$want" 'index($0, w) == 1 { f = 1 } END { exit !f }' "$log"; then
-    ok "$name" "$(head -n 1 "$c/expect")"
+  n=$(grep -c . "$c/expect")
+  why=""
+  if [ "$n" -eq 0 ]; then
+    [ $rc -eq 0 ] || why="expected a clean tree (exit $rc)"
   else
-    bad "$name" "expected exit 1 and exactly: $(head -n 1 "$c/expect") (exit $rc)" "$log"
+    [ $rc -eq 1 ] || why="expected exit 1 (exit $rc)"
+    grep -q "^opm-dialect-lint: $n violation(s)$" "$log" || why="${why:+$why; }expected exactly $n violation(s)"
+    while IFS= read -r e; do
+      awk -v w="$OUT/$name/ws/$e" 'index($0, w) == 1 { f = 1 } END { exit !f }' "$log" || why="${why:+$why; }missing: $e"
+    done < "$c/expect"
   fi
+  if [ "$n" -eq 0 ]; then first=clean; else first=$(head -n 1 "$c/expect"); fi
+  if [ "$n" -gt 1 ]; then first="$first (+$((n - 1)) more)"; fi
+  if [ -z "$why" ]; then ok "$name" "$first"; else bad "$name" "$why" "$log"; fi
 done
 
 # ---------------------------------------------------------------------------
-# The fixture workspace builds green.
+# The fixture workspace builds green and renders the dialect.
 name=fixture
 copy_site "$name"
+build "$name" "$WS"; rc=$?
 log=$OUT/$name/log
-SITE_DIR=$OUT/$name/site OPM_VERSIONS=v1.0=$WS sh "$SCRIPTS/build-all.sh" > "$log" 2>&1; rc=$?
 P=$OUT/$name/site/public/v1.0
 if [ $rc -eq 0 ]; then ok "$name" "the fixture workspace builds green"; else bad "$name" "the fixture build failed (exit $rc)" "$log"; fi
 
@@ -139,12 +175,40 @@ if [ $rc -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Dialect: every alert type with a bold title line becomes a Hextra alert, and
+# the line after a CUE "" is tokenised, not swallowed by a string
+# (layouts/_markup/render-codeblock-cue.html).
+name=dialect
+copy_site "$name"; copy_ws "$name"; overlay "$name" "$TESTS/dialect"
+build "$name" "$OUT/$name/ws"; rc=$?
+f=$OUT/$name/site/public/v1.0/docs/start/dialect/index.html
+if [ $rc -ne 0 ]; then bad "$name" "the dialect build failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  for t in note tip important warning caution; do
+    T=$(printf '%s' "$t" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }')
+    [ "$(count "data-alert=\"?$t\"? class=\"?hextra-alert\"?" "$f")" = 1 ] || why="${why:+$why; }no $t alert"
+    grep -q "hextra-alert-content\"\{0,1\}><p><strong>$T title</strong></p><p>The $t body.</p>" "$f" || why="${why:+$why; }$t alert lost its bold title"
+  done
+  if grep -q '\[!' "$f"; then why="${why:+$why; }a literal [! is left"; fi
+  if [ -z "$why" ]; then ok "$name/alerts" "NOTE, TIP, IMPORTANT, WARNING and CAUTION render as Hextra alerts with their bold title"
+  else bad "$name/alerts" "$why"; fi
+  # Chroma marks a Name with class n: the field after each "" must be one.
+  cue=$(tr -d '\n' < "$f")
+  after='&#34;&#34;</span></span></span><span class="\{0,1\}line"\{0,1\}><span class="\{0,1\}cl"\{0,1\}>	<span class="\{0,1\}n"\{0,1\}>'
+  if printf '%s' "$cue" | grep -q "${after}replicas</span>" && printf '%s' "$cue" | grep -q "${after}name</span>" &&
+     ! grep -q OPMEMPTYSTRING "$f"; then
+    ok "$name/cue" "the line after a CUE \"\" is tokenised as a name; no placeholder is left"
+  else bad "$name/cue" "the CUE \"\" swallowed the lines after it"; fi
+fi
+
+# ---------------------------------------------------------------------------
 # Checks: each case's build fails the way its expect file says.
 for c in "$TESTS"/checks/*/; do
   c=${c%/}; name=checks/${c##*/}
-  copy_site "$name"; copy_ws "$name" "$c"
+  copy_site "$name"; copy_ws "$name"; overlay "$name" "$c"
+  build "$name" "$OUT/$name/ws" "$c/env"; rc=$?
   log=$OUT/$name/log
-  SITE_DIR=$OUT/$name/site OPM_VERSIONS=v1.0=$OUT/$name/ws sh "$SCRIPTS/build-all.sh" > "$log" 2>&1; rc=$?
   why=""
   [ $rc -ne 0 ] || why="the build passed"
   while IFS= read -r e; do
