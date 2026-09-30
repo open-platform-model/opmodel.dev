@@ -81,7 +81,7 @@ opmodel.dev/
 │   ├── versions.conf           # The site versions (see Site versions)
 │   ├── scripts/                # Build, checks, lint, dev server, vendoring, host-side runner and version resolver
 │   ├── tools/                  # Brand rasters: favicons.py, og-card.{py,html} (task brand:*)
-│   └── tests/                  # Fixture workspace, lint and check cases, dialect tree, browser QA, version tests
+│   └── tests/                  # Fixture workspace, lint and check cases, dialect tree, base-path build, browser QA, version tests
 ├── Taskfile.yml
 └── README.md
 ```
@@ -91,6 +91,7 @@ opmodel.dev/
 ```bash
 task serve             # Dev server on http://127.0.0.1:${SITE_PORT:-1313}/, live reload
 task build             # Lint, build and check the site into site/public/ (no network)
+task build OPM_BASE_URL=<url>  # The same, for another base URL (a path allowed); qa, shots and preview use the root
 task preview           # Serve the built site/public/ on SITE_PORT
 task lint:sources      # Lint the six source repos' docs/site pages
 task test:site         # Prove every check fails when it should (fixtures), then task versions:test

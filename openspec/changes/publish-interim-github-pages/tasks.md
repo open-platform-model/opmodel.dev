@@ -46,28 +46,28 @@ Gates, run on the whole worktree at every section end:
 
 ## 2. A base-path-safe build, its checks and the regression test (site assets, layouts, config, scripts, tests, Taskfile, AGENTS.md, README.md)
 
-- [ ] 2.1 The faults (design.md decision 2):
+- [x] 2.1 The faults (design.md decision 2):
   - `site/assets/css/opm/base.css`: both fonts load from `url("../fonts/...")`;
   - `site/static/site.webmanifest`: `"start_url": "./"`;
   - `site/scripts/build-all.sh`: the root `index.html` refresh and link point at `${BASE_PATH}/latest/`;
   - `site/config/_default/hugo.toml`: `images = ['images/og-default.png']`, with a comment that a leading slash makes Hugo's `absURL` drop the base path from `twitter:image` and `itemprop="image"`;
   - `site/assets/js/opm-pagefind.js`: `pagefind.options({ baseUrl: '{{ .Site.Home.RelPermalink }}', excerptLength: 20 })`, and one line in its header comment on why the base URL is explicit.
   - Verify: `grep -rnE "url\([\"']?/" <wt>/site/assets/css` prints nothing. After `OPM_SRC_WORKTREE=site-src task -d <wt> build`, `grep -o 'url=[^"]*' <wt>/site/public/index.html` prints `url=/latest/`, and `<wt>/site/public/v1.0/docs/index.html` names `https://opmodel.dev/images/og-default.png` for `og:image`, `twitter:image` and `itemprop` `image`.
-- [ ] 2.2 The crawl and the nav order (decision 3) in `site/scripts/check-pages.sh`, header comment included: the base-path strip and escape rule, check 11's attribute set with `srcset` split into entries, `url()` in HTML and CSS (relative ones resolved, printed as site-root paths), `/latest/` looked up as written (drop the `_redirects` mapping), and, when `BASE_PATH` is set, the absolute-URL rule over every text output, compared with awk `index()`.
+- [x] 2.2 The crawl and the nav order (decision 3) in `site/scripts/check-pages.sh`, header comment included: the base-path strip and escape rule, check 11's attribute set with `srcset` split into entries, `url()` in HTML and CSS (relative ones resolved, printed as site-root paths), `/latest/` looked up as written (drop the `_redirects` mapping), and, when `BASE_PATH` is set, the absolute-URL rule over every text output, compared with awk `index()`.
   - Extend `site/tests/checks/link-crawl` with `site/assets/css/opm/zz-dead-url.css` and its two expect lines, using the `missing-from-css` names from decision 6.
   - Add `site/tests/checks/base-path-escape` (`env`, a site-owned page, `expect`), as decision 6 describes.
   - Verify: `OPM_SRC_WORKTREE=site-src task -d <wt> build` is green: the wider crawl finds nothing in the default build. If it fails, stop and report the URLs: the crawl must not change the default build's verdict.
   - Verify: `task -d <wt> test:site` reports both cases failing as their expect files say, and every other case as before.
-- [ ] 2.3 Check 11 (decision 4) in `site/scripts/build-all.sh`: `$BASE_URL` compared as a literal prefix (awk `index()`) in both the tag and the CSS pipelines, never inside a regex. Add `site/tests/checks/base-url-form` and `site/tests/checks/supply-base-url`.
+- [x] 2.3 Check 11 (decision 4) in `site/scripts/build-all.sh`: `$BASE_URL` compared as a literal prefix (awk `index()`) in both the tag and the CSS pipelines, never inside a regex. Add `site/tests/checks/base-url-form` and `site/tests/checks/supply-base-url`.
   - Verify: `task -d <wt> test:site` reports `supply-lookalike`, `supply-srcset`, `cdn-url`, `base-url-form` and `supply-base-url` failing as expected.
-- [ ] 2.4 `noindex` (decision 5): `params.opm.indexedHost` in `site/config/_default/hugo.toml`, and the rule in `site/layouts/_partials/custom/head-end.html`.
+- [x] 2.4 `noindex` (decision 5): `params.opm.indexedHost` in `site/config/_default/hugo.toml`, and the rule in `site/layouts/_partials/custom/head-end.html`.
   - Verify on the default build: the robots meta tags of `<wt>/site/public/v1.0/docs/index.html` say only `index, follow`.
   - Verify: `git -C <wt> diff --stat -- site/overrides.sha256` is empty, because `head-end.html` is a hook, and the build's drift guard is green.
-- [ ] 2.5 QA stays on the root build (decision 7).
+- [x] 2.5 QA stays on the root build (decision 7).
   - `Taskfile.yml`: `qa` and `shots` call `build` with `vars: {OPM_BASE_URL: ''}`. The `build` command's inline assignment (task 1.3) carries that past an exported value. Never use an `env:` form for this: it loses to the exported variable.
   - `site/scripts/test-site.sh`: unset `OPM_BASE_URL` at its top.
   - Verify: `OPM_BASE_URL=https://pages.example/opm/docs/ OPM_SRC_WORKTREE=site-src task -d <wt> --dry qa` prints `OPM_BASE_URL='' sh site/scripts/run-in-image.sh build`, and so does the same for `shots`. Task 2.10 then proves it with a real `task qa`. If either fails, stop and report.
-- [ ] 2.6 The regression test (decision 6).
+- [x] 2.6 The regression test (decision 6).
   - Add `site/tests/subpath/env`.
   - Add the `subpath` block, with every assertion in decision 6's table, to `site/scripts/test-site.sh`, and the no-`noindex` assertion to its `fixture` block. Document `tests/subpath/` in its header.
   - Verify: `task -d <wt> test:site` passes, with every `subpath` case `ok`.
@@ -76,9 +76,9 @@ Gates, run on the whole worktree at every section end:
     - drop `${BASE_PATH}` from the root `index.html`: `subpath/root` fails;
     - put the leading slash back in `params.images`: the `subpath` case fails at the crawl's absolute-URL rule, naming `https://pages.example/images/og-default.png`.
     After the three restores, `test:site` is green.
-- [ ] 2.7 Findings 1 and 4, again. Run `OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build`. Verify: it is green. Repeat task 1.4's scans: they find nothing outside `/opmodel.dev/`, the docs page carries the `noindex` tag, and its three image URLs are `https://open-platform-model.github.io/opmodel.dev/images/og-default.png`. Add the time and file count to finding 4. Then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` again.
-- [ ] 2.8 Finding 3, second half: the production output. Copy `<scratch>/public-a` and `<wt>/site/public` to scratch copies. In both, replace the fingerprints and `integrity` values of the OPM stylesheet (`opm.min.<hex>.css`) and of the Pagefind adapter script (the `<version>.<lang>.pagefind` script, whatever finding 3 shows its published name to be) with fixed placeholders, and rename the two files to match. Then `diff -r` the copies. Verify: they differ only in the two font `url()` values of the stylesheet, the adapter's `baseUrl` option, and `site.webmanifest`'s `start_url`, beyond finding 2's noise. The `og:image`, `twitter:image` and `itemprop` `image` values do not change. Anything else: stop and report.
-- [ ] 2.9 Durable decisions (design.md, "Durable decisions"):
+- [x] 2.7 Findings 1 and 4, again. Run `OPM_SRC_WORKTREE=site-src OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task -d <wt> build`. Verify: it is green. Repeat task 1.4's scans: they find nothing outside `/opmodel.dev/`, the docs page carries the `noindex` tag, and its three image URLs are `https://open-platform-model.github.io/opmodel.dev/images/og-default.png`. Add the time and file count to finding 4. Then run `OPM_SRC_WORKTREE=site-src task -d <wt> build` again.
+- [x] 2.8 Finding 3, second half: the production output. Copy `<scratch>/public-a` and `<wt>/site/public` to scratch copies. In both, replace the fingerprints and `integrity` values of the OPM stylesheet (`opm.min.<hex>.css`) and of the Pagefind adapter script (the `<version>.<lang>.pagefind` script, whatever finding 3 shows its published name to be) with fixed placeholders, and rename the two files to match. Then `diff -r` the copies. Verify: they differ only in the two font `url()` values of the stylesheet, the adapter's `baseUrl` option, and `site.webmanifest`'s `start_url`, beyond finding 2's noise. The `og:image`, `twitter:image` and `itemprop` `image` values do not change. Anything else: stop and report.
+- [x] 2.9 Durable decisions (design.md, "Durable decisions"):
   - `AGENTS.md`:
     - "Durable decisions": the base-path and indexing entries;
     - "Environment Notes": `OPM_BASE_URL`, and that QA, shots and preview serve the root;
@@ -87,7 +87,7 @@ Gates, run on the whole worktree at every section end:
     - one line in the `## Tasks` block, `task build OPM_BASE_URL=<url>`;
     - the `site/tests/` line of "Directory Structure": add the base-path build.
   - Verify: `grep -n -e OPM_BASE_URL -e indexedHost <wt>/AGENTS.md` hits each entry, and `grep -n 'github.io' <wt>/AGENTS.md` prints nothing (design.md decision 11).
-- [ ] 2.10 Gates.
+- [x] 2.10 Gates.
   - `task -d <wt> check` green.
   - `OPM_SRC_WORKTREE=site-src task -d <wt> ci` green.
   - `OPM_BASE_URL=https://pages.example/opm/docs/ OPM_SRC_WORKTREE=site-src task -d <wt> qa` green, with the variable exported. Then `grep -o 'url=[^"]*' <wt>/site/public/index.html` prints `url=/latest/`: QA built the default base. Read the docs-page screenshots in `site/.shots/`: the text is set in Geist and Geist Mono, not a system fallback.

@@ -1,0 +1,4 @@
++ LINK FAIL
++   /v1.0/docs/start/ (in v1.0/docs/concepts/escape/index.html): outside the base path /opm/docs
++ https://pages.example/opm/elsewhere/ (in
++ outside the base URL https://pages.example/opm/docs/

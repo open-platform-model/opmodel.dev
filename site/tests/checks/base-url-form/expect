@@ -1,0 +1,2 @@
++ build-all: the base URL must be an absolute http(s) URL ending in / (OPM_BASE_URL, else hugo.toml's baseURL): 'https://pages.example/opm/docs'
+- == hugo build

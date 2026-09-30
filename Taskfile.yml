@@ -111,10 +111,10 @@ tasks:
 
   # OPM_BASE_URL (the site's base URL, which may carry a path) reaches the
   # build through an assignment in the command, never through the env map: in
-  # Task 3.52.0 an env entry loses to an exported variable, so a caller that
-  # passes '' could not force the default. The template var comes from a call
-  # var, a CLI var (task build OPM_BASE_URL=<url>) or the environment, in that
-  # order; empty means hugo.toml's baseURL.
+  # Task 3.52.0 an env entry loses to an exported variable, so qa and shots,
+  # which pass '', could not force the default. The template var comes from a
+  # call var, a CLI var (task build OPM_BASE_URL=<url>) or the environment, in
+  # that order; empty means hugo.toml's baseURL.
   build:
     desc: Build the site into site/public/ in Docker, with no network (lint, checks, hugo)
     deps: [versions:prepare]
@@ -168,14 +168,20 @@ tasks:
     desc: Build the site, then screenshot every figure page and the extras in six variants into site/.shots/
     deps: [qa:image]
     cmds:
+      # The browser checks serve site/public/ at the root, so QA always builds
+      # the default base URL, whatever OPM_BASE_URL the caller exported.
       - task: build
+        vars: {OPM_BASE_URL: ''}
       - sh site/scripts/run-in-image.sh shots
 
   qa:
     desc: Build the site, then the screenshots, the axe accessibility and the search smoke tests (no network, no port)
     deps: [qa:image]
     cmds:
+      # The browser checks serve site/public/ at the root, so QA always builds
+      # the default base URL, whatever OPM_BASE_URL the caller exported.
       - task: build
+        vars: {OPM_BASE_URL: ''}
       - sh site/scripts/run-in-image.sh qa
 
   # The brand rasters, rendered by Chromium in the QA image with the flags

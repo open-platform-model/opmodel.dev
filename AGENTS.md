@@ -108,6 +108,8 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 
 - **Stack.** Hugo + Hextra v0.13.0, neutral skin, chosen 2026-09-30; the evidence is in the workspace `research/docs-site-stacks/hugo-themes/`.
 - **URL layout.** Every version lives under `/<version>/`. `/latest/` is the default version and `/` goes to `/latest/` (`public/_redirects`, plus meta-refresh stubs for hosts that ignore it). `/reference-archive/` is reserved. Nothing globs `v*/` or "every top-level directory": the version list is explicit. Today there is one version, `v1.0` (beta), built from each source repo's current checkout.
+- **Base path.** The site builds under any base URL, a path included (`https://example.org/docs/`). Every URL the build writes comes from Hugo's URL functions or is relative, CSS `url()` included, and `params.images` carries no leading slash (with one, Hugo's `absURL` drops the path). `OPM_BASE_URL` overrides `hugo.toml`'s `baseURL` for one build; `hugo.toml` keeps `https://opmodel.dev/`. The link crawl (`check-pages.sh`) fails a root-relative URL outside the base path, in HTML attributes, inline styles and CSS, and, under a path, an absolute URL on the base URL's host outside the base URL, in every published text file. A `/latest/` URL in the output must exist as written, because some hosts ignore `_redirects`. `task test:site` builds the fixture workspace under a two-segment path (`site/tests/subpath/`).
+- **Indexing.** Only `params.opm.indexedHost` (`opmodel.dev`) is indexed. A build for any other host carries a robots `noindex, nofollow` meta tag on every HTML page (`layouts/_partials/custom/head-end.html`), and a missing param fails the build. The Markdown twins, `llms.txt`, `sitemap.xml` and `build-stamp.json` cannot carry the tag, so on a host that sends no headers they stay out of search results only because nothing indexable links to them.
 - **Reserved sections.** `docs/reference/cli/` and `docs/reference/definitions/` are site-owned: no source page may publish there (the build fails), and generated content goes to `site/.gen/<version>/`, which the build mounts per version. For now `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`.
 
 ## Site versions
@@ -158,7 +160,7 @@ Read these on entry:
 │   ├── themes/hextra/     # Vendored Hextra v0.13.0 (+ hextra.COMMIT)
 │   ├── scripts/           # run-in-image.sh, resolve-versions.sh, materialise.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
 │   ├── tools/             # Brand rasters: favicons.py, og-card.{py,html} (task brand:*)
-│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, browser/ (QA image and scripts), versions/ (resolver and two-version tests)
+│   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, subpath/ (the fixture's base-path build), browser/ (QA image and scripts), versions/ (resolver and two-version tests)
 │   └── data/schema/       # Generated JSON (gitignored)
 ├── Taskfile.yml           # Build automation
 ├── go.mod
@@ -170,6 +172,7 @@ Read these on entry:
 - **Go**: 1.25+ (see `go.mod`) for the `docgen` tool.
 - **Docker**: builds and runs the site's images; Hugo, Pagefind and the browsers live only there.
 - **Source repositories**: the build reads `<repo>/docs/site/` from `OPM_WS` (default: the parent of the main checkout, found through git, so it is right inside a worktree). `OPM_SRC_WORKTREE=<name>` reads `<repo>/.claude/worktrees/<name>` instead, and `OPM_SRC_<REPO>` (`OPM_SRC_CATALOG_OPM`, `OPM_SRC_OPM_OPERATOR`, ...) points at one repo. Every root is checked before a container starts. Each root is mounted read-only at `/src/<repo>`, the repo at `/work/repo`.
+- **Base URL**: `OPM_BASE_URL=<url> task build`, or `task build OPM_BASE_URL=<url>`, builds for another base URL, which may carry a path; it must be absolute and end in `/`. Only `build` reads it, and only through the Taskfile's inline assignment (an `env:` entry would lose to an exported variable). The browser checks serve `site/public/` at the root, so `task qa` and `task shots` always build the default base URL, whatever the caller exported, and `task preview` serves at the root too: preview a default build.
 - **Git dates** are computed on the host by `task versions:prepare` (`site/scripts/materialise.sh`), because a worktree's `.git` file points at a host path the container does not mount; so a build from worktrees has every date too. Only an explicit `OPM_VERSIONS` build (fixtures) runs `git log` inside the container, where a worktree has no dates. `OPM_REQUIRE_DATES=1` (CI) makes a missing date fail the build.
 
 ## Build And Dev Commands

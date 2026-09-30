@@ -11,6 +11,8 @@
 # /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
+#   site/tests/subpath/env                     the base URL the fixture workspace also
+#                                              builds under (a two-segment path)
 #   site/tests/lint/<case>/                    lint cases
 #   site/tests/checks/<case>/                  build-check cases
 #   site/tests/dialect/                        a tree whose build must render the dialect
@@ -34,6 +36,9 @@ OUT=$SITE/.check/tests
 REPOS="opm core catalog_opm cli library opm-operator"
 # Only the git-dates case turns this on; CI may export it for real builds.
 export OPM_REQUIRE_DATES=0
+# A case sets a base URL only through its own env file; CI's Pages build
+# exports one for real builds.
+unset OPM_BASE_URL
 pass=0; fail=0
 
 ok() { echo "ok   $1: $2"; pass=$((pass + 1)); }
@@ -88,6 +93,13 @@ count() { grep -oE "$1" "$2" 2>/dev/null | wc -l | tr -d ' '; }
 
 # line_of URL FILE: the line number of URL in a nav-order file, or 0.
 line_of() { awk -v u="$1" '$0 == u { print NR; f = 1; exit } END { if (!f) print 0 }' "$2"; }
+
+# dq FILE: the file without double quotes, so an assertion reads the same
+# whether the minifier kept an attribute's quotes or not.
+dq() { tr -d '"' < "$1"; }
+
+# refresh_of FILE: the URL a meta-refresh page sends to.
+refresh_of() { grep -oE 'url=[^"> ]+' "$1" | head -n 1 | cut -c5-; }
 
 rm -rf "$OUT"
 mkdir -p "$OUT"
@@ -222,6 +234,81 @@ $mdbad"; fi
   else bad "markdown/figure-titles" "the .md output names the figures differently from the page:
      page: $(printf '%s' "$page_titles" | tr '\n' '|')
      .md:  $(printf '%s' "$md_titles" | tr '\n' '|')"; fi
+
+  # The production host is indexed, and the share image keeps its production
+  # URL (params.images carries no leading slash).
+  if ! dq "$q" | grep -qF 'name=robots content=noindex' &&
+     dq "$q" | grep -qF 'name=twitter:image content=https://opmodel.dev/images/og-default.png'; then
+    ok "indexing" "the quickstart page carries no robots noindex tag; twitter:image is https://opmodel.dev/images/og-default.png"
+  else bad "indexing" "the default build's quickstart page has a noindex tag, or its twitter:image moved"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# The fixture workspace under a two-segment base path (tests/subpath/env): the
+# build is green with the crawl's base-path rules, and every URL a reader, a
+# crawler or the search palette meets carries /opm/docs/.
+name=subpath
+copy_site "$name"
+build "$name" "$WS" "$TESTS/subpath/env"; rc=$?
+log=$OUT/$name/log
+R=$OUT/$name/site/public
+P=$R/v1.0
+B=https://pages.example/opm/docs
+if [ $rc -eq 0 ]; then ok "$name" "the fixture workspace builds green under $B/"; else bad "$name" "the subpath build failed (exit $rc)" "$log"; fi
+
+if [ $rc -eq 0 ]; then
+  if [ "$(refresh_of "$R/index.html")" = /opm/docs/latest/ ] && dq "$R/index.html" | grep -qF 'href=/opm/docs/latest/>' &&
+     grep -qxF '/ /latest/ 302' "$R/_redirects"; then
+    ok "$name/root" "the root index.html refreshes and links to /opm/docs/latest/; _redirects still sends / to /latest/"
+  else bad "$name/root" "the root index.html does not lead to /opm/docs/latest/, or _redirects changed" "$R/index.html"; fi
+
+  if [ "$(refresh_of "$R/latest/index.html")" = /opm/docs/v1.0/ ] &&
+     [ "$(refresh_of "$R/latest/docs/start/quickstart/index.html")" = /opm/docs/v1.0/docs/start/quickstart/ ]; then
+    ok "$name/latest" "the /latest/ stubs refresh to /opm/docs/v1.0/..."
+  else bad "$name/latest" "a /latest/ stub does not refresh into /opm/docs/v1.0/"; fi
+
+  if dq "$R/404.html" | grep -qF 'href=/opm/docs/v1.0/docs/>Go to the docs'; then
+    ok "$name/404" "the root 404.html leads to /opm/docs/v1.0/docs/"
+  else bad "$name/404" "the root 404.html's Go to the docs link is not /opm/docs/v1.0/docs/"; fi
+
+  adapter=$(find "$R" -maxdepth 1 -name '*.pagefind.*js' | head -n 1)
+  if [ -n "$adapter" ] && grep -qF '/opm/docs/v1.0/pagefind/' "$adapter" && dq "$adapter" | grep -qF 'baseUrl:/opm/docs/v1.0/'; then
+    ok "$name/search" "the Pagefind adapter loads /opm/docs/v1.0/pagefind/ and passes baseUrl /opm/docs/v1.0/"
+  else bad "$name/search" "the Pagefind adapter (${adapter:-not found}) misses the bundle path or baseUrl under /opm/docs/"; fi
+
+  cssroot=$(find "$R" -name '*.css' -exec grep -lE "url\([\"']?/" {} + 2>/dev/null)
+  if [ -z "$cssroot" ] && grep -qF '"start_url": "./"' "$R/site.webmanifest" && ! grep -qE '":[[:space:]]*"/' "$R/site.webmanifest"; then
+    ok "$name/assets" "no CSS url() is root-relative; site.webmanifest's start_url is ./ and no value starts with /"
+  else bad "$name/assets" "a root-relative asset URL: ${cssroot:-site.webmanifest}"; fi
+
+  jsroot=$(find "$R" -name '*.js' ! -path '*/pagefind/*' -exec grep -lE "['\"\`]/(v[0-9]|latest|docs|pagefind|css|js|fonts|images)" {} + 2>/dev/null)
+  if [ -z "$jsroot" ]; then ok "$name/js" "no published script holds a root-path string literal"
+  else bad "$name/js" "root-path string literal in: $jsroot"; fi
+
+  q=$P/docs/start/quickstart/index.html
+  why=""
+  dq "$q" | grep -qF "rel=canonical href=$B/v1.0/docs/start/quickstart/" || why="canonical"
+  dq "$q" | grep -qF "property=og:url content=$B/v1.0/docs/start/quickstart/" || why="${why:+$why, }og:url"
+  dq "$q" | grep -qF "property=og:image content=$B/images/og-default.png" || why="${why:+$why, }og:image"
+  dq "$q" | grep -qF "name=twitter:image content=$B/images/og-default.png" || why="${why:+$why, }twitter:image"
+  dq "$q" | grep -qF "itemprop=image content=$B/images/og-default.png" || why="${why:+$why, }itemprop image"
+  grep -qxF "Site: $B/" "$P/llms.txt" || why="${why:+$why, }llms.txt Site"
+  if [ -z "$why" ]; then ok "$name/absolute" "canonical, og:url, og:image, twitter:image, itemprop image and llms.txt carry $B/"
+  else bad "$name/absolute" "not under $B/: $why"; fi
+
+  if grep -qF "]($B/v1.0/docs/concepts/fixture-concept/#why)" "$P/docs/start/quickstart.md"; then
+    ok "$name/markdown" "quickstart.md links to $B/v1.0/docs/concepts/fixture-concept/#why"
+  else bad "$name/markdown" "quickstart.md does not link under $B/v1.0/"; fi
+
+  pages=$(find "$P" -name index.html ! -path "$P/pagefind/*" | sort)
+  unmarked=$(printf '%s\n' "$pages" | while IFS= read -r f; do dq "$f" | grep -qF 'name=robots content=noindex, nofollow' || echo "$f"; done)
+  if [ -n "$pages" ] && [ -z "$unmarked" ]; then
+    ok "$name/noindex" "all $(printf '%s\n' "$pages" | wc -l | tr -d ' ') version pages carry the robots noindex tag"
+  else bad "$name/noindex" "version pages without the robots noindex tag: $(printf '%s' "$unmarked" | head -n 3 | tr '\n' ' ')"; fi
+
+  if cmp -s "$OUT/$name/site/.check/v1.0/nav-order.txt" "$OUT/fixture/site/.check/v1.0/nav-order.txt"; then
+    ok "$name/nav" "nav-order.txt holds the same site-root paths as the fixture build"
+  else bad "$name/nav" "nav-order.txt differs from the fixture build's" "$OUT/$name/site/.check/v1.0/nav-order.txt"; fi
 fi
 
 # ---------------------------------------------------------------------------

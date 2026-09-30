@@ -7,16 +7,18 @@
  * precompiled and purged, so OPM markup is styled with opm-* classes.
  */
 
-/* Geist and Geist Mono (OFL-1.1), npm geist 1.4.2, vendored in static/fonts. */
+/* Geist and Geist Mono (OFL-1.1), npm geist 1.4.2, vendored in static/fonts.
+   The URLs are relative to the published stylesheet (css/opm.min.<hash>.css),
+   so the fonts load under any base path; Hugo never rewrites a CSS url(). */
 @font-face {
   font-family: "Geist";
-  src: url("/fonts/Geist-Variable.woff2") format("woff2");
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
   font-weight: 100 900;
   font-display: swap;
 }
 @font-face {
   font-family: "Geist Mono";
-  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
   font-weight: 100 900;
   font-display: swap;
 }

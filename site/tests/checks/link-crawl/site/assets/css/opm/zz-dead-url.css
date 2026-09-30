@@ -1,0 +1,4 @@
+/* A site-owned stylesheet whose url() values name nothing: one root-relative,
+   one relative (printed resolved, as a site-root path). */
+.opm-dead-url-a { background-image: url("/fonts/missing-from-css.woff2"); }
+.opm-dead-url-b { background-image: url("../images/missing-from-css.png"); }
