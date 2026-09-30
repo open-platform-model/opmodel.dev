@@ -139,6 +139,12 @@ A figure is inline SVG drawn by hand in the site engine.
 
 See the main [OPM documentation](https://github.com/open-platform-model) for general contribution guidelines.
 
+## Page design
+
+Rules for page authors and for anyone changing the site's layouts or styles.
+
+- **The description is shown three times.** A page's front-matter `description` is its lead paragraph under the title, its card text on its section's index page, and its sub-line in search results. Write it as one plain sentence that stands alone: no Markdown, no link, and nothing that only makes sense after the title or next to the body.
+
 ## License
 
 Apache 2.0

@@ -14,13 +14,13 @@ Never build without `OPM_SRC_WORKTREE=site-src`. If you need `task serve` or `ta
 
 ## 1. Spike, then the page lead, lighter headings, quieter inline code and callouts (fixes 1, 2, 7)
 
-- [ ] 1.1 Preconditions. Check four things; if any fails, stop with nothing edited and report the blocker.
+- [x] 1.1 Preconditions. Check four things; if any fails, stop with nothing edited and report the blocker.
   - A is on `origin/main`: `site/themes/hextra/` exists and `site/themes/hextra.COMMIT` names `adf732f8d97cb8e149d4aba232a449d41cd9e38c`.
   - `task -d <wt> --list` shows the final names `build`, `ci` and `qa`, not only `hugo:*`.
   - `WS/<repo>/.claude/worktrees/site-src/docs/site` exists for opm, core, catalog_opm, cli, library and opm-operator.
   - A's archived `design.md` is at `<wt>/openspec/changes/archive/*-port-site-to-hugo-hextra/design.md`.
-- [ ] 1.2 Baseline. On the untouched branch, run ci and qa; verify both are green. Take the before set (Gates), with its six `site-src` SHAs.
-- [ ] 1.3 Spike: check SP1 to SP8, SP10 and SP11 of design.md § Research & Decisions, "Spike", on the built tree, and write one line per item under that topic's **Explored** (confirmed, or what differs). Evidence per item:
+- [x] 1.2 Baseline. On the untouched branch, run ci and qa; verify both are green. Take the before set (Gates), with its six `site-src` SHAs.
+- [x] 1.3 Spike: check SP1 to SP8, SP10 and SP11 of design.md § Research & Decisions, "Spike", on the built tree, and write one line per item under that topic's **Explored** (confirmed, or what differs). Evidence per item:
   - SP1: `ls site/assets/css/opm/`.
   - SP2: `site/public/v1.0/docs/start/quickstart/index.html`, where the badge markup sits inside `main#content > .content`; and whether the landing's layout (`site/themes/hextra/layouts/hextra-home.html`, or A's copy under `site/layouts/`) calls `custom/content-begin.html`.
   - SP3: the same page's two alerts; `grep -o -- '--hx-color-[a-z]*-[0-9]*:' site/themes/hextra/assets/css/compiled/main.css | sort -u` for every variable design.md names.
@@ -33,14 +33,14 @@ Never build without `OPM_SRC_WORKTREE=site-src`. If you need `task serve` or `ta
   - SP11: `site/scripts/check-overrides.sh`: does `--update` re-pin the paths already listed in `site/overrides.sha256`, or a fixed list in the script? Read only; never run `--update`.
 
   SP9 is checked by the test in 4.3. SP10 and SP11 never stop the change: a missing landing entry is added in 5.3, and a fixed `--update` list goes to the report's `follow-ups` (this change never edits `check-overrides.sh`). Where a finding differs only in a class or file name, adapt the decision in design.md. Where it changes a decision, or needs another change's files, stop and report (orchestration.md section 7, step 5).
-- [ ] 1.4 In `layouts/_partials/custom/content-begin.html`, print the lead first, before A's type badge, guarded by `if not .IsHome` (design.md Decision 1). Verify in the built HTML:
+- [x] 1.4 In `layouts/_partials/custom/content-begin.html`, print the lead first, before A's type badge, guarded by `if not .IsHome` (design.md Decision 1). Verify in the built HTML:
   - `site/public/v1.0/docs/start/quickstart/index.html` holds `<p class="opm-lead" data-pagefind-meta="description">` with the quickstart's description, inside `.content`, before the badge;
   - the site-owned overview `site/public/v1.0/docs/operating/index.html` holds one too;
   - the landing `site/public/v1.0/index.html` holds none, although its front matter has a `description`.
-- [ ] 1.5 In `assets/css/opm/typography.css`, add the `.opm-lead` rules and the h1-h3 scale, with its `not-prose` guard (Decisions 1 and 2). Create the file if SP1 found it missing.
-- [ ] 1.6 In `assets/css/opm/typography.css`, add the inline-code and alert rules (Decision 3). Every role colour must be a variable SP3 found defined, or a literal token.
-- [ ] 1.7 In `README.md`, add a `## Page design` heading holding durable decision 1: the description is the page lead, the card text and the search sub-line, so write it as one plain sentence that stands alone.
-- [ ] 1.8 Run ci and qa; both must be green. Read these PNGs of `/v1.0/docs/start/quickstart/` in desktop light, dark, both site/OS mismatches, and phone light and dark:
+- [x] 1.5 In `assets/css/opm/typography.css`, add the `.opm-lead` rules and the h1-h3 scale, with its `not-prose` guard (Decisions 1 and 2). Create the file if SP1 found it missing.
+- [x] 1.6 In `assets/css/opm/typography.css`, add the inline-code and alert rules (Decision 3). Every role colour must be a variable SP3 found defined, or a literal token.
+- [x] 1.7 In `README.md`, add a `## Page design` heading holding durable decision 1: the description is the page lead, the card text and the search sub-line, so write it as one plain sentence that stands alone.
+- [x] 1.8 Run ci and qa; both must be green. Read these PNGs of `/v1.0/docs/start/quickstart/` in desktop light, dark, both site/OS mismatches, and phone light and dark:
   - the lead sits under the title;
   - h1 is at about 36 px, and h2 is lighter and has no rule;
   - inline code has no border;
