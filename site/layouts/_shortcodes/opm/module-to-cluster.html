@@ -1,5 +1,5 @@
 {{- /* Figure: from module to running objects (Start here overview, figure 1).
-       Port of the Astro site's ModuleToCluster.astro; the SVG body is verbatim in
+       The landing's overview drawing with its detail put back; the SVG body is
        _partials/opm/figures/module-to-cluster.html. */ -}}
-{{- $claim := `A module never names Kubernetes objects. An instance of it is rendered against a platform, whose transformers decide which objects each component becomes. The opm CLI or the OPM operator applies them and records what it applied.` -}}
-{{- partial "opm/figure.html" (dict "id" "mtc" "title" "From module to running objects" "claim" $claim "width" 360 "height" 622 "body" (partial "opm/figures/module-to-cluster.html" .)) -}}
+{{- $claim := `A module never names Kubernetes objects. The deployer gives an instance of it a name, a namespace and values, which are unified with the module’s configuration schema. The instance is rendered against a platform whose catalogs supply the transformers. The module’s component web carries the backup trait, so the render also uses the Backup transformer, which a provider catalog supplies. The transformers emit one set of objects: a Deployment, a Service and a backup object. The opm CLI or the OPM operator applies the set to the cluster and records it in a ModuleInstance. Kubernetes’ built-in controllers watch the Deployment and the Service, create the Pods and route traffic. A backup controller watches the backup object and copies the volumes.` -}}
+{{- partial "opm/figure.html" (dict "id" "mtc" "title" "From module to running objects" "claim" $claim "width" 360 "height" 680 "body" (partial "opm/figures/module-to-cluster.html" .)) -}}

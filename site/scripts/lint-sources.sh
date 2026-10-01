@@ -8,7 +8,7 @@
 # Every violation prints as "<file>:<line>: <message>".
 set -u
 export LC_ALL=C
-FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm"
+FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm one-trait-any-provider"
 
 [ $# -ge 1 ] || { echo "usage: $0 DIR [DIR ...]" >&2; exit 2; }
 
