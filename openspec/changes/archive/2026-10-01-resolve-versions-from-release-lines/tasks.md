@@ -147,12 +147,12 @@ Gates, run on the whole worktree at every section end, as each section's last ta
 
 ## 4. Verify, report and archive (orchestration.md section 7, steps 6 and 7)
 
-- [ ] 4.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `resolve-versions-from-release-lines`, running each `openspec` command as `cd <wt> && openspec ...`, never through the root `/opsx:verify` router. Also verify:
+- [x] 4.1 Read `<wt>/.claude/skills/openspec-verify-change/SKILL.md` and follow it for `resolve-versions-from-release-lines`, running each `openspec` command as `cd <wt> && openspec ...`, never through the root `/opsx:verify` router. Also verify:
   - `git -C <wt> diff --stat origin/main` touches only the proposal's "Touches" list;
   - `find <wt>/openspec/changes -name enhancement.yaml` prints nothing;
   - every durable decision in design.md marked for `AGENTS.md` or `README.md` is there (tasks 3.5 and 3.6);
   - `git -C <wt> diff origin/main -- site/layouts | grep -n '^+.*@'` prints nothing, and a read of every `how` and error string added to `resolve-versions.sh` finds no `@` (a branch ref prints as `main f5c4463`).
-- [ ] 4.2 Report to the supervisor with the block in orchestration.md section 7, step 6:
+- [x] 4.2 Report to the supervisor with the block in orchestration.md section 7, step 6:
   - `sections: 3/3`, counting the implementation sections;
   - `surface` is design.md's "Interface" subsection;
   - `deviations` is whatever the spike changed;
@@ -161,4 +161,4 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - `questions` lists design.md's Open Questions that are still open.
 
   Then STOP and wait.
-- [ ] 4.3 Only on the supervisor's go: tick this box, then run `cd <wt> && openspec archive resolve-versions-from-release-lines --yes --skip-specs`, then `cd <wt> && openspec validate --all --strict --no-interactive`. When both are green, stage `openspec/changes/archive/<date>-resolve-versions-from-release-lines` and the removed `openspec/changes/resolve-versions-from-release-lines` by explicit path, and commit `chore(openspec): archive resolve-versions-from-release-lines`. Pushing and the pull request follow orchestration.md section 7, step 7, outside this file.
+- [x] 4.3 Only on the supervisor's go: tick this box, then run `cd <wt> && openspec archive resolve-versions-from-release-lines --yes --skip-specs`, then `cd <wt> && openspec validate --all --strict --no-interactive`. When both are green, stage `openspec/changes/archive/<date>-resolve-versions-from-release-lines` and the removed `openspec/changes/resolve-versions-from-release-lines` by explicit path, and commit `chore(openspec): archive resolve-versions-from-release-lines`. Pushing and the pull request follow orchestration.md section 7, step 7, outside this file.
