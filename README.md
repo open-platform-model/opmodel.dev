@@ -269,6 +269,8 @@ Every figure keeps these rules:
 
 A new figure name is a change to the page dialect. Add it to the workspace dialect contract first, then in the same change to `FIGURES` in `site/scripts/lint-sources.sh` (which stays byte-identical to the contract) and to the list of figure names in the workspace `STYLE.md` ("Site Pages"). Add its title, exactly as its shortcode passes it to the frame, to `site/layouts/_partials/opm/figure-titles.html`, which the Markdown outputs print where the page draws the figure; `task test:site` fails when the two differ. Pages then use it as `{{< opm/<name> >}}` on a line of its own.
 
+One figure is site-owned and outside the dialect: the landing's `opm/landing-overview`, which only `site/content/_index.md` calls. It is not in `FIGURES` or `figure-titles.html` (the home page has no Markdown output). It is 372 wide, so its edges meet the hero's column and its labels stay at 9 px on a phone, and it passes `caption` set to `false`, which leaves the visible caption out while the claim stays the SVG's accessible label. A dialect figure always shows its caption and never passes `caption`.
+
 To check a figure, run `task qa` and read its PNGs in `site/.shots/<page>/` in all six variants: light, dark, both theme and OS mismatches, and phone light and dark.
 
 See the main [OPM documentation](https://github.com/open-platform-model) for general contribution guidelines.

@@ -3,7 +3,7 @@ title: Open Platform Model
 description: A declarative platform model for describing applications and their infrastructure requirements.
 layout: hextra-home
 # The landing, in every version: the hero (text and two actions on the left,
-# the ModuleToCluster figure on the right from 64rem, after the actions on a
+# the landing-overview figure on the right from 64rem, after the actions on a
 # phone) and three cards, with the text of the Starlight splash it replaces.
 ---
 
@@ -38,7 +38,7 @@ layout: hextra-home
 
 <div class="opm-hero-figure">
 
-{{< opm/module-to-cluster >}}
+{{< opm/landing-overview >}}
 
 </div>
 

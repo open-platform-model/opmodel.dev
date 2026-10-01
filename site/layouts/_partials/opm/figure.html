@@ -3,7 +3,10 @@
        its accessible label, and an arrowhead marker named after the figure, so
        two figures on one page never share an id. Args: id, title, claim,
        width, height, body (the SVG elements, drawn with the opm-fig classes;
-       reference the arrowhead as marker-end="url(#<id>-arrow)"). */ -}}
+       reference the arrowhead as marker-end="url(#<id>-arrow)"), and the
+       optional caption: false leaves the visible caption out (the landing's
+       figure, beside the hero text), while the claim stays the SVG's
+       accessible label. Page-dialect figures never pass it. */ -}}
 <figure class="opm-fig">
   <svg viewBox="0 0 {{ .width }} {{ .height }}" role="img" aria-label="{{ .claim }}">
     <title>{{ .title }}</title>
@@ -14,5 +17,7 @@
     </defs>
     {{ .body }}
   </svg>
+  {{- if ne .caption false }}
   <figcaption>{{ .claim }}</figcaption>
+  {{- end }}
 </figure>

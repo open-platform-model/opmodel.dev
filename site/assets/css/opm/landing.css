@@ -4,24 +4,22 @@
 .opm-hero .hextra-feature-grid { width: 100%; }
 .opm-hero .hextra-feature-card { min-height: 10rem; }
 
-/* The hero's top: text and actions, then the ModuleToCluster figure; two
+/* The hero's top: text and actions, then the landing-overview figure; two
    columns from 64rem. The feature grid stays below it, inside .opm-hero, so
    it keeps the hero's width and centring. The space before the grid moves
    from the actions to the two columns. */
 .opm-hero-main { display: grid; gap: 2.5rem 3rem; margin-bottom: 3.5rem; }
 .opm-hero-text .opm-hero-actions { margin-bottom: 0; }
 .opm-hero-figure .opm-fig { margin: 0 auto; }
-/* In two columns the figure is portrait, so its drawing is capped at 36rem
-   high (its width follows the viewBox) and the text sits at the top beside
-   it: the feature cards then start inside a 900 px-high window at 1280 px
-   wide (shots.py checks it). 36rem keeps ModuleToCluster's smallest label
-   at about 9.3 px; do not go below 35rem. On a phone the figure keeps the
-   full column width. */
+/* In two columns the figure (drawn without a visible caption) takes the full
+   26rem column, about 528 px high, beside the text: the feature cards then
+   start near y=680 in a 900 px-high window at 1280 px wide (shots.py checks
+   they start inside it). Its drawing reaches the column's edges, so it meets
+   the feature grid's right edge and the pill's top. On a phone the figure
+   keeps the full column width and meets the text gutter. */
 @media (min-width: 64rem) {
   .opm-hero { padding-top: 0.5rem; }
   .opm-hero-main { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); align-items: start; margin-bottom: 2.5rem; }
-  .opm-hero-figure .opm-fig svg { height: 36rem; width: auto; max-width: 100%; margin-inline: auto; }
-  .opm-hero-figure .opm-fig figcaption { text-align: center; }
 }
 
 /* Quieter feature cards: a smaller title and icon, the text in the body
