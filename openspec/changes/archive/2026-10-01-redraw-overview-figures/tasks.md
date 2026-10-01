@@ -8,5 +8,5 @@
 
 ## 2. Verify and archive
 
-- [ ] 2.1 Follow `.claude/skills/openspec-verify-change/SKILL.md` for `redraw-overview-figures`; check that `git diff --stat origin/main` touches only the files in proposal.md's Impact.
-- [ ] 2.2 Archive with `openspec archive redraw-overview-figures --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, and commit `chore(openspec): archive redraw-overview-figures`.
+- [x] 2.1 Follow `.claude/skills/openspec-verify-change/SKILL.md` for `redraw-overview-figures`; check that `git diff --stat origin/main` touches only the files in proposal.md's Impact.
+- [x] 2.2 Archive with `openspec archive redraw-overview-figures --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, and commit `chore(openspec): archive redraw-overview-figures`.
