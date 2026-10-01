@@ -207,7 +207,7 @@ Forbidden: `sidebar:` (write `weight: N`), and every other key (`slug`, `draft`,
 
 Never write `> [!NOTE] Title`, a foldable `> [!NOTE]-`, or a Starlight `:::note[...]` block.
 
-**Figures** are Hugo shortcodes. Write each on its own line, with a blank line before and after, no parameters and no closing tag. Exactly these six names exist:
+**Figures** are Hugo shortcodes. Write each on its own line, with a blank line before and after, no parameters and no closing tag. Exactly these seven names exist:
 
 | Shortcode | Figure |
 |---|---|
@@ -217,6 +217,7 @@ Never write `> [!NOTE] Title`, a foldable `> [!NOTE]-`, or a Starlight `:::note[
 | `{{< opm/where-things-live >}}` | Where things live |
 | `{{< opm/three-ways-to-deploy >}}` | Three ways to deploy |
 | `{{< opm/helm-and-opm >}}` | Helm and OPM |
+| `{{< opm/one-trait-any-provider >}}` | One trait, any provider |
 
 No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, `cards` or anything else. Hugo expands shortcodes even inside code fences, so to show one in a code block, write `{{</* opm/name */>}}`.
 
@@ -245,7 +246,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `dae9717af0c43fc3bdc29a9e730fd171fe7541dab35a9625a35efb1682973c6b`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `dfde928f2f5923c145107753e56c8dca55d12a03129190f76a2b527cd803279c`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -258,7 +259,7 @@ Two scripts. Write each block, byte for byte, with your file-writing tool, to a 
 # Every violation prints as "<file>:<line>: <message>".
 set -u
 export LC_ALL=C
-FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm"
+FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm one-trait-any-provider"
 
 [ $# -ge 1 ] || { echo "usage: $0 DIR [DIR ...]" >&2; exit 2; }
 

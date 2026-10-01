@@ -1,0 +1,190 @@
+{{- /* Figure body: one trait, any provider (What OPM is, "In Kubernetes
+       terms", the second figure after helm-and-opm). Same column grammar as
+       helm-and-opm: HELM left, OPM right, the same three apps row for row,
+       so the counts read down each column. Helm: 3 charts, 3 different
+       values keys, 3 differently named templates, nothing shared, 3
+       Schedules. OPM: 3 modules with the identical backup tag, 1 catalog
+       trait, 1 platform with 1 provider, 3 Schedules. Both columns end in
+       Schedule x3 for k8up; the note under each says what an engine change
+       costs (Helm: re-release each chart; OPM: the same modules on a
+       platform whose provider is Velero). What differs is where the engine
+       is named.
+
+       Signal. Mono and bordered tags mean "what the chart or module names
+       for backup": three different files on the left, three identical
+       "backup" tags on the right. The values keys are mono too, since they
+       differ per chart. The modules' volume lines are plain body text so
+       they do not compete with that signal; they are there because the
+       trait applies to volumes and a provider's transformer requires the
+       Volumes resource, so a component without a volume would not render.
+
+       Accuracy choices. The three tags join one rail labelled "checked
+       against". Here the rail means "same contract", not the bus rule's
+       one render: these are three separate module renders, so do not turn
+       it into an applied set. The trait is a neutral card (published by
+       catalog_opm, not a Kubernetes object), role caps "OPM CATALOG
+       TRAIT"; it is v1alpha1 and nothing promises stability. Its full FQN
+       fits neither the 166-wide card nor a phone-width caption, so both
+       name it backup@v1alpha1; the page prose links the trait. The
+       required fields are req tags. The platform card matches
+       helm-and-opm's: role PLATFORM TEAM, title Platform, one transformer
+       chip. The chip is the Backup transformer (a chip is always a
+       transformer), and the line under it names the provider in core's
+       sense, the catalog: "provider: k8up (example)". Never draw a second
+       provider in this card. The one failure marker (nomatch) sits in the
+       card, on the slot it describes: none or two providers refuse the
+       render. A missing schedule also fails, earlier; the claim carries
+       it. The Velero line is a second platform, not a swap: on the
+       operator path the removal guard makes a swap an outage, so the
+       figure and claim say only "same modules" and "no module edit". k8up
+       and Velero are both marked "example": no provider catalog is
+       published, and the experiment renders used a stand-in contract.
+
+       Helm stays fair. Its row-2 slot is a dashed "none" box beside the
+       trait: Helm itself defines no backup values (a library chart is a
+       per-organisation opt-in, which the claim mentions). Its notes say
+       only what holds with or without a library chart: each chart renders
+       its own k8up template, and a new engine means re-releasing each
+       chart. Nothing says Helm cannot validate values or install engines.
+       The Helm drop leaves the last chart; its label says each chart
+       renders, since three parallel drops would hide behind the cards.
+
+       Geometry: 360 grid, columns x=8 to 174 and 186 to 352 (12 gap), text
+       12 in (x=20, 198). App cards 70 high, 8 apart (y=28, 106, 184). OPM
+       app cards stop at x=330 so the rail runs at x=340 and lands 12 in
+       from the trait card's right edge, on its flat top; each backup tag
+       is right-aligned 12 in (x=264 to 318) and its stub runs to the rail,
+       which runs 0.75 past the top stub so the corner closes and ends 2
+       above the trait card (y=284). The "none" box (x=44 to 174) shares
+       the column's right edge. Arrows at x=269 (the card centre) end 2
+       above the next box: trait to platform (y=408), platform to Schedule
+       (y=566). The Helm arrow runs at x=30 down to its Schedule box, which
+       mirrors OPM's at x=8 to 174, same y. The two notes under the
+       Schedule boxes share baselines; the Velero note takes a third line
+       because "velero.io/v1, same modules" does not fit 142 wide with the
+       API group in mono (in Geist, "o.i" kerns shut at phone size). The frame is _partials/opm/figure.html
+       and the classes are in assets/css/opm/figures.css; no new class. */ -}}
+<text class="zone-label" x="8" y="18">HELM</text>
+<text class="zone-label" x="186" y="18">OPM</text>
+
+{{/* Row 1: three apps. Each chart has its own values key and template;
+     each module attaches the same trait to a component with a volume */}}
+<g class="card author">
+  <rect x="8" y="28" width="166" height="70" rx="8"></rect>
+  <text class="title" x="20" y="50">web chart</text>
+  <text class="body small" x="20" y="68">values <tspan class="mono">backup.enabled</tspan></text>
+  <g class="tag">
+    <rect x="20" y="76" width="80" height="18" rx="4"></rect>
+    <text x="60" y="89" text-anchor="middle">backup.yaml</text>
+  </g>
+</g>
+<g class="card author">
+  <rect x="8" y="106" width="166" height="70" rx="8"></rect>
+  <text class="title" x="20" y="128">db chart</text>
+  <text class="body small" x="20" y="146">values <tspan class="mono">k8up.schedule</tspan></text>
+  <g class="tag">
+    <rect x="20" y="154" width="126" height="18" rx="4"></rect>
+    <text x="83" y="167" text-anchor="middle">k8up-schedule.yaml</text>
+  </g>
+</g>
+<g class="card author">
+  <rect x="8" y="184" width="166" height="70" rx="8"></rect>
+  <text class="title" x="20" y="206">media chart</text>
+  <text class="body small" x="20" y="224">values <tspan class="mono">snapshots.cron</tspan></text>
+  <g class="tag">
+    <rect x="20" y="232" width="94" height="18" rx="4"></rect>
+    <text x="67" y="245" text-anchor="middle">schedule.yaml</text>
+  </g>
+</g>
+<g class="card author">
+  <rect x="186" y="28" width="144" height="70" rx="8"></rect>
+  <text class="title" x="198" y="50">web module</text>
+  <text class="body small" x="198" y="68">volume data</text>
+  <g class="tag">
+    <rect x="264" y="76" width="54" height="18" rx="4"></rect>
+    <text x="291" y="89" text-anchor="middle">backup</text>
+  </g>
+</g>
+<g class="card author">
+  <rect x="186" y="106" width="144" height="70" rx="8"></rect>
+  <text class="title" x="198" y="128">db module</text>
+  <text class="body small" x="198" y="146">volume pgdata</text>
+  <g class="tag">
+    <rect x="264" y="154" width="54" height="18" rx="4"></rect>
+    <text x="291" y="167" text-anchor="middle">backup</text>
+  </g>
+</g>
+<g class="card author">
+  <rect x="186" y="184" width="144" height="70" rx="8"></rect>
+  <text class="title" x="198" y="206">media module</text>
+  <text class="body small" x="198" y="224">volume library</text>
+  <g class="tag">
+    <rect x="264" y="232" width="54" height="18" rx="4"></rect>
+    <text x="291" y="245" text-anchor="middle">backup</text>
+  </g>
+</g>
+
+{{/* The rail: three identical tags, one contract (same contract, not one render) */}}
+<g class="flow">
+  <line x1="318" y1="85" x2="340.75" y2="85"></line>
+  <line x1="318" y1="163" x2="340" y2="163"></line>
+  <line x1="318" y1="241" x2="340" y2="241"></line>
+  <line x1="340" y1="84.25" x2="340" y2="282" marker-end="url(#otp-arrow)"></line>
+  <text class="label" x="334" y="272" text-anchor="end">checked against</text>
+</g>
+
+{{/* Row 2: Helm defines nothing here; OPM's catalog publishes the trait,
+     which names no engine */}}
+<g class="none">
+  <rect x="44" y="284" width="130" height="80" rx="6"></rect>
+  <text x="109" y="320" text-anchor="middle">Helm defines no</text>
+  <text x="109" y="336" text-anchor="middle">backup values</text>
+</g>
+<g class="card neutral">
+  <rect x="186" y="284" width="166" height="80" rx="8"></rect>
+  <text class="role" x="198" y="304">OPM CATALOG TRAIT</text>
+  <text class="title mono" x="198" y="326">backup@v1alpha1</text>
+  <g class="req">
+    <rect x="198" y="336" width="64" height="18" rx="4"></rect>
+    <text x="230" y="349" text-anchor="middle">schedule!</text>
+    <rect x="268" y="336" width="70" height="18" rx="4"></rect>
+    <text x="303" y="349" text-anchor="middle">retention!</text>
+  </g>
+</g>
+
+{{/* Row 3: one platform, one backup provider; Helm's charts render alone */}}
+<g class="flow">
+  <line x1="30" y1="254" x2="30" y2="564" marker-end="url(#otp-arrow)"></line>
+  <text class="label" x="38" y="420">each chart renders</text>
+  <text class="label" x="38" y="434">its own k8up template</text>
+  <line x1="269" y1="364" x2="269" y2="406" marker-end="url(#otp-arrow)"></line>
+  <text class="label" x="275" y="389">fulfilled by</text>
+</g>
+<g class="card team">
+  <rect x="186" y="408" width="166" height="122" rx="8"></rect>
+  <text class="role" x="198" y="428">PLATFORM TEAM</text>
+  <text class="title" x="198" y="450">Platform</text>
+  <rect class="chip" x="195" y="460" width="148" height="24" rx="6"></rect>
+  <text class="chip-text" x="269" y="476" text-anchor="middle">Backup transformer</text>
+  <text class="body small" x="198" y="500">provider: k8up (example)</text>
+  <g class="nomatch"><text x="198" y="518">none or two: refused</text></g>
+</g>
+<g class="flow">
+  <line x1="269" y1="530" x2="269" y2="564" marker-end="url(#otp-arrow)"></line>
+  <text class="label" x="275" y="551">renders</text>
+</g>
+
+{{/* Row 4: three Schedules either way, and what an engine change costs */}}
+<g class="obj">
+  <rect x="8" y="566" width="166" height="38" rx="6"></rect>
+  <text x="91" y="582" text-anchor="middle">Schedule ×3</text>
+  <text class="note" x="91" y="597" text-anchor="middle">k8up.io/v1</text>
+  <rect x="186" y="566" width="166" height="38" rx="6"></rect>
+  <text x="269" y="582" text-anchor="middle">Schedule ×3</text>
+  <text class="note" x="269" y="597" text-anchor="middle">k8up.io/v1</text>
+</g>
+<text class="body small" x="20" y="622">new engine:</text>
+<text class="body small" x="20" y="636">re-release each chart</text>
+<text class="body small" x="198" y="622">Velero platform (example):</text>
+<text class="body small mono" x="198" y="636">velero.io/v1</text>
+<text class="body small" x="198" y="650">same modules, no edit</text>

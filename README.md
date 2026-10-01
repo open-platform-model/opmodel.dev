@@ -229,7 +229,7 @@ The site-owned pages (`site/content/`) are built into every version, so every li
 - [x] Build checks: drift guard, lint, front matter, links, page set, stray files, reserved sections, planning comments, supply chain, redirects, git dates
 - [x] Per-version Pagefind search in Hextra's palette; `/latest/` and root redirects
 - [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
-- [x] All six figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
+- [x] All seven figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] `docgen schema` and `docgen cli` implementations, and pages generated from their output
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
 - [ ] `v1.0` on release tags (needs a tag cut after each repository's dialect floor)
