@@ -475,6 +475,29 @@ Every line manifest uses `catalog-line = opm-v1` unless a case says otherwise.
 **Decision**: The resolver reads tags only. A nightly run may document a tag whose release is still a draft.
 **Rationale**: The tag is immutable either way, and the docs do not depend on the assets. Checking release state would need the network and a token in the host step.
 
+### Spike findings (task 1.2-1.5)
+**Context**: Section 1 proves the resolution on the real tags before anything is built on it. Run 2026-10-01 at about 19:20 CEST with git 2.55.0, after fetching the six source repositories with the decision 4 command (each exit 0, no "would clobber existing tag" line). `deploy-site` had not merged (`openspec/changes/archive/` on `origin/main` holds no `*-deploy-site`).
+**Explored**:
+- **Finding 1, the table.** A throwaway POSIX sh script outside WS (the two line regexes and an awk `semver_max` of decision 3, `docs_source` of decision 2, the pin reads by `git show`) resolved `cli-line = v1.0` and `catalog-line = opm-v4` read-only against the six `site-src` roots. It equals the 2026-10-01 18:30 CEST snapshot in proposal.md exactly: no newer tag or head.
+
+  ```text
+  repo          ref            docs  sha (docs tree)                           floor docs/site  release the stamp names (floor, containment)
+  cli           v1.0.0-beta.4  tag   0e66ec08a7d262695994761dd39f1c526c09c86a  ok    ok
+  library       v1.0.0-beta.1  tag   02344e5913458e4411a19668f0f4424b8141d2f4  ok    ok
+  opm-operator  v1.0.0-beta.2  tag   27d9dfc3c03777f218d69b3bbac435cc06b52af5  ok    ok
+  core          v2.0.0-beta.1  main  f5c446323caa3019fb0c8e449f8b28bf588a4de7  ok    ok         4f9b245ae6e38e964110b00cfa606115bd162b27 (ok, contained)
+  catalog_opm   opm-v4.4.4     main  64a65a5a603fad338c1caeb4a5d66c411cae2607  ok    ok         793e3be423c8b2728697eb87e07893b60c2c7283 (ok, contained)
+  opm           main           main  4e582b8e0d9ccbba320a639d34421cc744742ef0  ok    ok
+  ```
+
+  core and catalog_opm took rule 2: no `release/v2.0` or `release/opm-v4.4` exists, and the newest tag merged into `origin/main` is `v2.0.0-beta.1` and `opm-v4.4.4`, in the line. `resolve-versions.sh --pins v1.0.0-beta.4` prints the same library, core and opm-operator refs and SHAs. The only `release/*` tracking ref in any root is catalog_opm's stale `release/opm-stable`, which `docs_source` never reads.
+- **Finding 1, the order.** `semver_max` and `git -c versionsort.suffix=- tag -l --sort=-v:refname` (filtered by the same regex, first line) agree on every line in use: cli `v1.0` (32 tags) `v1.0.0-beta.4`; library `v1.0` (37) `v1.0.0-beta.1`; opm-operator `v1.0` (26) `v1.0.0-beta.3`; core `v2.0` (14) `v2.0.0-beta.1`; catalog `opm-v4` (12) and `opm-v4.4` (5) `opm-v4.4.4`; `k8s-v1.0` (7) `k8s-v1.0.0-beta.1`. The cli line holds a bare `v1.0.0-alpha`, which ranks below `v1.0.0-alpha.1` (a shorter prefix ranks lower). On the synthetic list `v1.0.0-beta.2 v1.0.0-beta.10 v1.0.0-beta.3 v1.0.0-rc.1 v1.0.0 v1.0.1-beta.1 v1.50.0` under the `v1.0` regex it prints `v1.0.1-beta.1`; without that tag `v1.0.0`; without both `v1.0.0-rc.1`. `v1.50.0` never passes the regex.
+- **Finding 2, refs from a worktree.** In all six repositories, the `site-src` worktree and the main checkout print `false` for `--is-shallow-repository`, the same `refs/remotes/origin/main` (opm 4e582b8, core f5c4463, catalog_opm 64a65a5, cli 437bebd, library 08c4f73, opm-operator c3e4232) and the same `git tag -l --merged refs/remotes/origin/main` list (7, 29, 44, 40, 48 and 45 tags). Worktrees share tags and remote-tracking refs, as decision 4 assumes. The `site-src` worktrees' own `HEAD`s are older (for example cli 025e1b6), which is why line mode never reads `HEAD`.
+- **Finding 3, the fixture shape and the fetch flags.** In scratch repositories outside WS: `up` (`git init -b main`, two commits, a tag), `git clone up line`, and a linked worktree `wt` of `line`. With a local-only tag in `line`, a new tag and a `release/v4.2` branch (made with `git switch -c`, then `git switch main`) in `up`, the decision 4 command run from `wt` with `fetch.prune` and `fetch.pruneTags` set to `true` through `GIT_CONFIG_COUNT` exited 0. `line` gained the tag and `refs/remotes/origin/release/v4.2` at `up`'s branch head, the local-only tag survived, and no `FETCH_HEAD` appeared in `line/.git/` or `line/.git/worktrees/wt/`. With `v9.0.0` created in `line`, then created on a new commit in `up`, and `+refs/tags/*:refs/tags/*` added to `line`'s `remote.origin.fetch`, the command exited 1 with `! [rejected] v9.0.0 -> v9.0.0 (would clobber existing tag)`, `line`'s `v9.0.0` stayed put, and its `origin/main` moved to `up`'s `main`. `git clone --depth 1 file://<up>` is shallow (`true`); a plain-path `--depth 1` clone warns and is not. No command, the direct fetch from a worktree included, was refused by the session's hooks. The scratch directory was deleted.
+
+**Decision**: No decision changes. Decisions 2, 3 and 4 hold as written, and the fixture plan of decision 11 (line roots as `git clone`s, `--fetch` under prune config, the clobber case, a `file://` shallow clone) works as designed.
+**Rationale**: Every row passes its floor, `docs/site` and containment on the real refs; the comparator agrees with git's own order on every real line; worktrees see the fetched refs; and the fetch flags behave as decision 4 claims.
+
 ## Risks / Trade-offs
 
 - [A published build changes with no commit in this repository] -> That is the owner's intent. Every build records every SHA (stamp, footer, summary) and the opmodel.dev commit, and `frozen.conf` in the 90-day `build-manifest` artifact rebuilds the same trees at that commit. `public/build-stamp.json` on the live site always names what is served.
