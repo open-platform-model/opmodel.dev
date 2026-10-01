@@ -6,7 +6,7 @@ There are three implementation sections, then the worker protocol. Section 1 is 
 
 **Rules for this change**, on top of orchestration.md section 1:
 - Builds read the supervisor's `site-src` worktrees, so prefix every `build`, `ci`, `qa` and `versions:*` command with `OPM_SRC_WORKTREE=site-src`. Never build against the owner's main checkouts. Never change a `site-src` worktree.
-- Fetching the six source repositories is allowed, always as `git -C WS/<repo> fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags origin '+refs/heads/*:refs/remotes/origin/*' 'refs/tags/*:refs/tags/*'` (design.md decision 4): it adds tags and moves remote-tracking refs only, whatever the git config. Never `--force`, `--prune`, `--prune-tags` or a plain `--tags` fetch.
+- Fetching the six source repositories is allowed, always as `git -C WS/<repo> fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags --refmap= origin '+refs/heads/*:refs/remotes/origin/*' 'refs/tags/*:refs/tags/*'` (design.md decision 4): it adds tags and moves remote-tracking refs only, whatever the git config (`--refmap=` added after the review; without it a configured `remote.origin.fetch` mapping still applies). Never `--force`, `--prune`, `--prune-tags` or a plain `--tags` fetch.
 - Never create, move or delete a tag or a branch in a real repository (workspace `AGENTS.md`, "Release Tags Are Immutable"). The fixture repositories under `site/.check/versions-test/` and the spike's scratch repositories are test data.
 - Nothing here needs `task serve` or `task preview`, and no port 4321 or 1313 is ever bound.
 
@@ -57,7 +57,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
 
   Every row goes through `check_ref` with a non-`main` kind. For core and catalog_opm, also check the floor at the commit of the release the stamp names, and, under rules 1 and 2, its containment in the docs SHA. Line rows carry kind `line`, the `how` texts of decision 2, and error text naming the rule (decision 6), with no `@` anywhere. Append the tenth column `docs` to the header and to every row of every kind (`worktree`, `tag`, `sha`, `main`, `release/...`), and write `# site<TAB><opmodel.dev HEAD>` after the header in both `--check` and write mode. Verify: cases `line`, `line-override`, `line-override-stale`, `line-core-pre-floor`, `line-branch`, `line-newer-tag`, `line-catalog-major`, `line-contain`, `line-pre-floor` and `line-no-tag`, plus every existing case unchanged.
 - [x] 2.4 Modes:
-  - `--fetch`: the decision 4 command (explicit refspecs, the tag one without `+`; `--no-write-fetch-head --no-prune --no-prune-tags --no-tags`) for the six roots, resolved as for a build; it fetches every root, then exits 1 naming each root whose fetch failed;
+  - `--fetch`: the decision 4 command (explicit refspecs, the tag one without `+`; `--refmap= --no-write-fetch-head --no-prune --no-prune-tags --no-tags`) for the six roots, resolved as for a build; it fetches every root, then exits 1 naming each root whose fetch failed;
   - `--freeze`: print the frozen manifest of design.md decision 10 (the opmodel.dev commit in the header, `docs = tag` rows by tag name, every other row by SHA), writing nothing;
   - write mode also writes `site/.versions/frozen.conf` (via `.tmp` and `mv`);
   - the failure trap removes `frozen.conf` with `versions.tsv`, and explicit mode removes both.

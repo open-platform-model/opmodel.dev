@@ -52,9 +52,10 @@
 # and assumes that origin is the upstream open-platform-model repository (it
 # does not check the URL). It refuses a shallow root and a root without
 # refs/remotes/origin/main. It never fetches; --fetch does, with explicit
-# refspecs (the tag one without +), --no-prune --no-prune-tags --no-tags and
-# --no-write-fetch-head, so no git config can make it move or delete a tag,
-# and it writes nothing in a worktree.
+# refspecs (the tag one without +), an empty --refmap= so every configured
+# remote.origin.fetch mapping is ignored, --no-prune --no-prune-tags
+# --no-tags and --no-write-fetch-head, so no git config can make it move or
+# delete a tag or a local branch, and it writes nothing in a worktree.
 #
 # Every row records the ref the stamp names, the SHA of the tree built, how it
 # was found, and where that tree came from (docs: tag, sha, main,
@@ -140,19 +141,22 @@ done
 if [ -n "$rootbad" ]; then printf '%s' "$rootbad" >&2; exit 1; fi
 
 # --- Fetch -------------------------------------------------------------------
-# The explicit refspecs replace any configured one, so a configured
-# +refs/tags/*:refs/tags/* cannot force a tag; the tag refspec has no +, so git
-# refuses to move a local tag that differs upstream ("would clobber existing
-# tag", exit 1) while every other ref still updates; --no-prune
-# --no-prune-tags beat fetch.prune and fetch.pruneTags; --no-write-fetch-head
-# leaves no FETCH_HEAD in a worktree. Remote-tracking refs update forcibly, as
-# in any fetch; no local branch is created.
+# With refspecs on the command line, git still applies every configured
+# remote.origin.fetch as an extra mapping, with its own +: a configured
+# +refs/heads/*:refs/heads/* would force-reset each local branch that is not
+# checked out. The empty --refmap= makes git ignore every configured refspec,
+# so only the two below run. The tag refspec has no +, so git refuses to move
+# a local tag that differs upstream ("would clobber existing tag", exit 1)
+# while every other ref still updates; --no-prune --no-prune-tags beat
+# fetch.prune and fetch.pruneTags; --no-write-fetch-head leaves no FETCH_HEAD
+# in a worktree. Remote-tracking refs update forcibly, as in any fetch; no
+# local branch is created or moved.
 if [ "$mode" = fetch ]; then
   failed=""
   for r in $REPOS; do
     root=$(root_of "$r")
     echo "resolve-versions: fetching $r ($root)"
-    if git -C "$root" fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags origin \
+    if git -C "$root" fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags --refmap= origin \
       '+refs/heads/*:refs/remotes/origin/*' 'refs/tags/*:refs/tags/*'; then :
     else failed="$failed$NL  $r: $root"; fi
   done

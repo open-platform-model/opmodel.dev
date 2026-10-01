@@ -90,10 +90,11 @@ tasks:
       - sh site/scripts/resolve-versions.sh --check
 
   # The only network step of the versions: git fetch in the six source roots
-  # with explicit refspecs, the tag one without +, and --no-prune
+  # with explicit refspecs, the tag one without +, an empty --refmap= (so no
+  # configured remote.origin.fetch mapping applies), and --no-prune
   # --no-prune-tags --no-write-fetch-head, so it never moves or deletes a tag
-  # and writes nothing in a worktree. It fails, naming the root, when a local
-  # tag differs from origin's.
+  # or a local branch and writes nothing in a worktree. It fails, naming the
+  # root, when a local tag differs from origin's.
   versions:fetch:
     desc: Fetch every tag and branch of the six source roots from origin (refs/remotes/origin/*), never moving or deleting a tag; run it before a local build after a release
     env: *versions-env

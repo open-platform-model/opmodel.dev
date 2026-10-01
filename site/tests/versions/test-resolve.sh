@@ -13,11 +13,13 @@
 #     E (release branches, a newer final, a branch past its line, a catalog
 #     major, a branch that misses its release), and --fetch moves the clones:
 #     the semver order, the pins, the docs rules, overrides in a line, the
-#     stamp, the frozen round trip, and the fetch under prune config and
+#     stamp, the frozen round trip, the recovery to the frozen version block,
+#     and the fetch under prune config, under a configured branch mapping and
 #     against a conflicting upstream tag;
-#   - the pins at the real cli v1.0.0-alpha.25, a --check anchored there, and
-#     a line version cli-line = v1.0, catalog-line = opm-v4 checked against
-#     git's own tag order, read from the caller's source roots
+#   - the pins at the real cli v1.0.0-alpha.25, a --check anchored there, a
+#     line version cli-line = v1.0, catalog-line = opm-v4 checked against
+#     git's own tag order, and its frozen version block resolved as an
+#     anchored version, read from the caller's source roots
 #     (OPM_SRC_WORKTREE=site-src ...).
 # Every fixture tag is created once and never moved: these are test data, but
 # the immutability rule holds here too. Each failing case asserts that the
@@ -478,6 +480,17 @@ run "$SITE/.versions/frozen.conf" -- --check
 expect line-freeze-in-place 1 "the generated frozen.conf is refused as the manifest, by path" \
   "resolve-versions: $SITE/.versions/frozen.conf is the generated frozen manifest, which this run rewrites; copy it outside site/.versions/ first"
 
+# The recovery from a line version that fails the build: the version block of
+# the last good frozen.conf, pasted into a manifest with its own header and
+# floors, resolves as an anchored version at the same trees.
+freeze_block() { awk '/^\[version /{ on = 1 } on' "$1"; }
+run "$(manifest line-recover "$(freeze_block "$T/manifests/frozen-b.conf")")" -- --check
+expect line-recover 0 "the frozen version block pasted into a manifest resolves anchored at the same six SHAs" \
+  "${A}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}anchor${TAB}tag" \
+  "${A}library${TAB}v2.3.0${TAB}" "${A}opm-operator${TAB}v3.1.0${TAB}" \
+  "${A}core${TAB}$(rev core release/v4.2)${TAB}" "${A}catalog_opm${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}" \
+  "${A}opm${TAB}$OPM_HEAD${TAB}"
+
 # State C: cli v1.5.0, a final, pinning library v2.1.0 (so core v4.1.0); core
 # v4.1.1 on a side branch fix-v4.1 off v4.1.0, never merged into main; catalog
 # opm-v1.2.0 on main after a docs commit.
@@ -520,6 +533,19 @@ g "$R/opm" rev-parse -q --verify refs/tags/v0.0.0-localonly > /dev/null || why="
 [ -z "$heads" ] || why="${why}FETCH_HEAD written: $heads"
 if [ "$rc" = 0 ] && [ -z "$why" ]; then ok line-fetch-prune "--fetch under fetch.prune and fetch.pruneTags keeps a local-only tag and writes no FETCH_HEAD, from a worktree too"
 else bad line-fetch-prune "exit $rc; $why"; fi
+
+# A configured mapping onto local branches: without --refmap= git would apply
+# it as an extra forced update and drop a local-only commit on a branch that
+# is not checked out; with it, the branch stays put.
+g "$R/catalog_opm" switch -q --detach
+LOCALBR=$(g "$R/catalog_opm" commit-tree -p refs/remotes/origin/release/opm-v1.1 -m "local only" "refs/remotes/origin/release/opm-v1.1^{tree}")
+g "$R/catalog_opm" branch release/opm-v1.1 "$LOCALBR"
+g "$R/catalog_opm" config --add remote.origin.fetch '+refs/heads/*:refs/heads/*'
+run "$LGOOD" -- --fetch
+why=""
+[ "$(g "$R/catalog_opm" rev-parse refs/heads/release/opm-v1.1)" = "$LOCALBR" ] || why="the local branch release/opm-v1.1 was reset by the configured mapping"
+if [ "$rc" = 0 ] && [ -z "$why" ]; then ok line-fetch-refmap "--fetch ignores a configured +refs/heads/*:refs/heads/* mapping; a local-only commit on a branch not checked out survives"
+else bad line-fetch-refmap "exit $rc; $why"; fi
 
 # A conflicting upstream tag: refused, the local tag kept, every other ref updated.
 g "$R/core" tag v4.9.0 HEAD
@@ -576,6 +602,21 @@ expect real-line 0 "cli-line = v1.0 resolves cli $want_cli (git's order), the pi
   "${RL}opm-operator${TAB}$(pin opm-operator)${TAB}" "${RL}catalog_opm${TAB}$want_cat${TAB}" "${RL}opm${TAB}main${TAB}"
 if [ -z "$want_cli" ] || [ -z "$want_cat" ] || [ -z "$(pin core)" ] || [ -n "$baddocs" ]; then
   bad real-line-docs "cli \"$want_cli\", catalog \"$want_cat\", core pin \"$(pin core)\"; docs not tag, main or release/: $baddocs"
+fi
+
+# The recovery on the real roots: the frozen version block of that line, with
+# the real floors, resolves as an anchored version at the same six SHAs.
+line_shas=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "line" { print $6 " " $8 }' | sort)
+realf=$SITE/.check/versions-test/repos/manifests/real-line-frozen.conf
+{
+  for r in $REPOS; do printf '[repo "%s"]\n\tfloor = %s\n' "$r" "$(git config --file "$SITE/versions.conf" --get "repo.$r.floor")"; done
+  OPM_VERSIONS='' OPM_VERSIONS_MANIFEST="$reall" sh "$RESOLVE" --freeze 2>/dev/null | awk '/^\[version /{ on = 1 } on'
+} > "$realf"
+out=$(OPM_VERSIONS='' OPM_VERSIONS_MANIFEST="$realf" sh "$RESOLVE" --check 2>&1) && rc=0 || rc=$?
+frozen_shas=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "anchored" { print $6 " " $8 }' | sort)
+expect real-line-frozen 0 "the real line's frozen version block resolves anchored" "${RL%line${TAB}}anchored${TAB}cli${TAB}$want_cli${TAB}"
+if [ -z "$line_shas" ] || [ "$line_shas" != "$frozen_shas" ]; then
+  bad real-line-frozen-shas "line: $(printf '%s' "$line_shas" | tr '\n' ' '); frozen: $(printf '%s' "$frozen_shas" | tr '\n' ' ')"
 fi
 
 echo
