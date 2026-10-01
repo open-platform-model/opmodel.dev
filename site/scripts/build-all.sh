@@ -56,8 +56,8 @@ export BASE_URL BASE_PATH
 echo "build-all: base URL $BASE_URL${BASE_PATH:+ (base path $BASE_PATH)}"
 # The versions, in weight order, and the default one (/latest/ and / point at
 # it): an explicit OPM_VERSIONS (the first is the default), else the resolved
-# .versions/versions.tsv (a source = main version reads /src, an anchored one
-# its archive in .versions/<v>/), else v1.0=/src.
+# .versions/versions.tsv (a source = main version reads /src, an anchored or a
+# line one its archive in .versions/<v>/), else v1.0=/src.
 if [ -n "${OPM_VERSIONS:-}" ]; then
   VERSIONS=$OPM_VERSIONS; DEFAULT=${VERSIONS%%=*}
 elif [ -f .versions/versions.tsv ]; then

@@ -1,10 +1,13 @@
 {{- /* OPM override of Hextra's components/last-updated.html (v0.13.0, pinned
        in overrides.sha256). "Edit this page" points at the owning repo's file
-       on main (opm/source.html): on the default version, and on any version
-       that is not anchored (source = main reads main itself). "View source at
-       <ref>" points at the ref an anchored version documents (viewURL set);
-       on the default version it stands beside the edit link, so a reader's
-       fix still goes to main. The date comes from data/opm/lastmod.json
+       where a fix lands (opm/source.html): main, or in a line version the
+       branch its docs came from (main or release/...). It shows on the
+       default version, and on any version that is neither anchored nor line
+       (source = main reads main itself). "View source at <ref>" points at
+       the tree an anchored or a line version documents (viewURL set): an
+       anchored version's ref, a line version's archived SHA. On the default
+       version it stands beside the edit link, so a reader's fix still goes to
+       a branch. The date comes from data/opm/lastmod.json
        (scripts/gen-lastmod.sh), because Hugo's GitInfo cannot see directory
        mounts from other repos. */ -}}
 {{- $src := partial "opm/source.html" . -}}
@@ -12,7 +15,7 @@
 {{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- $date = index . site.Version.Name -}}{{- end -}}{{- end -}}
 {{- $kind := "" -}}
 {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}{{- $kind = .kind -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
-{{- $edit := and (or site.Version.IsDefault (ne $kind "anchored")) $src.editURL -}}
+{{- $edit := and (or site.Version.IsDefault (and (ne $kind "anchored") (ne $kind "line"))) $src.editURL -}}
 {{- if or $edit $src.viewURL $date -}}
   <div class="opm-page-meta hx:mt-12 hx:mb-8 hx:text-xs hx:text-gray-500 hx:dark:text-gray-400">
     {{- with $edit -}}

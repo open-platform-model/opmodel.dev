@@ -1,10 +1,16 @@
 {{- /* The footer stamp, from data/opm/build.json (scripts/gen-stamp.sh): the
        version label, then the refs the version documents. An anchored version
-       (site/versions.conf pins fixed refs) names them: "documents cli X,
-       library L, core Y, catalog Z, operator W, opm S", a ref that is a SHA
-       as seven hex characters, each linked to its commit, with how it was
-       found (the anchor, a pin, an override and its reason) as the link
-       title. A source = main version, and a fixture build, shows the commit
+       (site/versions.conf pins fixed refs) and a line version (resolved from
+       release lines on every build) name them: "documents cli X, library L,
+       core Y, catalog Z, operator W, opm S", each with a link to the commit
+       whose tree was built and how it was found (the anchor, a line, a pin,
+       an override and its reason) as the link title. A ref that is a SHA shows
+       as seven hex characters. In a line version a tree read from a branch
+       (docs main or release/...) shows that branch and its commit: "opm main
+       4e582b8" when the ref is the branch itself, "core v2.0.0-beta.1 (docs
+       main f5c4463)" when the ref is the release the stamp names and the docs
+       come from a branch head; a tree read at its tag is that tag, so the text
+       is exact. A source = main version, and a fixture build, shows the commit
        of each repo the build read, resolved on the host ("none" for a root
        that is not its own git checkout). Called from the Hextra hook
        custom/footer.html with the page. */ -}}
@@ -18,7 +24,7 @@
 {{- end -}}{{- end -}}
 <div class="opm-build-stamp" data-pagefind-ignore="all">
   <span>{{ $label }}</span>
-  {{ if eq $ver.kind "anchored" -}}
+  {{ if or (eq $ver.kind "anchored") (eq $ver.kind "line") -}}
   {{- $refs := $ver.refs | default dict -}}
   {{- $shown := slice -}}
   {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- if index $refs . -}}{{- $shown = $shown | append . -}}{{- end -}}{{- end -}}
@@ -27,8 +33,16 @@
     {{- $r := index $refs $repo -}}
     {{- $text := $r.ref -}}
     {{- if findRE `^[0-9a-f]{40}$` $r.ref -}}{{- $text = substr $r.ref 0 7 -}}{{- end -}}
+    {{- $docs := $r.docs | default "" -}}
+    {{- $branch := and (eq $ver.kind "line") (or (eq $docs "main") (hasPrefix $docs "release/")) -}}
     {{- $name := index (dict "catalog_opm" "catalog" "opm-operator" "operator") $repo | default $repo -}}
-    {{- if $i }},{{ end }} <span class="opm-build-ref">{{ $name }} <a href="{{ printf "%s/%s/commit/%s" site.Params.opm.github $repo $r.sha }}" title="{{ replaceRE `^([a-z]+):` "$1: " $r.how }}"><code>{{ $text }}</code></a></span>
+    {{- $url := printf "%s/%s/commit/%s" site.Params.opm.github $repo $r.sha -}}
+    {{- $title := replaceRE `^([a-z]+):` "$1: " $r.how -}}
+    {{- if $i }},{{ end }} <span class="opm-build-ref">{{ $name }}
+    {{- if and $branch (eq $r.ref $docs) }} {{ $docs }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ substr $r.sha 0 7 }}</code></a>
+    {{- else if $branch }} <code>{{ $text }}</code> (docs {{ $docs }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ substr $r.sha 0 7 }}</code></a>)
+    {{- else }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ $text }}</code></a>
+    {{- end }}</span>
   {{- end -}}
   </span>
   {{- else -}}

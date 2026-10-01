@@ -1,7 +1,9 @@
 #!/bin/sh
-# Dev server, inside the build image (site/scripts/run-in-image.sh serve). It
+# Dev server, inside the build image (site/scripts/run-in-image.sh serve). A
+# source = main or explicit version (OPM_VERSIONS=v1.0=/src, live editing)
 # reads every source repo's docs/site/ in place from /src/<repo> (read-only),
-# so edits and new pages appear without a restart. The container publishes
+# so edits and new pages appear without a restart; an anchored or line
+# version serves its archives in .versions/<v>/. The container publishes
 # only 127.0.0.1:${SITE_PORT:-1313}; one SIGINT stops it (tini forwards it to
 # the process group, and hugo runs as the shell's exec).
 #
@@ -16,7 +18,8 @@ REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 # The versions, as build-all.sh reads them: an explicit OPM_VERSIONS, else the
 # resolved .versions/versions.tsv (a source = main version reads /src in
-# place, an anchored one its archive in .versions/<v>/), else v1.0=/src.
+# place, an anchored or a line one its archive in .versions/<v>/), else
+# v1.0=/src.
 if [ -n "${OPM_VERSIONS:-}" ]; then
   VERSIONS=$OPM_VERSIONS
 elif [ -f .versions/versions.tsv ]; then

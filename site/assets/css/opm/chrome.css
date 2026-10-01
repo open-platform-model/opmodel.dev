@@ -10,6 +10,8 @@ html.dark .opm-edit:hover { color: var(--hx-color-gray-100); }
 .opm-build-stamp { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding-block: 1.5rem; font-size: 0.75rem; line-height: 1rem; color: var(--hx-color-gray-600); }
 html.dark .opm-build-stamp { color: var(--hx-color-gray-400); }
 .opm-build-stamp a { text-decoration: underline; text-underline-offset: 2px; }
+/* A ref is one token: opm-v4.4.4 or v1.0.0-beta.4 never breaks at its hyphen. */
+.opm-build-stamp code { white-space: nowrap; }
 
 .opm-404 { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: calc(100vh - var(--hextra-navbar-height) - 12rem); }
 .opm-404-code { font-size: 0.875rem; font-weight: 600; letter-spacing: .1em; color: var(--hx-color-primary-600); margin: 0; }

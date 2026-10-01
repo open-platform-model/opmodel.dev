@@ -10,8 +10,17 @@ on:
   push:
     branches: [main]
   schedule:
-    # Nightly: a merge in a source repository reaches CI within a day. An
-    # off-the-hour minute, because GitHub delays runs at the top of the hour.
+    # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
+    # every build, so the nightly run of main publishes what moved upstream:
+    # new releases (cli, and the library, core and opm-operator releases a
+    # cli release pins; catalog_opm opm-v4.* tags), opm main, and core and
+    # catalog_opm main or release-branch heads while their docs rule reads
+    # them. A cli, library or opm-operator merge to main reaches the published
+    # build only through a release. The sources-main job checks every source
+    # repository's main in explicit mode (lint, build checks, links) and
+    # publishes nothing. No source repository dispatches here; gh workflow
+    # run Site --ref main publishes at once. An off-the-hour minute, because
+    # GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
   workflow_dispatch:
 
@@ -59,6 +68,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Check out opm
+        # fetch-depth: 0 brings every tag and every branch, the branches as
+        # refs/remotes/origin/*, into each source checkout: the version
+        # resolver reads them for a line version (the newest tag of a line,
+        # origin/main, release/*) and refuses a shallow checkout.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: open-platform-model/opm
@@ -136,13 +149,17 @@ jobs:
             exit 1
           fi
       - name: Summary
+        # Every version's resolved refs: the ref the stamp names, where its
+        # docs tree came from, the commit built and the rule that chose it
+        # (not the checkout heads, which a line version does not read).
         run: |
           {
             echo '### Site build'
             echo
-            echo '| Source | Commit |'
-            echo '|---|---|'
-            jq -r '.sources | to_entries[] | "| \(.key) | [\(.value[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value)) |"' site/public/build-stamp.json
+            echo '| Version | Repository | Ref | Docs from | Commit | Rule |'
+            echo '|---|---|---|---|---|---|'
+            jq -r '.versions | to_entries[] | .key as $v | .value.refs | to_entries[]
+              | "| \($v) | \(.key) | \(.value.ref) | \(.value.docs // "") | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -156,6 +173,23 @@ jobs:
         with:
           name: build-stamp
           path: opmodel.dev/site/public/build-stamp.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload the frozen manifest
+        # The build as an anchored manifest at the refs it resolved: check out
+        # opmodel.dev at the commit it names, copy it outside site/.versions/
+        # and run OPM_VERSIONS_MANIFEST=<the copy> task build to rebuild the
+        # same trees. Not on pull requests: their run builds GitHub's
+        # temporary merge commit, which the header would name and which goes
+        # away. Its own artifact, so build-stamp.json stays at the root of
+        # build-stamp; include-hidden-files, because upload-artifact skips
+        # paths under a dot directory such as .versions.
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-manifest
+          path: opmodel.dev/site/.versions/frozen.conf
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
       - name: Build for GitHub Pages (interim)
@@ -261,6 +295,81 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
+
+  # The source pages on every source repository's main, which the published
+  # line version no longer reads for cli, library and opm-operator: an
+  # explicit-mode build (OPM_VERSIONS=v1.0=/src) runs the source lint, every
+  # build check and the link crawl over the main checkouts, so a page broken
+  # on main fails here before it is tagged. It uploads nothing and
+  # pages-deploy does not need it, so it cannot change what is published.
+  # Dates are not its subject: shallow checkouts, OPM_REQUIRE_DATES off.
+  sources-main:
+    name: Source pages on main (not published)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-sources-main
+      cancel-in-progress: true
+    defaults:
+      run:
+        working-directory: opmodel.dev
+    steps:
+      - name: Check out opmodel.dev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: opmodel.dev
+          persist-credentials: false
+      - name: Check out opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm
+          ref: main
+          path: opm
+          persist-credentials: false
+      - name: Check out core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/core
+          ref: main
+          path: core
+          persist-credentials: false
+      - name: Check out catalog_opm
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/catalog_opm
+          ref: main
+          path: catalog_opm
+          persist-credentials: false
+      - name: Check out cli
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/cli
+          ref: main
+          path: cli
+          persist-credentials: false
+      - name: Check out library
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/library
+          ref: main
+          path: library
+          persist-credentials: false
+      - name: Check out opm-operator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/opm-operator
+          ref: main
+          path: opm-operator
+          persist-credentials: false
+
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+      - name: Build the main checkouts in explicit mode
+        env:
+          OPM_VERSIONS: v1.0=/src
+          OPM_REQUIRE_DATES: '0'
+        run: task build
 
   # The interim GitHub Pages deploy (README.md, "GitHub Pages (interim)"). It
   # publishes the Pages artifact the build job uploaded; it checks nothing out

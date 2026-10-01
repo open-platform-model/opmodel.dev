@@ -172,17 +172,17 @@ then, under rules 1 and 2: the release the stamp names must be an ancestor of sh
 - **`resolve-versions.sh --fetch`** (`task versions:fetch`) runs this in each of the six roots, resolved as for a build (`OPM_SRC_*`, `OPM_SRC_WORKTREE`):
 
   ```sh
-  git -C <root> fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags origin \
+  git -C <root> fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags --refmap= origin \
     '+refs/heads/*:refs/remotes/origin/*' 'refs/tags/*:refs/tags/*'
   ```
 
   - **No user config can move or delete a tag** (verified with git 2.55.0, Research):
-    - The explicit refspecs replace any configured one, so a configured `+refs/tags/*:refs/tags/*` cannot force a tag. A plain `git fetch --tags origin` would let it.
+    - The empty `--refmap=` makes git ignore every configured refspec. Without it, refspecs on the command line do not replace the configured `remote.origin.fetch` values: git still applies each one as an extra mapping with its own `+` (git-fetch(1), "Configured remote-tracking branches"), so a configured `+refs/heads/*:refs/heads/*` would force-reset every local branch that is not checked out (review finding, reproduced with git 2.55.0). A plain `git fetch --tags origin` would also let a configured `+refs/tags/*:refs/tags/*` force a tag.
     - The tag refspec has no `+`. Git refuses to move a local tag that differs upstream ("would clobber existing tag") and exits 1, while every other ref still updates. That doubles as a tamper alarm for the immutability rule.
     - `--no-prune --no-prune-tags` beat `fetch.prune`, `fetch.pruneTags` and `remote.origin.prune*`. With those set, `git fetch --tags origin` deletes local-only tags.
   - **It writes nothing in a worktree.** From a `site-src` worktree, a plain fetch writes `FETCH_HEAD` into `.git/worktrees/site-src/`. `--no-write-fetch-head` leaves only the shared refs and objects changed.
   - Remote-tracking refs update forcibly, as in any fetch. A branch deleted upstream stays local (no prune), which is harmless: only the exact derived `release/` name is read.
-  - It creates no local branch and never moves or deletes a tag. It fetches every root, then exits 1 naming each root whose fetch failed.
+  - It creates or moves no local branch and never moves or deletes a tag. It fetches every root, then exits 1 naming each root whose fetch failed.
   - A local build after a release is `task versions:fetch build`. CI needs no fetch (decision 9).
 
 ### 5. Rows: the `docs` column and the kind `line`
@@ -292,7 +292,9 @@ Links (`opm/source.html`, `components/last-updated.html`):
 - **Artifacts.** `build-stamp` stays as it is: `site/public/build-stamp.json` alone, 90 days. A new `build-manifest` artifact uploads `site/.versions/frozen.conf` alone, also for 90 days.
   - It is a separate artifact because `actions/upload-artifact` roots a multi-path artifact at the paths' least common ancestor. Adding `frozen.conf` to `build-stamp` would move `build-stamp.json` from the artifact root to `public/build-stamp.json`.
   - It needs `include-hidden-files: true`, because `actions/upload-artifact` skips paths under a dot directory, and `.versions` is one.
-- **Nightly.** The existing nightly run is now what publishes a newly tagged release or a release-branch docs fix: within about a day, or at once with `gh workflow run Site --ref main`. The cron comment and README "Source repositories" say so. `pages-deploy` is unchanged.
+- **Nightly.** The existing nightly run is now what publishes a newly tagged release or a release-branch docs fix: within about a day, or at once with `gh workflow run Site --ref main`. What reaches the published build without a release is opm's `main`, and core's and catalog_opm's `main` while their docs rule reads it; cli, library and opm-operator pages reach it only through a release (and a cli pin). The cron comment and README "Source repositories" say so. `pages-deploy` is unchanged.
+- **Source pages on main (review fix).** Line mode no longer reads cli, library or opm-operator `main`, so a page broken there would first fail once tagged, behind an immutable tag. A separate `sources-main` job keeps the early warning: it checks out the six repositories at `main` and runs `OPM_VERSIONS=v1.0=/src task build` (explicit mode: the source lint, every build check and the link crawl over the working trees). It uploads nothing and `pages-deploy` does not wait for it, so it cannot change what is published; a failure turns the run red.
+- **`build-manifest` only outside pull requests (review fix).** A pull request run builds GitHub's temporary merge commit (`refs/pull/<n>/merge`), which `frozen.conf`'s header would name and which disappears; the upload step runs only when `github.event_name != 'pull_request'`.
 - **No cross-repository dispatch.** A `repository_dispatch` from each source repository's release workflow needs a credential that can write to opmodel.dev in five repositories. That is either a new PAT secret, which the brief rules out, or the `opm-release-please` App.
   - The App's credentials (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`) are already in all five release workflows, and the App has `contents: write`, which `repository_dispatch` needs.
   - It is installed on selected repositories. Whether opmodel.dev is one cannot be read without org admin (`GET user/installations` returns 403).
@@ -455,7 +457,9 @@ Every line manifest uses `catalog-line = opm-v1` unless a case says otherwise.
 - From a linked worktree, `git fetch --tags origin` created `.git/worktrees/<name>/FETCH_HEAD`; the decision 4 command created no file under `.git/worktrees/<name>/` and no `.git/FETCH_HEAD`.
 - `git clone --depth 1 <path>` prints "--depth is ignored in local clones; use file:// instead" and is not shallow; `file://<path>` is.
 
-**Decision**: The resolver reads local refs only. `--fetch` (`task versions:fetch`) runs the decision 4 command. CI fetches through its checkouts.
+- (Review, after section 3) With `+refs/heads/*:refs/heads/*` added to `remote.origin.fetch`, `HEAD` detached and a local-only commit on `side`, the decision 4 command without `--refmap=` printed `+ ... side -> side (forced update)` and exit 0, dropping the commit; with `--refmap=` the branch stayed put. The `line-fetch-refmap` fixture case asserts it.
+
+**Decision**: The resolver reads local refs only. `--fetch` (`task versions:fetch`) runs the decision 4 command, `--refmap=` included. CI fetches through its checkouts.
 **Rationale**: Builds stay offline and repeatable. The fetch cannot move or delete a tag whatever the user's git config, writes nothing in a worktree, and a refused tag update surfaces any tag tampering.
 
 ### Row shape
@@ -475,12 +479,35 @@ Every line manifest uses `catalog-line = opm-v1` unless a case says otherwise.
 **Decision**: The resolver reads tags only. A nightly run may document a tag whose release is still a draft.
 **Rationale**: The tag is immutable either way, and the docs do not depend on the assets. Checking release state would need the network and a token in the host step.
 
+### Spike findings (task 1.2-1.5)
+**Context**: Section 1 proves the resolution on the real tags before anything is built on it. Run 2026-10-01 at about 19:20 CEST with git 2.55.0, after fetching the six source repositories with the decision 4 command (each exit 0, no "would clobber existing tag" line). `deploy-site` had not merged (`openspec/changes/archive/` on `origin/main` holds no `*-deploy-site`).
+**Explored**:
+- **Finding 1, the table.** A throwaway POSIX sh script outside WS (the two line regexes and an awk `semver_max` of decision 3, `docs_source` of decision 2, the pin reads by `git show`) resolved `cli-line = v1.0` and `catalog-line = opm-v4` read-only against the six `site-src` roots. It equals the 2026-10-01 18:30 CEST snapshot in proposal.md exactly: no newer tag or head.
+
+  ```text
+  repo          ref            docs  sha (docs tree)                           floor docs/site  release the stamp names (floor, containment)
+  cli           v1.0.0-beta.4  tag   0e66ec08a7d262695994761dd39f1c526c09c86a  ok    ok
+  library       v1.0.0-beta.1  tag   02344e5913458e4411a19668f0f4424b8141d2f4  ok    ok
+  opm-operator  v1.0.0-beta.2  tag   27d9dfc3c03777f218d69b3bbac435cc06b52af5  ok    ok
+  core          v2.0.0-beta.1  main  f5c446323caa3019fb0c8e449f8b28bf588a4de7  ok    ok         4f9b245ae6e38e964110b00cfa606115bd162b27 (ok, contained)
+  catalog_opm   opm-v4.4.4     main  64a65a5a603fad338c1caeb4a5d66c411cae2607  ok    ok         793e3be423c8b2728697eb87e07893b60c2c7283 (ok, contained)
+  opm           main           main  4e582b8e0d9ccbba320a639d34421cc744742ef0  ok    ok
+  ```
+
+  core and catalog_opm took rule 2: no `release/v2.0` or `release/opm-v4.4` exists, and the newest tag merged into `origin/main` is `v2.0.0-beta.1` and `opm-v4.4.4`, in the line. `resolve-versions.sh --pins v1.0.0-beta.4` prints the same library, core and opm-operator refs and SHAs. The only `release/*` tracking ref in any root is catalog_opm's stale `release/opm-stable`, which `docs_source` never reads.
+- **Finding 1, the order.** `semver_max` and `git -c versionsort.suffix=- tag -l --sort=-v:refname` (filtered by the same regex, first line) agree on every line in use: cli `v1.0` (32 tags) `v1.0.0-beta.4`; library `v1.0` (37) `v1.0.0-beta.1`; opm-operator `v1.0` (26) `v1.0.0-beta.3`; core `v2.0` (14) `v2.0.0-beta.1`; catalog `opm-v4` (12) and `opm-v4.4` (5) `opm-v4.4.4`; `k8s-v1.0` (7) `k8s-v1.0.0-beta.1`. The cli line holds a bare `v1.0.0-alpha`, which ranks below `v1.0.0-alpha.1` (a shorter prefix ranks lower). On the synthetic list `v1.0.0-beta.2 v1.0.0-beta.10 v1.0.0-beta.3 v1.0.0-rc.1 v1.0.0 v1.0.1-beta.1 v1.50.0` under the `v1.0` regex it prints `v1.0.1-beta.1`; without that tag `v1.0.0`; without both `v1.0.0-rc.1`. `v1.50.0` never passes the regex.
+- **Finding 2, refs from a worktree.** In all six repositories, the `site-src` worktree and the main checkout print `false` for `--is-shallow-repository`, the same `refs/remotes/origin/main` (opm 4e582b8, core f5c4463, catalog_opm 64a65a5, cli 437bebd, library 08c4f73, opm-operator c3e4232) and the same `git tag -l --merged refs/remotes/origin/main` list (7, 29, 44, 40, 48 and 45 tags). Worktrees share tags and remote-tracking refs, as decision 4 assumes. The `site-src` worktrees' own `HEAD`s are older (for example cli 025e1b6), which is why line mode never reads `HEAD`.
+- **Finding 3, the fixture shape and the fetch flags.** In scratch repositories outside WS: `up` (`git init -b main`, two commits, a tag), `git clone up line`, and a linked worktree `wt` of `line`. With a local-only tag in `line`, a new tag and a `release/v4.2` branch (made with `git switch -c`, then `git switch main`) in `up`, the decision 4 command run from `wt` with `fetch.prune` and `fetch.pruneTags` set to `true` through `GIT_CONFIG_COUNT` exited 0. `line` gained the tag and `refs/remotes/origin/release/v4.2` at `up`'s branch head, the local-only tag survived, and no `FETCH_HEAD` appeared in `line/.git/` or `line/.git/worktrees/wt/`. With `v9.0.0` created in `line`, then created on a new commit in `up`, and `+refs/tags/*:refs/tags/*` added to `line`'s `remote.origin.fetch`, the command exited 1 with `! [rejected] v9.0.0 -> v9.0.0 (would clobber existing tag)`, `line`'s `v9.0.0` stayed put, and its `origin/main` moved to `up`'s `main`. `git clone --depth 1 file://<up>` is shallow (`true`); a plain-path `--depth 1` clone warns and is not. No command, the direct fetch from a worktree included, was refused by the session's hooks. The scratch directory was deleted.
+
+**Decision**: No decision changes. Decisions 2, 3 and 4 hold as written, and the fixture plan of decision 11 (line roots as `git clone`s, `--fetch` under prune config, the clobber case, a `file://` shallow clone) works as designed.
+**Rationale**: Every row passes its floor, `docs/site` and containment on the real refs; the comparator agrees with git's own order on every real line; worktrees see the fetched refs; and the fetch flags behave as decision 4 claims.
+
 ## Risks / Trade-offs
 
 - [A published build changes with no commit in this repository] -> That is the owner's intent. Every build records every SHA (stamp, footer, summary) and the opmodel.dev commit, and `frozen.conf` in the 90-day `build-manifest` artifact rebuilds the same trees at that commit. `public/build-stamp.json` on the live site always names what is served.
 - [Moving lines make opmodel.dev's own CI depend on upstream releases] -> A new upstream tag that fails resolution turns every run red: pushes, unrelated pull requests and `real-line`, not only the nightly. resolve-versions.sh fails the whole manifest, never one version, and the deployed site stays at the last good deploy. README "Site versions" gives the recovery for each failure kind:
-  - library, core, opm-operator or catalog_opm (a bad pin, a pre-floor release, a failed containment check on a branch): an override in the manifest, which fails again, as no longer needed, once the line passes;
-  - cli (its newest tag has no `docs/site` or is older than its floor; cli cannot be overridden): move the version back to `anchored` at the last good refs, the version block of the last `build-manifest` artifact's `frozen.conf`, and back to line mode after the fix.
+  - library, core, opm-operator or catalog_opm failing a resolver check (a bad pin, a pre-floor release, a failed containment check on a branch): an override in the manifest, which fails again, as no longer needed, once the line passes;
+  - any other failure, in any row (review fix): cli failing a resolver check (cli cannot be overridden), or a tree that resolves but fails the build itself (the source lint, the page set, a link), which an override cannot cover because its replaced row passes every resolver check: move the version back to `anchored` at the version block of the last good `build-manifest` artifact's `frozen.conf`, and back to line mode once an upstream release fixes it. The `line-recover` and `real-line-frozen` cases prove the resolver accepts that block.
 
   Letting `real-line` report instead of fail would not keep CI green: the build's own `versions:prepare` fails on the same input.
 - [core docs at `main` can describe schema newer than the pinned `v2.0.0-beta.1`; `main` is three commits past it today: `docs(policy)` #86, `ci(release)` #87, `docs(spec)` #88] -> That is the owner's decision 2. The footer shows both facts (`core v2.0.0-beta.1 (docs main f5c4463)`). Rule 3 stops it once `main` tags the next minor, but not in the window after GA where `main` holds unreleased `X.(Y+1)` work and has no new tag yet. Cutting `release/vX.Y` at that point, as the version-line rule intends, moves the docs to rule 1.
@@ -502,12 +529,12 @@ Every line manifest uses `catalog-line = opm-v1` unless a case says otherwise.
 - A version is `source = main` (live working trees: tests and local work), `anchored` (fixed refs, bumped by commit) or `line` (`cli-line`, `catalog-line`: resolved on every build). The published manifest uses line versions. The owner reversed the earlier "never a moving line" rule on 2026-10-01. -> `AGENTS.md` "Site versions", README "Site versions", and the `site/versions.conf` header.
 - The resolution rules per repository: the newest cli tag in its line by semver precedence, prereleases included; library, operator and core from that tag's pins; the catalog from the newest tag of its major (`catalog-line = opm-v4`); core and catalog docs from `release/<prefix>vX.Y` (`X.Y` the minor of the release the stamp names), else `main` while `main` releases that minor, else the named release's own tag; opm from `main`. A new catalog major or a new cli line is a manifest commit; a new catalog minor is not. -> `AGENTS.md` "Site versions" and README "Site versions".
 - In a line version an override only replaces a row that fails, and the run fails once that row passes. -> `AGENTS.md` "Site versions" and README "Site versions".
-- The resolver reads tags and `refs/remotes/origin/*` only, never local branches or `HEAD`, and assumes `origin` is the upstream repository. It never fetches. `task versions:fetch` does, with explicit refspecs (the tag one without `+`), `--no-prune --no-prune-tags` and `--no-write-fetch-head`, so it never moves or deletes a tag and writes nothing in a worktree. -> `AGENTS.md` "Site versions" and README "Site versions".
+- The resolver reads tags and `refs/remotes/origin/*` only, never local branches or `HEAD`, and assumes `origin` is the upstream repository. It never fetches. `task versions:fetch` does, with explicit refspecs (the tag one without `+`), an empty `--refmap=`, `--no-prune --no-prune-tags` and `--no-write-fetch-head`, so it never moves or deletes a tag or a local branch and writes nothing in a worktree. For an anchored or line version `OPM_SRC_WORKTREE` and `OPM_SRC_<REPO>` only choose the clone whose refs are read; a worktree's pages are built in explicit mode. -> `AGENTS.md` "Site versions" and README "Site versions".
 - Every build records every repository's ref, SHA, docs source and rule in `versions.tsv`, `build-stamp.json`, the footer and the CI summary, plus the opmodel.dev commit (`site`). `frozen.conf` (the `build-manifest` artifact) rebuilds the same trees: check out opmodel.dev at that commit, copy the file outside `site/.versions/`, and run `OPM_VERSIONS_MANIFEST=<the copy> task build`. -> README "Site versions" and "CI".
 - Floors (at the tree and, for core and catalog_opm, at the release the stamp names), `docs/site` at the SHA and the containment of the named release fail the resolve with the version, the repository, the ref and the rule. -> `AGENTS.md` "Site versions".
-- A red resolution is recovered by an override (library, core, opm-operator, catalog_opm) or by moving the version back to `anchored` at the last `frozen.conf` (cli). -> README "Site versions".
+- A resolver failure in library, core, opm-operator or catalog_opm is recovered by an override; any other failure of a line version (cli, or a build failure in any row) by moving the version to `anchored` at the last good `frozen.conf` version block, then back to line mode after an upstream release fixes it. -> README "Site versions" and `AGENTS.md` "Site versions".
 - Local live editing of source pages is `OPM_VERSIONS=v1.0=/src task serve`, because a line version serves archives. -> README "Site versions" and `AGENTS.md` "Build And Dev Commands".
-- The nightly run is how a new release reaches the site. There is no cross-repository dispatch, and `gh workflow run Site --ref main` publishes at once. -> README "CI" ("Source repositories").
+- The nightly run is how a new release reaches the site. There is no cross-repository dispatch, and `gh workflow run Site --ref main` publishes at once. The non-publishing `sources-main` job checks every source repository's `main` in explicit mode. -> README "CI" ("Source repositories") and the `site.yml` cron comment.
 - Never sort release tags with `sort -V` or plain `--sort=-v:refname`. -> A comment at `semver_max` in `resolve-versions.sh`; stays with the change.
 - 0021:OQ15 stays open. -> Already in `openspec/config.yaml` "Site Versions"; stays with the change.
 
