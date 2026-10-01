@@ -1,5 +1,6 @@
 {{- /* Figure: Helm and OPM side by side (What OPM is, "In Kubernetes terms").
-       Port of the Astro site's HelmAndOpm.astro; the SVG body is verbatim in
-       _partials/opm/figures/helm-and-opm.html. */ -}}
-{{- $claim := `Helm and OPM both end in a Deployment and a Service, but a different role decides them. In Helm, the chart author writes templates that name every object. In OPM, the module names components, and the platform team’s transformers decide which objects each one becomes. Helm records a release in a Secret. OPM records an instance in a ModuleInstance.` -}}
-{{- partial "opm/figure.html" (dict "id" "hao" "title" "Helm and OPM" "claim" $claim "width" 360 "height" 586 "body" (partial "opm/figures/helm-and-opm.html" .)) -}}
+       The body in _partials/opm/figures/helm-and-opm.html began as a port of
+       the Astro site's HelmAndOpm.astro; it now adds a values-schema line to
+       each author card and "text" before templates/. */ -}}
+{{- $claim := `Helm and OPM both end in a Deployment and a Service, but a different role decides them. In Helm, the chart author writes text templates that name every object. In OPM, the module names components, and the platform team’s transformers decide which objects each one becomes. A chart may check its values against an optional schema. A module’s values are always unified with its CUE schema, so a value of the wrong type stops the render. Helm records a release in a Secret by default. OPM records an instance in a ModuleInstance.` -}}
+{{- partial "opm/figure.html" (dict "id" "hao" "title" "Helm and OPM" "claim" $claim "width" 360 "height" 606 "body" (partial "opm/figures/helm-and-opm.html" .)) -}}

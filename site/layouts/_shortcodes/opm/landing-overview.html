@@ -4,5 +4,5 @@
        tells with less detail and a third transformer. Drawn without the
        visible caption, beside the hero text; the claim stays the SVG's
        accessible label. The SVG body is _partials/opm/figures/landing-overview.html. */ -}}
-{{- $claim := `The module author's Module and the deployer's Values make a module instance, which is rendered against the platform team's Platform. The platform's Deployment, Service and Backup transformers emit one set of Kubernetes objects, which is applied to the cluster, where a backup provider watches the backup object and runs the backups.` -}}
-{{- partial "opm/figure.html" (dict "id" "lov" "title" "From module to cluster" "claim" $claim "caption" false "width" 372 "height" 472 "body" (partial "opm/figures/landing-overview.html" .)) -}}
+{{- $claim := `The module author’s Module and the deployer’s Values make a module instance, which is rendered against the platform team’s Platform. The platform’s Deployment, Service and Backup transformers emit one set of Kubernetes objects, which is applied to the cluster. There, Kubernetes’ built-in controllers watch the Deployment and the Service, and a backup controller watches the backup object.` -}}
+{{- partial "opm/figure.html" (dict "id" "lov" "title" "From module to cluster" "claim" $claim "caption" false "width" 372 "height" 498 "body" (partial "opm/figures/landing-overview.html" .)) -}}
