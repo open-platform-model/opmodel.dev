@@ -4,13 +4,25 @@
 # go.mod, opm/schema/loader.go, internal/operator/manifest.go, docs/site/ and
 # tags) under site/.check/versions-test/repos/, the only directory it removes
 # and recreates, and never uses /tmp. Then:
-#   - every resolver case of the fixture repositories: the pin reads,
+#   - every resolver case of the fixture repositories as roots: the pin reads,
 #     overrides, the anchor rule, pseudo-versions, docs/site, floors, the
 #     manifest grammar and the two root checks;
-#   - the pins at the real cli v1.0.0-alpha.25, and a --check anchored there,
-#     read from the caller's source roots (OPM_SRC_WORKTREE=site-src ...).
-# Each failing case asserts that the message names the repository, and the
-# ref where there is one. Prints "ok" or "FAIL" per case; exits 1 on any FAIL.
+#   - the line cases: the six repositories act as upstreams, and their
+#     clones under repos/line/ are the roots, so refs/remotes/origin/* and the
+#     tags exist exactly as in CI. The upstreams then move through states A to
+#     E (release branches, a newer final, a branch past its line, a catalog
+#     major, a branch that misses its release), and --fetch moves the clones:
+#     the semver order, the pins, the docs rules, overrides in a line, the
+#     stamp, the frozen round trip, and the fetch under prune config and
+#     against a conflicting upstream tag;
+#   - the pins at the real cli v1.0.0-alpha.25, a --check anchored there, and
+#     a line version cli-line = v1.0, catalog-line = opm-v4 checked against
+#     git's own tag order, read from the caller's source roots
+#     (OPM_SRC_WORKTREE=site-src ...).
+# Every fixture tag is created once and never moved: these are test data, but
+# the immutability rule holds here too. Each failing case asserts that the
+# message names the version, the repository, and the ref and the rule where
+# there is one. Prints "ok" or "FAIL" per case; exits 1 on any FAIL.
 #
 #   sh site/tests/versions/test-resolve.sh
 set -eu
@@ -26,9 +38,9 @@ pass=0; fail=0
 # --- Fixture repositories -----------------------------------------------------
 rm -rf "$T"
 mkdir -p "$T/manifests"
-g() { d=$1; shift
-  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "$d" -c user.name=opm-test -c user.email=opm-test@example.invalid \
+gx() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -c user.name=opm-test -c user.email=opm-test@example.invalid \
     -c commit.gpgSign=false -c tag.gpgSign=false -c core.hooksPath=/dev/null "$@"; }
+g() { d=$1; shift; gx -C "$d" "$@"; }
 commit() { g "$1" add -A && g "$1" commit -q -m "$2" && g "$1" rev-parse HEAD; }
 page() { mkdir -p "$1/docs/site"; printf -- '---\ntitle: %s\ndescription: A test page.\ntype: reference\n---\n' "$2" > "$1/docs/site/$2.md"; }
 gomod() { printf 'module github.com/open-platform-model/cli\n\ngo 1.25\n\nrequire (\n\tgithub.com/open-platform-model/library %s\n\tgithub.com/spf13/cobra v1.10.1\n)\n%s' "$2" "${3:-}" > "$1/go.mod"; }
@@ -81,6 +93,28 @@ gomod "$T/cli" v2.1.0 'replace github.com/open-platform-model/library => ../libr
 '; commit "$T/cli" replace > /dev/null; g "$T/cli" tag v1.3.0-replace
 gomod "$T/cli" v2.1.0; commit "$T/cli" restore > /dev/null
 
+# The release lines, state A, before any case runs.
+# core: v4.2.0-rc.0 on the pre-floor commit; a docs commit after v4.2.0, so
+# main's head is not the tag.
+g "$T/core" tag v4.2.0-rc.0 v4.0.0
+page "$T/core" c; commit "$T/core" "docs after v4.2.0" > /dev/null
+# catalog_opm: opm-v0.9.0 on the pre-floor commit; a docs commit after opm-v1.1.0.
+g "$T/catalog_opm" tag opm-v0.9.0 opm-v1.0.0
+page "$T/catalog_opm" b; commit "$T/catalog_opm" "docs after opm-v1.1.0" > /dev/null
+# library: v2.2.0-oldcore, after the floor, pins core v4.2.0-rc.0; then the pin is restored.
+loader "$T/library" v4.2.0-rc.0; commit "$T/library" oldcore > /dev/null; g "$T/library" tag v2.2.0-oldcore
+loader "$T/library" v4.2.0; commit "$T/library" restore > /dev/null
+# cli, the v1.5 line: v1.5.0-beta.2 and v1.5.0-beta.10 (library v2.3.0,
+# operator v3.1.0); v1.5.0-beta.3 (library v2.1.0), lower by semver but cut
+# later; the decoy v1.50.0; v1.6.0 (library v2.2.0-oldcore, operator v3.1.0);
+# then the pins are restored (library v2.1.0).
+gomod "$T/cli" v2.3.0; operator "$T/cli" v3.1.0; commit "$T/cli" beta2 > /dev/null; g "$T/cli" tag v1.5.0-beta.2
+page "$T/cli" beta10; commit "$T/cli" beta10 > /dev/null; g "$T/cli" tag v1.5.0-beta.10
+gomod "$T/cli" v2.1.0; commit "$T/cli" beta3 > /dev/null; g "$T/cli" tag v1.5.0-beta.3
+page "$T/cli" decoy; commit "$T/cli" decoy > /dev/null; g "$T/cli" tag v1.50.0
+gomod "$T/cli" v2.2.0-oldcore; commit "$T/cli" oldcore > /dev/null; g "$T/cli" tag v1.6.0
+gomod "$T/cli" v2.1.0; commit "$T/cli" restore > /dev/null
+
 # A docs/site tree inside another repository (this worktree), like A's
 # fixture workspace: not its own git top level.
 mkdir -p "$T/inside/opm"; page "$T/inside/opm" start
@@ -94,8 +128,11 @@ floors() {
 }
 # manifest NAME BODY: the six floors plus BODY, as manifests/NAME.conf.
 manifest() { { floors; printf '%s\n' "$2"; } > "$T/manifests/$1.conf"; echo "$T/manifests/$1.conf"; }
-# resolver ENV... -- ARGS: the resolver on the fixture roots; output in $out, status in $rc.
-fixture_env() { echo "OPM_SRC_OPM=$T/opm OPM_SRC_CORE=$T/core OPM_SRC_CATALOG_OPM=$T/catalog_opm OPM_SRC_CLI=$T/cli OPM_SRC_LIBRARY=$T/library OPM_SRC_OPM_OPERATOR=$T/opm-operator OPM_VERSIONS="; }
+# run MANIFEST ENV... -- ARGS: the resolver on the fixture roots under $R (the
+# repositories themselves, or their clones under line/); output in $out,
+# status in $rc.
+R=$T
+fixture_env() { echo "OPM_SRC_OPM=$R/opm OPM_SRC_CORE=$R/core OPM_SRC_CATALOG_OPM=$R/catalog_opm OPM_SRC_CLI=$R/cli OPM_SRC_LIBRARY=$R/library OPM_SRC_OPM_OPERATOR=$R/opm-operator OPM_VERSIONS="; }
 run() { # MANIFEST [EXTRA ENV...] -- resolver args
   m=$1; shift; extra=""
   while [ $# -gt 0 ] && [ "$1" != -- ]; do extra="$extra $1"; shift; done
@@ -277,6 +314,226 @@ run "$(manifest root-fixture "$good")" OPM_SRC_OPM="$T/inside/opm" -- --check
 expect root-fixture 1 "a root inside another repository fails, naming OPM_SRC_OPM and explicit mode" \
   "opm: root $T/inside/opm: not its own git top level" "set OPM_SRC_OPM" "OPM_VERSIONS=v1.0=/src"
 
+# --- Line versions: the repositories above are the upstreams ----------------------
+# Their clones under line/ are the roots, so refs/remotes/origin/* and the tags
+# exist exactly as in CI. A later state changes an upstream, and --fetch moves
+# the clones. Upstream branches are made with git switch -c, then git switch main.
+rev() { g "$T/$1" rev-parse "$2"; }
+short() { printf '%.7s' "$1"; }
+SITE_SHA=$(git -C "$SITE" rev-parse HEAD)
+mkdir -p "$T/line"
+for r in $REPOS; do gx clone -q "$T/$r" "$T/line/$r"; done
+R=$T/line
+lv="$v"
+lgood="$lv
+	cli-line = v1.5
+	catalog-line = opm-v1"
+L="v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}line${TAB}"
+CORE_HOW="pin:library opm/schema/loader.go"
+CORE_A=$(rev core main); CAT_A=$(rev catalog_opm main); OPM_HEAD=$(rev opm main)
+
+# State A.
+run "$(manifest line "$lgood")" -- --check
+expect line 0 "cli v1.5.0-beta.10 beats beta.3 and beta.2, ignores v1.50.0 and v1.6.0; the pins; catalog opm-v1.1.0; core and catalog docs from main; opm main" \
+  "# site${TAB}$SITE_SHA" \
+  "${L}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}line:newest v1.5.* tag${TAB}tag" \
+  "${L}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}pin:cli go.mod${TAB}tag" \
+  "${L}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator v3.1.0)${TAB}pin:cli internal/operator/manifest.go${TAB}tag" \
+  "${L}core${TAB}v4.2.0${TAB}$CORE_A${TAB}$CORE_HOW; docs: main head (no release/v4.2; main still releases v4.2)${TAB}main" \
+  "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}line:newest opm-v1.* tag; docs: main head (no release/opm-v1.1; main still releases opm-v1.1)${TAB}main" \
+  "${L}opm${TAB}main${TAB}$OPM_HEAD${TAB}line:main head${TAB}main"
+
+run "$(manifest line-override-1 "$lv
+	cli-line = v1.2
+	catalog-line = opm-v1
+	override = library v2.3.0 the v1.2 line pins a pseudo-version")" -- --check
+expect line-override-1 0 "an override replaces a failing pseudo-version pin; core follows the overridden library; how names the replaced row" \
+  "${L}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}override:the v1.2 line pins a pseudo-version; replaces v2.1.1-0.20260930120000-0123456789ab (pin:cli go.mod)${TAB}tag" \
+  "${L}core${TAB}v4.2.0${TAB}$CORE_A${TAB}$CORE_HOW; docs: main head"
+run "$(manifest line-override-2 "$lv
+	cli-line = v1.2
+	catalog-line = opm-v1
+	override = library v2.4.0-major the v1.2 line pins a pseudo-version
+	override = core $(rev core v4.2.0) the library names only a major")" -- --check
+expect line-override-2 0 "a core override names the tree: docs sha, no containment; it replaces no pin" \
+  "${L}core${TAB}$(rev core v4.2.0)${TAB}$(rev core v4.2.0)${TAB}override:the library names only a major; replaces no pin${TAB}sha" \
+  "${L}library${TAB}v2.4.0-major${TAB}"
+run "$(manifest line-override-3 "$lv
+	cli-line = v1.5
+	catalog-line = opm-v0
+	override = catalog_opm opm-v1.1.0 the opm-v0 line predates the floor")" -- --check
+expect line-override-3 0 "a catalog override of a pre-floor line: docs tag; it names the replaced row" \
+  "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$(rev catalog_opm opm-v1.1.0)${TAB}override:the opm-v0 line predates the floor; replaces opm-v0.9.0 (line:newest opm-v0.* tag)${TAB}tag"
+
+run "$(manifest line-override-stale "$lgood
+	override = opm-operator v3.1.0 the pin was a pseudo-version
+	override = opm $(rev opm dialect-floor) main had no docs")" -- --check
+expect line-override-stale 1 "an override whose replaced row passes every check fails as no longer needed, opm included" \
+  "v2.0: opm-operator override v3.1.0 (the pin was a pseudo-version): no longer needed: the line resolves v3.1.0 (pin:cli internal/operator/manifest.go), which passes every check; remove the override" \
+  "v2.0: opm override $(rev opm dialect-floor) (main had no docs): no longer needed: the line resolves main $(short "$OPM_HEAD") (line:main head)"
+
+run "$(manifest line-core-pre-floor "$lv
+	cli-line = v1.6
+	catalog-line = opm-v1")" -- --check
+expect line-core-pre-floor 1 "core v4.2.0-rc.0, pinned by library v2.2.0-oldcore, is older than its floor though its docs (main) are not" \
+  "v2.0: core v4.2.0-rc.0 (the release the stamp names, pinned by library v2.2.0-oldcore; docs main head): older than its floor $(rev core dialect-floor)"
+
+run "$(manifest line-pre-floor "$lv
+	cli-line = v1.0
+	catalog-line = opm-v1")" -- --check
+expect line-pre-floor 1 "the newest tag of a line older than its floor fails, naming the rule" \
+  "v2.0: cli v1.0.0-old (newest tag of line v1.0): older than its floor $(rev cli dialect-floor)"
+
+run "$(manifest line-no-tag "$lv
+	cli-line = v9.9
+	catalog-line = opm-v9")" -- --check
+expect line-no-tag 1 "a line without a tag fails, naming the line and task versions:fetch" \
+  "v2.0: cli line v9.9: no tag v9.9.<patch>[-<pre>] in $R/cli; fetch its tags (task versions:fetch)" \
+  "v2.0: catalog_opm line opm-v9: no tag opm-v9.<minor>.<patch>[-<pre>] in $R/catalog_opm; fetch its tags (task versions:fetch)"
+
+for c in \
+  "with-cli|	cli = v1.5.0-beta.10|version v2.0: cli-line excludes cli" \
+  "with-source|	source = main|version v2.0: source = main excludes cli-line" \
+  "no-catalog-line|-|version v2.0: cli-line needs catalog-line = opm-vN" \
+  "cli-minor|	cli-line = 1.5|version v2.0: cli-line \"1.5\": not a cli minor line vX.Y" \
+  "catalog-v1|	catalog-line = v1|version v2.0: catalog-line \"v1\": not an opm catalog major opm-vN" \
+  "catalog-minor|	catalog-line = opm-v4.4|version v2.0: catalog-line \"opm-v4.4\": a minor; the catalog line is the opm catalog major (opm-v4)" \
+  "catalog-k8s|	catalog-line = k8s-v1|version v2.0: catalog-line \"k8s-v1\": only the opm catalog line opm-vN is followed"; do
+  name=${c%%|*}; rest=${c#*|}; extra=${rest%%|*}; want=${rest#*|}
+  case "$name" in
+    no-catalog-line) body="$lv
+	cli-line = v1.5" ;;
+    cli-minor) body="$lv
+	catalog-line = opm-v1
+$extra" ;;
+    catalog-*) body="$lv
+	cli-line = v1.5
+$extra" ;;
+    *) body="$lgood
+$extra" ;;
+  esac
+  run "$(manifest "line-grammar-$name" "$body")" -- --check
+  expect "line-grammar-$name" 1 "a grammar error is named: $name" "$want"
+done
+run "$(manifest line-grammar-anchored "$good
+	catalog-line = opm-v1")" -- --check
+expect line-grammar-anchored 1 "catalog-line in an anchored version fails" "version v2.0: catalog-line needs cli-line"
+
+gx clone -q --depth 1 "file://$T/opm" "$T/shallow-opm"
+run "$(manifest line-shallow "$lgood")" OPM_SRC_OPM="$T/shallow-opm" -- --check
+expect line-shallow 1 "a shallow root fails, named" \
+  "v2.0: opm: root $T/shallow-opm: a shallow clone; a line version needs full history and tags (fetch-depth: 0)"
+
+R=$T
+run "$(manifest line-no-origin "$lgood")" -- --check
+expect line-no-origin 1 "a root without refs/remotes/origin/main fails, named" \
+  "v2.0: cli: root $T/cli: no refs/remotes/origin/main; a line version reads remote-tracking refs (task versions:fetch)"
+R=$T/line
+
+# State B: release/v4.2 (core) and release/opm-v1.1 (catalog_opm), each with a docs commit.
+g "$T/core" switch -q -c release/v4.2 v4.2.0; page "$T/core" fix42; commit "$T/core" "docs fix on release/v4.2" > /dev/null; g "$T/core" switch -q main
+g "$T/catalog_opm" switch -q -c release/opm-v1.1 opm-v1.1.0; page "$T/catalog_opm" fix11; commit "$T/catalog_opm" "docs fix on release/opm-v1.1" > /dev/null; g "$T/catalog_opm" switch -q main
+LGOOD=$(manifest line-b "$lgood")
+
+run "$LGOOD" -- --check
+expect line-stale 0 "before --fetch the clones still resolve state A" \
+  "${L}core${TAB}v4.2.0${TAB}$CORE_A${TAB}$CORE_HOW; docs: main head (no release/v4.2; main still releases v4.2)${TAB}main" \
+  "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}"
+
+run "$LGOOD" -- --fetch
+expect fetch-b 0 "--fetch brings the release branches into the clones"
+run "$LGOOD" -- --check
+expect line-branch 0 "core and catalog docs from their release branch heads; the versions are unchanged" \
+  "${L}core${TAB}v4.2.0${TAB}$(rev core release/v4.2)${TAB}$CORE_HOW; docs: release/v4.2 head${TAB}release/v4.2" \
+  "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}line:newest opm-v1.* tag; docs: release/opm-v1.1 head${TAB}release/opm-v1.1" \
+  "${L}cli${TAB}v1.5.0-beta.10${TAB}"
+
+# The stamp: gen-stamp.sh on the host, SITE_DIR at a scratch copy of the --check output.
+mkdir -p "$T/stamp/.versions"
+# shellcheck disable=SC2046 # env assignments hold no spaces
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$LGOOD" sh "$RESOLVE" --check > "$T/stamp/.versions/versions.tsv" 2>/dev/null
+out=$(SITE_DIR="$T/stamp" OPM_VERSIONS='' OPM_BUILD_REFS='' sh "$SITE/scripts/gen-stamp.sh" 2>&1 && cat "$T/stamp/data/opm/build.json") && rc=0 || rc=$?
+expect line-stamp 0 "build.json records every SHA, every docs value, kind line and the opmodel.dev commit" \
+  "\"site\": \"$SITE_SHA\"" "\"kind\": \"line\"" \
+  "\"cli\": {\"ref\": \"v1.5.0-beta.10\", \"sha\": \"$(rev cli v1.5.0-beta.10)\", \"how\": \"line:newest v1.5.* tag\", \"docs\": \"tag\"}" \
+  "\"library\": {\"ref\": \"v2.3.0\", \"sha\": \"$(rev library v2.3.0)\", \"how\": \"pin:cli go.mod\", \"docs\": \"tag\"}" \
+  "\"opm-operator\": {\"ref\": \"v3.1.0\", \"sha\": \"$(rev opm-operator v3.1.0)\"" \
+  "\"core\": {\"ref\": \"v4.2.0\", \"sha\": \"$(rev core release/v4.2)\", \"how\": \"$CORE_HOW; docs: release/v4.2 head\", \"docs\": \"release/v4.2\"}" \
+  "\"catalog_opm\": {\"ref\": \"opm-v1.1.0\", \"sha\": \"$(rev catalog_opm release/opm-v1.1)\"" "\"docs\": \"release/opm-v1.1\"" \
+  "\"opm\": {\"ref\": \"main\", \"sha\": \"$OPM_HEAD\", \"how\": \"line:main head\", \"docs\": \"main\"}"
+
+# The frozen manifest round trip: --freeze, then --check of that copy.
+# shellcheck disable=SC2046
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$LGOOD" sh "$RESOLVE" --freeze > "$T/manifests/frozen-b.conf" 2>/dev/null
+run "$T/manifests/frozen-b.conf" -- --check
+A="v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}anchored${TAB}"
+expect line-freeze 0 "the frozen copy resolves the same six SHAs, anchored, cli, library and opm-operator by tag name" \
+  "${A}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}anchor${TAB}tag" \
+  "${A}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}override:frozen from line, docs tag${TAB}tag" \
+  "${A}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator v3.1.0)${TAB}override:frozen from line, docs tag${TAB}tag" \
+  "${A}core${TAB}$(rev core release/v4.2)${TAB}$(rev core release/v4.2)${TAB}override:frozen from line v4.2.0, docs release/v4.2${TAB}sha" \
+  "${A}catalog_opm${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}explicit${TAB}sha" \
+  "${A}opm${TAB}$OPM_HEAD${TAB}$OPM_HEAD${TAB}explicit${TAB}sha"
+run "$SITE/.versions/frozen.conf" -- --check
+expect line-freeze-in-place 1 "the generated frozen.conf is refused as the manifest, by path" \
+  "resolve-versions: $SITE/.versions/frozen.conf is the generated frozen manifest, which this run rewrites; copy it outside site/.versions/ first"
+
+# State C: cli v1.5.0, a final, pinning library v2.1.0 (so core v4.1.0); core
+# v4.1.1 on a side branch fix-v4.1 off v4.1.0, never merged into main; catalog
+# opm-v1.2.0 on main after a docs commit.
+page "$T/cli" final; commit "$T/cli" "v1.5.0" > /dev/null; g "$T/cli" tag v1.5.0
+g "$T/core" switch -q -c fix-v4.1 v4.1.0; page "$T/core" fix41; commit "$T/core" "fix on v4.1" > /dev/null; g "$T/core" tag v4.1.1; g "$T/core" switch -q main
+page "$T/catalog_opm" c; commit "$T/catalog_opm" "docs before opm-v1.2.0" > /dev/null; g "$T/catalog_opm" tag opm-v1.2.0
+run "$LGOOD" -- --fetch
+expect fetch-c 0 "--fetch brings state C into the clones"
+run "$LGOOD" -- --check
+expect line-newer-tag 0 "a final beats its prereleases; core's line v4.1, which main is past, documents its pin v4.1.0, not v4.1.1; the catalog major follows opm-v1.2.0" \
+  "${L}cli${TAB}v1.5.0${TAB}$(rev cli v1.5.0)${TAB}" \
+  "${L}library${TAB}v2.1.0${TAB}" \
+  "${L}core${TAB}v4.1.0${TAB}$(rev core v4.1.0)${TAB}$CORE_HOW; docs: v4.1.0 (main is past v4.1, no release/v4.1)${TAB}tag" \
+  "${L}catalog_opm${TAB}opm-v1.2.0${TAB}$(rev catalog_opm main)${TAB}line:newest opm-v1.* tag; docs: main head (no release/opm-v1.2; main still releases opm-v1.2)${TAB}main"
+
+# State D: catalog opm-v2.0.0 on main.
+page "$T/catalog_opm" d; commit "$T/catalog_opm" "opm-v2.0.0" > /dev/null; g "$T/catalog_opm" tag opm-v2.0.0
+run "$LGOOD" -- --fetch
+expect fetch-d 0 "--fetch brings state D into the clones"
+run "$LGOOD" -- --check
+expect line-catalog-major 0 "the catalog stays on its major (opm-v1.2.0), docs at its tag once main is past opm-v1.2" \
+  "${L}catalog_opm${TAB}opm-v1.2.0${TAB}$(rev catalog_opm opm-v1.2.0)${TAB}line:newest opm-v1.* tag; docs: opm-v1.2.0 (main is past opm-v1.2, no release/opm-v1.2)${TAB}tag"
+
+# State E: core release/v4.1 from the floor commit, plus a docs commit.
+g "$T/core" switch -q -c release/v4.1 dialect-floor; page "$T/core" fix41b; commit "$T/core" "docs on release/v4.1" > /dev/null; g "$T/core" switch -q main
+run "$LGOOD" -- --fetch
+expect fetch-e 0 "--fetch brings state E into the clones"
+run "$LGOOD" -- --check
+expect line-contain 1 "a release branch that does not contain the release the stamp names fails" \
+  "v2.0: core release/v4.1 $(short "$(rev core release/v4.1)") (docs for v4.1.0): does not contain v4.1.0, the release the stamp names"
+
+# The fetch: a local-only tag survives prune config, and a worktree root gets no FETCH_HEAD.
+g "$R/opm" tag v0.0.0-localonly
+g "$R/library" worktree add -q --detach "$T/line-wt-library"
+run "$LGOOD" OPM_SRC_LIBRARY="$T/line-wt-library" GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=fetch.prune GIT_CONFIG_VALUE_0=true \
+  GIT_CONFIG_KEY_1=fetch.pruneTags GIT_CONFIG_VALUE_1=true -- --fetch
+heads=$(find "$R" -path '*/.git/FETCH_HEAD' -o -path '*/.git/worktrees/*/FETCH_HEAD' | head -n 3)
+why=""
+g "$R/opm" rev-parse -q --verify refs/tags/v0.0.0-localonly > /dev/null || why="the local-only tag is gone; "
+[ -z "$heads" ] || why="${why}FETCH_HEAD written: $heads"
+if [ "$rc" = 0 ] && [ -z "$why" ]; then ok line-fetch-prune "--fetch under fetch.prune and fetch.pruneTags keeps a local-only tag and writes no FETCH_HEAD, from a worktree too"
+else bad line-fetch-prune "exit $rc; $why"; fi
+
+# A conflicting upstream tag: refused, the local tag kept, every other ref updated.
+g "$R/core" tag v4.9.0 HEAD
+LOCAL49=$(g "$R/core" rev-parse v4.9.0)
+g "$R/core" config --add remote.origin.fetch '+refs/tags/*:refs/tags/*'
+page "$T/core" new49; commit "$T/core" "v4.9.0 upstream" > /dev/null; g "$T/core" tag v4.9.0
+run "$LGOOD" -- --fetch
+why=""
+[ "$(g "$R/core" rev-parse v4.9.0)" = "$LOCAL49" ] || why="the local v4.9.0 moved; "
+[ "$(g "$R/core" rev-parse refs/remotes/origin/main)" = "$(rev core main)" ] || why="${why}origin/main did not update"
+expect line-fetch-clobber 1 "--fetch refuses to clobber a local tag, names the root, and still updates origin/main" \
+  "would clobber existing tag" "--fetch failed in:" "core: $R/core"
+[ -z "$why" ] || bad line-fetch-clobber-refs "$why"
+
 # --- The real repositories (the caller's roots), resolver only -------------------
 rrun() { out=$(OPM_VERSIONS='' sh "$RESOLVE" "$@" 2>&1) && rc=0 || rc=$?; }
 rrun --pins v1.0.0-alpha.25
@@ -292,6 +549,34 @@ real=$SITE/.check/versions-test/repos/manifests/real-alpha25.conf
 out=$(OPM_VERSIONS='' OPM_VERSIONS_MANIFEST="$real" sh "$RESOLVE" --check 2>&1) && rc=0 || rc=$?
 expect real-pre-floor 1 "anchored at cli v1.0.0-alpha.25, every pin is older than its floor" \
   "v1.0: cli v1.0.0-alpha.25: older than its floor" "v1.0: opm-operator v1.0.0-alpha.19: no docs/site at this ref"
+
+# A line version on the real roots: the cli and catalog refs equal git's own
+# tag order (versionsort.suffix=-, right while every prerelease uses "-": the
+# oracle, never the implementation), and library, core and opm-operator are
+# exactly what that cli tag pins.
+real_root() {
+  sh -c '. "$0" >/dev/null; sources; for m in $MOUNTS; do [ "$m" = -v ] || printf "%s\n" "$m"; done' "$SITE/scripts/run-in-image.sh" tag |
+    awk -v r="$1" '{ m = $0; sub(/:\/src\/.*/, "", m); d = $0; sub(/.*:\/src\//, "", d); sub(/:ro$/, "", d); if (d == r) print m }'
+}
+git_newest() { git -C "$(real_root "$1")" -c versionsort.suffix=- tag -l --sort=-v:refname | grep -E "$2" | head -n 1; }
+reall=$SITE/.check/versions-test/repos/manifests/real-line.conf
+{
+  for r in $REPOS; do printf '[repo "%s"]\n\tfloor = %s\n' "$r" "$(git config --file "$SITE/versions.conf" --get "repo.$r.floor")"; done
+  printf '[version "v1.0"]\n\tlabel = v1.0 (beta)\n\tweight = 1\n\tdefault = true\n\tcli-line = v1.0\n\tcatalog-line = opm-v4\n'
+} > "$reall"
+want_cli=$(git_newest cli '^v1\.0\.[0-9]+(-[0-9A-Za-z.-]+)?$')
+want_cat=$(git_newest catalog_opm '^opm-v4\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$')
+pins=$(OPM_VERSIONS='' sh "$RESOLVE" --pins "$want_cli" 2>/dev/null || true)
+pin() { printf '%s\n' "$pins" | awk -F'\t' -v r="$1" '$1 == r { print $2 }'; }
+out=$(OPM_VERSIONS='' OPM_VERSIONS_MANIFEST="$reall" sh "$RESOLVE" --check 2>&1) && rc=0 || rc=$?
+RL="v1.0${TAB}v1.0 (beta)${TAB}1${TAB}true${TAB}line${TAB}"
+baddocs=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "line" && $10 != "tag" && $10 != "main" && $10 !~ /^release\// { print $6 ": " $10 }')
+expect real-line 0 "cli-line = v1.0 resolves cli $want_cli (git's order), the pins of that tag, catalog $want_cat (git's order); docs tag, main or release/" \
+  "${RL}cli${TAB}$want_cli${TAB}" "${RL}library${TAB}$(pin library)${TAB}" "${RL}core${TAB}$(pin core)${TAB}" \
+  "${RL}opm-operator${TAB}$(pin opm-operator)${TAB}" "${RL}catalog_opm${TAB}$want_cat${TAB}" "${RL}opm${TAB}main${TAB}"
+if [ -z "$want_cli" ] || [ -z "$want_cat" ] || [ -z "$(pin core)" ] || [ -n "$baddocs" ]; then
+  bad real-line-docs "cli \"$want_cli\", catalog \"$want_cat\", core pin \"$(pin core)\"; docs not tag, main or release/: $baddocs"
+fi
 
 echo
 echo "test-resolve: $pass passed, $fail failed"

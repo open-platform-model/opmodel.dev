@@ -57,12 +57,15 @@ tasks:
       - sh site/scripts/run-in-image.sh image
 
   # The site versions (site/versions.conf), resolved on the host, where git
-  # works in a worktree; build and serve run versions:prepare first. The
-  # scripts read OPM_VERSIONS and OPM_VERSIONS_MANIFEST from the environment
-  # (never Taskfile vars, which would shadow it); the env map hands on the CLI
-  # form, and the source roots resolve in run-in-image.sh as for a build.
+  # works in a worktree; build and serve run versions:prepare first, which
+  # never fetches. A line version follows its release lines through the
+  # roots' tags and refs/remotes/origin/*, so a local build after a release is
+  # task versions:fetch build. The scripts read OPM_VERSIONS and
+  # OPM_VERSIONS_MANIFEST from the environment (never Taskfile vars, which
+  # would shadow it); the env map hands on the CLI form, and the source roots
+  # resolve in run-in-image.sh as for a build.
   versions:prepare:
-    desc: Resolve the site versions from site/versions.conf on the host (build and serve run it first)
+    desc: Resolve the site versions (main, anchored and line) from site/versions.conf on the host, offline; archive every version that is not source = main (build and serve run it first)
     env: &versions-env
       OPM_WS: '{{.OPM_WS}}'
       OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
@@ -75,16 +78,27 @@ tasks:
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       OPM_VERSIONS_MANIFEST: '{{.OPM_VERSIONS_MANIFEST}}'
     cmds:
-      # Writes site/.versions/versions.tsv; with OPM_VERSIONS set it only removes a stale one.
+      # Writes site/.versions/versions.tsv and frozen.conf; with OPM_VERSIONS set it only removes stale ones.
       - sh site/scripts/resolve-versions.sh
-      # The archives of anchored versions and every page's git date; with OPM_VERSIONS set, nothing.
+      # The archives of anchored and line versions and every page's git date; with OPM_VERSIONS set, nothing.
       - sh site/scripts/materialise.sh
 
   versions:check:
-    desc: Resolve every site version and print its refs (site/versions.conf, or OPM_VERSIONS_MANIFEST); writes nothing
+    desc: Resolve every site version, line versions from the roots' tags and remote-tracking refs, and print its refs, SHAs and rules (site/versions.conf, or OPM_VERSIONS_MANIFEST); writes nothing
     env: *versions-env
     cmds:
       - sh site/scripts/resolve-versions.sh --check
+
+  # The only network step of the versions: git fetch in the six source roots
+  # with explicit refspecs, the tag one without +, and --no-prune
+  # --no-prune-tags --no-write-fetch-head, so it never moves or deletes a tag
+  # and writes nothing in a worktree. It fails, naming the root, when a local
+  # tag differs from origin's.
+  versions:fetch:
+    desc: Fetch every tag and branch of the six source roots from origin (refs/remotes/origin/*), never moving or deleting a tag; run it before a local build after a release
+    env: *versions-env
+    cmds:
+      - sh site/scripts/resolve-versions.sh --fetch
 
   # The two-version test never writes site/public/: it builds into
   # site/.check/versions-test/. The last steps restore the real manifest's
@@ -134,7 +148,7 @@ tasks:
       - OPM_BASE_URL={{shellQuote (.OPM_BASE_URL | default "")}} sh site/scripts/run-in-image.sh build
 
   serve:
-    desc: Run the dev server on http://127.0.0.1:${SITE_PORT:-1313}/, reading the sources in place
+    desc: Run the dev server on http://127.0.0.1:${SITE_PORT:-1313}/ over the resolved versions (a line version serves its archives; live editing is OPM_VERSIONS=v1.0=/src task serve)
     deps: [versions:prepare]
     env: *hugo-env
     cmds:

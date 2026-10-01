@@ -30,7 +30,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
 
 ## 2. Resolve line versions (build scripts, Taskfile, resolver tests)
 
-- [ ] 2.1 `site/scripts/resolve-versions.sh`, grammar (design.md decision 1). Precondition: the owner's answer to the blocking catalog-line question in design.md Open Questions, as the supervisor recorded it (in the launch message or in design.md). With no answer recorded, stop and report it under `questions`. If the answer is a minor line, stop and report it under `deviations` before writing the grammar. Then:
+- [x] 2.1 `site/scripts/resolve-versions.sh`, grammar (design.md decision 1). Precondition: the owner's answer to the blocking catalog-line question in design.md Open Questions, as the supervisor recorded it (in the launch message or in design.md). With no answer recorded, stop and report it under `questions`. If the answer is a minor line, stop and report it under `deviations` before writing the grammar. Then:
   - add `version.cli-line` and `version.catalog-line` to the key whitelist and to the at-most-once loop;
   - kind by keys: `source` makes `main`, `cli-line` makes `line`, otherwise `anchored`;
   - a line version requires both keys and excludes `source`, `cli`, `catalog` and `opm`; `source = main` excludes both line keys; an anchored version excludes `catalog-line`; `cli` is required only for `anchored`; each exclusion is a named error;
@@ -40,7 +40,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - rewrite the header comment and the usage block for three kinds, `--fetch` and `--freeze`; the header states that line mode assumes `origin` is the upstream repository (decision 4).
 
   Verify: `test-resolve.sh` case `line-grammar` (task 2.8).
-- [ ] 2.2 Helpers (design.md decisions 2-4), with comments:
+- [x] 2.2 Helpers (design.md decisions 2-4), with comments:
   - `semver_max PREFIX` in awk (SemVer 2.0.0 §11; the comment says why never `sort -V` or plain `--sort=-v:refname`);
   - `line_tags ROOT PREFIX LINE`, where `LINE` is `X.Y` (a minor) or `X` (a major), with the two regexes of decision 3;
   - `newest_in_line`;
@@ -48,7 +48,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - `docs_source REPO PREFIX X.Y REF`: rules 1-3, returning `docs`, `sha` and the rule text; rule 3 returns the commit of `REF`, the release the stamp names.
 
   For line versions only, the root checks: not shallow, and `refs/remotes/origin/main` present, each a named error (decision 6). The resolver itself still never fetches.
-- [ ] 2.3 The line resolution in the version loop:
+- [x] 2.3 The line resolution in the version loop:
   - cli is the newest tag in `cli-line`, then `resolve_pins`;
   - core keeps its pinned version as `ref` and takes its tree from `docs_source core "" <X.Y of the pin> <the pin>`;
   - catalog_opm is the newest tag of the `catalog-line` major as `ref`, its tree from `docs_source catalog_opm opm- <X.Y of that tag> <that tag>`;
@@ -56,17 +56,17 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - an override (decision 1) replaces a row: `docs` is `tag` or `sha`, no `docs_source` and no containment check, core still read at the effective library. The replaced row is still resolved and checked without reporting its errors. `how` is `override:<reason>; replaces <ref> (<how>)` or `override:<reason>; replaces no pin`. The run fails with the "no longer needed" error once the replaced row passes every check. Anchored overrides are unchanged.
 
   Every row goes through `check_ref` with a non-`main` kind. For core and catalog_opm, also check the floor at the commit of the release the stamp names, and, under rules 1 and 2, its containment in the docs SHA. Line rows carry kind `line`, the `how` texts of decision 2, and error text naming the rule (decision 6), with no `@` anywhere. Append the tenth column `docs` to the header and to every row of every kind (`worktree`, `tag`, `sha`, `main`, `release/...`), and write `# site<TAB><opmodel.dev HEAD>` after the header in both `--check` and write mode. Verify: cases `line`, `line-override`, `line-override-stale`, `line-core-pre-floor`, `line-branch`, `line-newer-tag`, `line-catalog-major`, `line-contain`, `line-pre-floor` and `line-no-tag`, plus every existing case unchanged.
-- [ ] 2.4 Modes:
+- [x] 2.4 Modes:
   - `--fetch`: the decision 4 command (explicit refspecs, the tag one without `+`; `--no-write-fetch-head --no-prune --no-prune-tags --no-tags`) for the six roots, resolved as for a build; it fetches every root, then exits 1 naming each root whose fetch failed;
   - `--freeze`: print the frozen manifest of design.md decision 10 (the opmodel.dev commit in the header, `docs = tag` rows by tag name, every other row by SHA), writing nothing;
   - write mode also writes `site/.versions/frozen.conf` (via `.tmp` and `mv`);
   - the failure trap removes `frozen.conf` with `versions.tsv`, and explicit mode removes both.
 
   Verify: cases `line-stale`, `line-branch`, `line-freeze`, `line-fetch-prune` and `line-fetch-clobber`. Then touch a marker file in `<scratch>` and run `sh <wt>/site/scripts/resolve-versions.sh --fetch` once with `OPM_SRC_WORKTREE=site-src`. It exits 0 and creates no file under `<wt>`, and for each of the six repositories `find WS/<repo>/.git/worktrees/site-src -newer <marker>` prints nothing (no `FETCH_HEAD` there).
-- [ ] 2.5 `site/scripts/materialise.sh`: archive every version whose kind is not `main` (`[ "$kind" != main ]`, decision 7), and update its header comment. Comment-only edits in `site/scripts/build-all.sh`, `site/scripts/serve.sh` and `site/scripts/gen-mounts.sh` name the third kind. Verify: `git -C <wt> diff -- site/scripts/build-all.sh site/scripts/serve.sh site/scripts/gen-mounts.sh` changes comments only.
-- [ ] 2.6 `site/scripts/gen-stamp.sh`: write `"docs"` per ref when column 10 is set, and `"site"` from the `# site` line of `versions.tsv` when it is there. Update the header comment: kinds, `docs`, `site`, and `sources` = the roots' checked-out `HEAD`, not the record for anchored or line versions. Verify: case `line-stamp`, and the fixture builds of `task test:site` still pass (explicit rows have no column 10 and no `site`).
-- [ ] 2.7 `Taskfile.yml`: add `versions:fetch` (`sh site/scripts/resolve-versions.sh --fetch`, `env: *versions-env`), update the `versions:prepare` and `versions:check` descriptions for line versions, and change the `serve` description so it no longer says "reading the sources in place" (decision 12). Verify: `task -d <wt> --list` shows `versions:fetch` with its description, and `grep -n 'in place' <wt>/Taskfile.yml` prints nothing, or only text naming `OPM_VERSIONS=v1.0=/src` live editing.
-- [ ] 2.8 `site/tests/versions/test-resolve.sh`, the line fixtures and cases of design.md decision 11:
+- [x] 2.5 `site/scripts/materialise.sh`: archive every version whose kind is not `main` (`[ "$kind" != main ]`, decision 7), and update its header comment. Comment-only edits in `site/scripts/build-all.sh`, `site/scripts/serve.sh` and `site/scripts/gen-mounts.sh` name the third kind. Verify: `git -C <wt> diff -- site/scripts/build-all.sh site/scripts/serve.sh site/scripts/gen-mounts.sh` changes comments only.
+- [x] 2.6 `site/scripts/gen-stamp.sh`: write `"docs"` per ref when column 10 is set, and `"site"` from the `# site` line of `versions.tsv` when it is there. Update the header comment: kinds, `docs`, `site`, and `sources` = the roots' checked-out `HEAD`, not the record for anchored or line versions. Verify: case `line-stamp`, and the fixture builds of `task test:site` still pass (explicit rows have no column 10 and no `site`).
+- [x] 2.7 `Taskfile.yml`: add `versions:fetch` (`sh site/scripts/resolve-versions.sh --fetch`, `env: *versions-env`), update the `versions:prepare` and `versions:check` descriptions for line versions, and change the `serve` description so it no longer says "reading the sources in place" (decision 12). Verify: `task -d <wt> --list` shows `versions:fetch` with its description, and `grep -n 'in place' <wt>/Taskfile.yml` prints nothing, or only text naming `OPM_VERSIONS=v1.0=/src` live editing.
+- [x] 2.8 `site/tests/versions/test-resolve.sh`, the line fixtures and cases of design.md decision 11:
   - the upstream additions (cli `v1.5.0-beta.2`, `v1.5.0-beta.10`, `v1.5.0-beta.3`, `v1.50.0`, `v1.6.0`; library `v2.2.0-oldcore`; core `v4.2.0-rc.0` and its docs commit after `v4.2.0`; catalog_opm `opm-v0.9.0` and its docs commit after `opm-v1.1.0`), made before any case runs;
   - the line roots as `git clone`s under `repos/line/`;
   - after every existing case, the state-A cases (`line`, `line-override`, `line-override-stale`, `line-core-pre-floor`, `line-pre-floor`, `line-no-tag`, `line-grammar`, `line-shallow` with a `file://` clone, `line-no-origin`);
@@ -74,7 +74,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - then `line-fetch-prune` and `line-fetch-clobber`.
 
   Every expected SHA comes from `git rev-parse` on the fixtures, never a literal, and every failing case asserts that the message names the version, the repository and the rule. Every fixture tag is created once and never moved. Update the header comment. Verify: `sh <wt>/site/tests/versions/test-resolve.sh` with `OPM_SRC_WORKTREE=site-src` prints `ok` for every case, existing ones included, and writes nothing outside `site/.check/versions-test/`.
-- [ ] 2.9 The case `real-line` (decision 11): a manifest under `repos/manifests/` with the real floors, `cli-line = v1.0` and `catalog-line = opm-v4`, resolved with `--check` against the caller's roots. Assert:
+- [x] 2.9 The case `real-line` (decision 11): a manifest under `repos/manifests/` with the real floors, `cli-line = v1.0` and `catalog-line = opm-v4`, resolved with `--check` against the caller's roots. Assert:
   - exit 0;
   - the cli ref equals git's own order;
   - library, core and opm-operator equal `--pins <that ref>`;
@@ -82,7 +82,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - every `docs` is `tag`, `main` or `release/...`.
 
   Keep `real-pins` and `real-pre-floor`. Verify: it passes with `OPM_SRC_WORKTREE=site-src`, and its rows match finding 1.
-- [ ] 2.10 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` (its `versions:test` runs the new cases; `site/versions.conf` and `two-versions.conf` still use `source = main` for v1.0, so the site build is unchanged) and `git -C <wt> diff --check` green. Stage `site/scripts/resolve-versions.sh`, `site/scripts/materialise.sh`, `site/scripts/gen-stamp.sh`, `site/scripts/build-all.sh`, `site/scripts/serve.sh`, `site/scripts/gen-mounts.sh`, `site/tests/versions/test-resolve.sh`, `Taskfile.yml` and `openspec/changes/resolve-versions-from-release-lines/tasks.md`, then commit `feat(site): resolve site versions from release lines`.
+- [x] 2.10 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci` (its `versions:test` runs the new cases; `site/versions.conf` and `two-versions.conf` still use `source = main` for v1.0, so the site build is unchanged) and `git -C <wt> diff --check` green. Stage `site/scripts/resolve-versions.sh`, `site/scripts/materialise.sh`, `site/scripts/gen-stamp.sh`, `site/scripts/build-all.sh`, `site/scripts/serve.sh`, `site/scripts/gen-mounts.sh`, `site/tests/versions/test-resolve.sh`, `Taskfile.yml` and `openspec/changes/resolve-versions-from-release-lines/tasks.md`, then commit `feat(site): resolve site versions from release lines`.
 
 ## 3. Build v1.0 from its release lines (site config, layouts, two-version test, CI, docs)
 

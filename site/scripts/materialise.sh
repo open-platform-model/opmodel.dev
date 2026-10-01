@@ -7,8 +7,10 @@
 #   materialise.sh    reads site/.versions/versions.tsv; with OPM_VERSIONS set (explicit mode) does nothing
 #
 # Writes, only under site/.versions/:
-#   <v>/<repo>/docs/site/   git archive of an anchored version's ref, per repository;
-#                           <v>/<repo>/.sha skips an archive that is already there
+#   <v>/<repo>/docs/site/   git archive of the SHA an anchored or line version resolved,
+#                           per repository (every kind but source = main, which reads
+#                           the working trees); <v>/<repo>/.sha skips an archive that is
+#                           already there, so a branch head that moved is archived again
 #   <v>/lastmod.tsv         "<key>\t<v>\t<ISO date>" for every page of the version:
 #                           <repo>/docs/site/<path> dated at the version's SHA for that
 #                           repository (a source = main version: the root's HEAD), and
@@ -59,7 +61,7 @@ while IFS="$(printf '\t')" read -r v kind; do
   for r in $(awk -F'\t' -v v="$v" '!/^#/ && $1 == v { print $6 }' "$TSV"); do
     root=$(root_of "$r")
     sha=$(awk -F'\t' -v v="$v" -v r="$r" '!/^#/ && $1 == v && $6 == r { print $8 }' "$TSV")
-    if [ "$kind" = anchored ]; then
+    if [ "$kind" != main ]; then
       dir=$V/$v/$r
       if [ -d "$dir/docs/site" ] && [ "$(cat "$dir/.sha" 2>/dev/null || true)" = "$sha" ]; then
         kept=$((kept + 1))

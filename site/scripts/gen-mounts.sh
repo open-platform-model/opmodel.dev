@@ -4,7 +4,8 @@
 #   gen-mounts.sh OUT VERSION=ROOT [VERSION=ROOT ...]    (OUT relative to SITE_DIR)
 #
 # Each ROOT holds <repo>/docs/site for the six source repos (a source = main
-# version passes /src, an anchored one its archive in .versions/<version>).
+# version passes /src, an anchored or a line one its archive in
+# .versions/<version>).
 # The site-owned content/ is mounted once, for every version; each repo's
 # docs/site/ is mounted at content/docs for its own version. Version names are
 # listed exactly: in a version glob, * does not cross ".". There is no file
