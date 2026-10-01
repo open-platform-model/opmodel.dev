@@ -12,5 +12,5 @@
 
 ## 2. Verify and archive
 
-- [ ] 2.1 Follow `<wt>/.claude/skills/openspec-verify-change/SKILL.md` for `simplify-landing-figure`, running each `openspec` command as `cd <wt> && openspec ...`. Also check that `git -C <wt> diff --stat origin/main` touches only the files in proposal.md's Impact, that `find <wt>/<cd> -name enhancement.yaml -o -name specs` prints nothing, and that the section 1 commit carries only the plain `Co-Authored-By: Claude <noreply@anthropic.com>` trailer and no bare `@name`.
-- [ ] 2.2 With verify clean, tick this box, run `cd <wt> && openspec archive simplify-landing-figure --yes --skip-specs` and `cd <wt> && openspec validate --all --strict --no-interactive`, stage the archived directory and the removed `<cd>` by explicit path, and commit `chore(openspec): archive simplify-landing-figure`.
+- [x] 2.1 Follow `<wt>/.claude/skills/openspec-verify-change/SKILL.md` for `simplify-landing-figure`, running each `openspec` command as `cd <wt> && openspec ...`. Also check that `git -C <wt> diff --stat origin/main` touches only the files in proposal.md's Impact, and that `find <wt>/<cd> -name enhancement.yaml -o -name specs` prints nothing.
+- [x] 2.2 With verify clean, tick this box, run `cd <wt> && openspec archive simplify-landing-figure --yes --skip-specs` and `cd <wt> && openspec validate --all --strict --no-interactive`, stage the archived directory and the removed `<cd>` by explicit path, and commit `chore(openspec): archive simplify-landing-figure`.
