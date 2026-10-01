@@ -80,5 +80,5 @@ Velero is a second platform, not a swap arrow: on the operator path the registra
 
 ## Durable decisions
 
-- **The page dialect has seven figures, including `one-trait-any-provider`.** Lands in `README.md` (the feature list) and `figure-titles.html` here, and in the workspace `STYLE.md` ("Site Pages") in the workspace repo.
+- **The page dialect has seven figures, including `one-trait-any-provider`.** Lands in `README.md` (the feature list), `figure-titles.html` and the dialect contract (`deploy-site/orchestration.md`) here, and in the workspace `STYLE.md` ("Site Pages") in the workspace repo. The fixture and `test-site.sh` guard the new title.
 - **The in-cluster boxes are controllers, never "provider".** Stays in the comments of `landing-overview.html` and `module-to-cluster.html`.

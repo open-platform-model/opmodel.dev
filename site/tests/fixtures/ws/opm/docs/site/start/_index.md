@@ -30,6 +30,10 @@ Each figure the site draws, one shortcode each.
 
 {{< opm/helm-and-opm >}}
 
+## One trait, any provider
+
+{{< opm/one-trait-any-provider >}}
+
 ## Showing a shortcode as text
 
 A page escapes a shortcode it shows as an example, because Hugo expands shortcodes inside code fences too:

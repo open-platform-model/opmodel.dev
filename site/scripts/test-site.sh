@@ -148,8 +148,8 @@ if [ $rc -eq 0 ]; then
     ok "dialect/alerts" "TIP and NOTE render as Hextra alerts with the bold title line; no [! left"
   else bad "dialect/alerts" "quickstart alerts did not render as Hextra alerts with their bold title" "$q"; fi
 
-  # Parameterless figure shortcodes: all six render as drawn figures (the count
-  # takes an alert standing in a figure's place as one of the six). Every drawn
+  # Parameterless figure shortcodes: all seven render as drawn figures (the count
+  # takes an alert standing in a figure's place as one of the seven). Every drawn
   # figure's svg[role=img] carries its caption as its accessible label. The
   # escaped example shows as text, and no shortcode is left unexpanded.
   s=$P/docs/start/index.html
@@ -162,9 +162,9 @@ if [ $rc -eq 0 ]; then
       if (match($0, /<figcaption>[^<]*<\/figcaption>/) && l != "" && l == substr($0, RSTART + 12, RLENGTH - 25)) n++
     }
     END { print n + 0 }')
-  if [ "$drawn" -ge 1 ] && [ $((drawn + inplace)) -eq 6 ] && [ "$labelled" -eq "$drawn" ] &&
+  if [ "$drawn" -ge 1 ] && [ $((drawn + inplace)) -eq 7 ] && [ "$labelled" -eq "$drawn" ] &&
      [ "$(count '\{\{&lt; opm/helm-and-opm &gt;\}\}' "$s")" = 1 ] && [ "$(count '\{\{&lt;' "$s")" = 1 ] && [ -z "$raw" ]; then
-    ok "dialect/shortcodes" "six opm/ shortcodes render ($drawn drawn, $inplace not drawn yet); each drawn figure is labelled by its caption; the escaped one shows as text; no raw {{< left"
+    ok "dialect/shortcodes" "seven opm/ shortcodes render ($drawn drawn, $inplace not drawn yet); each drawn figure is labelled by its caption; the escaped one shows as text; no raw {{< left"
   else bad "dialect/shortcodes" "figure shortcodes did not render as expected ($drawn drawn, $inplace in place, $labelled labelled)${raw:+ (raw {{< in: $raw)}"; fi
 
   # Inline figure SVG passes the minifier byte for byte.
@@ -221,7 +221,7 @@ $mdbad"; fi
   # The Markdown outputs name each figure as the page draws it. The fixture's
   # start page calls every figure shortcode once, so the titles its figures draw
   # (their svg <title>) and its .md output's "_Figure: <title>_" lines must be
-  # the same six, in page order: an entry of _partials/opm/figure-titles.html
+  # the same seven, in page order: an entry of _partials/opm/figure-titles.html
   # that drifts from its shortcode's title fails here.
   page_titles=$(tr '\n' ' ' < "$P/docs/start/index.html" | sed 's#</figure>#</figure>\n#g' | awk '
     match($0, /<figure class="?opm-fig/) {
@@ -229,8 +229,8 @@ $mdbad"; fi
       if (match(f, /<title>[^<]*<\/title>/)) print substr(f, RSTART + 7, RLENGTH - 15)
     }')
   md_titles=$(sed -n 's/^_Figure: \(.*\)_$/\1/p' "$P/docs/start/index.md")
-  if [ "$(printf '%s\n' "$page_titles" | grep -c .)" -eq 6 ] && [ "$page_titles" = "$md_titles" ]; then
-    ok "markdown/figure-titles" "the .md output names all six figures as the page draws them"
+  if [ "$(printf '%s\n' "$page_titles" | grep -c .)" -eq 7 ] && [ "$page_titles" = "$md_titles" ]; then
+    ok "markdown/figure-titles" "the .md output names all seven figures as the page draws them"
   else bad "markdown/figure-titles" "the .md output names the figures differently from the page:
      page: $(printf '%s' "$page_titles" | tr '\n' '|')
      .md:  $(printf '%s' "$md_titles" | tr '\n' '|')"; fi
