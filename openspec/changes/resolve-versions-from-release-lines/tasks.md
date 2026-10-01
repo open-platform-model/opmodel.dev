@@ -86,14 +86,14 @@ Gates, run on the whole worktree at every section end, as each section's last ta
 
 ## 3. Build v1.0 from its release lines (site config, layouts, two-version test, CI, docs)
 
-- [ ] 3.1 `site/versions.conf`: move `v1.0` to `cli-line = v1.0` and `catalog-line = opm-v4` (proposal.md, After). Rewrite the header comment for three kinds and say that the owner reversed the fixed-anchor rule on 2026-10-01; the floors stay. Verify: `OPM_SRC_WORKTREE=site-src task -d <wt> versions:check` prints six `line` rows equal to finding 1, or differing only by a newer tag or head, recorded with its SHA (as in 1.2).
-- [ ] 3.2 Layouts (design.md decision 8):
+- [x] 3.1 `site/versions.conf`: move `v1.0` to `cli-line = v1.0` and `catalog-line = opm-v4` (proposal.md, After). Rewrite the header comment for three kinds and say that the owner reversed the fixed-anchor rule on 2026-10-01; the floors stay. Verify: `OPM_SRC_WORKTREE=site-src task -d <wt> versions:check` prints six `line` rows equal to finding 1, or differing only by a newer tag or head, recorded with its SHA (as in 1.2).
+- [x] 3.2 Layouts (design.md decision 8):
   - `site/layouts/_partials/opm/build-stamp.html`: `anchored` and `line` both show "documents ..."; a line row adds the docs suffix for branch-sourced trees;
   - `site/layouts/_partials/opm/source.html`: for `line`, `viewURL` is `blob/<sha>/...`, `refText` follows decision 8, and `editURL` uses `edit/<docs>` when `docs` is `main` or `release/...`;
   - `site/layouts/_partials/components/last-updated.html`: the edit link shows on the default version, or when the kind is neither `anchored` nor `line`.
 
   Update each file's header comment. No published text carries an enhancement reference or an `@`. Verify: `git -C <wt> diff origin/main -- site/overrides.sha256` is empty, and `OPM_SRC_WORKTREE=site-src task -d <wt> build` is green, including the drift guard.
-- [ ] 3.3 `site/tests/versions/two-versions.conf`: move `v1.0` to line mode (`cli-line = v1.0`, `catalog-line = opm-v4`); `v0.9` stays anchored. Rewrite its header: it no longer says that no repository has a tag cut after its merge, and it gives v0.9's real reason (anchored at the page-dialect merges, the oldest refs that build, with the pins there overridden). `site/tests/versions/check-two-versions.sh`, reading every expected ref and SHA from `site/.versions/versions.tsv`:
+- [x] 3.3 `site/tests/versions/two-versions.conf`: move `v1.0` to line mode (`cli-line = v1.0`, `catalog-line = opm-v4`); `v0.9` stays anchored. Rewrite its header: it no longer says that no repository has a tag cut after its merge, and it gives v0.9's real reason (anchored at the page-dialect merges, the oldest refs that build, with the pins there overridden). `site/tests/versions/check-two-versions.sh`, reading every expected ref and SHA from `site/.versions/versions.tsv`:
   - the v1.0 stamp links all six v1.0 SHAs;
   - v1.0 "View source" links carry `blob/<sha>/docs/site/` per repository;
   - v1.0 edit links follow decision 8;
@@ -101,7 +101,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - v1.0's archive per repository equals `git ls-tree` at its resolved SHA.
 
   Verify: `OPM_SRC_WORKTREE=site-src task -d <wt> versions:test` passes and prints the new assertions as `ok`.
-- [ ] 3.4 `.github/workflows/site.yml` (design.md decision 9):
+- [x] 3.4 `.github/workflows/site.yml` (design.md decision 9):
   - a comment on the first source checkout: `fetch-depth: 0` brings every tag and every branch as `refs/remotes/origin/*`, which the version resolver reads;
   - the cron comment: the nightly run publishes newly tagged releases and release-branch docs fixes;
   - the Summary step lists every version's refs from `.versions`, as decision 9 shows;
@@ -109,7 +109,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - no checkout, trigger, permission or pin changes.
 
   Verify: `task -d <wt> ci:lint` green, and `git -C <wt> diff origin/main -- .github/workflows/site.yml` leaves the `build-stamp` step's `path:` unchanged. Run the Summary step's `jq` command on a local `site/public/build-stamp.json` and check that it prints six v1.0 rows with 12-hex commit links.
-- [ ] 3.5 README.md (durable decisions 1-7):
+- [x] 3.5 README.md (durable decisions 1-7):
   - Overview (line 32 today): `v1.0` (beta) is built from its release lines, not "from each source repository's current checkout";
   - Quick Start (`task serve`, "reads the sources in place"), the "Tasks" block (add `task versions:fetch`; `task serve`'s comment) and the dev-loop paragraph that says `task serve` reads every `docs/site/` in place: a line version serves archives, and live editing is `OPM_VERSIONS=v1.0=/src task serve`;
   - rewrite "Site versions" for three kinds:
@@ -127,7 +127,7 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - "Implementation Status": `[x]` v1.0 follows its release lines.
 
   Verify: `grep -n -e 'cli-line' -e 'catalog-line = opm-v4' -e 'versions:fetch' -e 'frozen.conf' -e 'build-manifest' -e '2026-10-01' -e 'OPM_VERSIONS=v1.0=/src' -e 'no longer needed' <wt>/README.md` hits each term. `grep -n 'never a moving line' <wt>/README.md` hits only the reversal sentence. `grep -n -e 'in place' -e 'current checkout' <wt>/README.md` hits only text that names `OPM_VERSIONS=v1.0=/src` live editing or `source = main`.
-- [ ] 3.6 AGENTS.md (durable decisions 1-6):
+- [x] 3.6 AGENTS.md (durable decisions 1-6):
   - under "Site versions": rewrite "One manifest" (three kinds; the reversal), "Where pins come from" (line mode, the catalog major, the docs rules, overrides only for a failing row, remote-tracking refs only, `origin` assumed) and "Dialect floors" (also at the release the stamp names; containment; naming the rule);
   - in "Git runs on the host", archives for every non-`main` kind, `frozen.conf`, and the fetch flags;
   - the "Files" bullet adds the line cases;
@@ -135,15 +135,15 @@ Gates, run on the whole worktree at every section end, as each section's last ta
   - "Build And Dev Commands": `task versions:fetch`, the `versions:prepare` wording, and the `task serve` line: a line version serves archives, and `OPM_VERSIONS=v1.0=/src task serve` is live editing.
 
   Verify: `grep -n -e 'cli-line' -e 'versions:fetch' -e 'refs/remotes/origin' -e '2026-10-01' <wt>/AGENTS.md` hits each term. No line still says `source = main` is allowed "only until" beta tags exist. `grep -n -e 'in place' -e 'current checkout' <wt>/AGENTS.md` hits only text that names `OPM_VERSIONS=v1.0=/src` live editing or `source = main`.
-- [ ] 3.7 The built site. Run `OPM_SRC_WORKTREE=site-src OPM_REQUIRE_DATES=1 task -d <wt> build`. Verify:
+- [x] 3.7 The built site. Run `OPM_SRC_WORKTREE=site-src OPM_REQUIRE_DATES=1 task -d <wt> build`. Verify:
   - green;
   - `site/public/v1.0/docs/index.html` holds a footer naming cli, library, core, catalog, operator and opm, with six `commit/<sha>` links equal to `site/.versions/versions.tsv`;
   - a cli page and a core page each carry "View source" at `blob/<sha>/`;
   - `site/public/build-stamp.json` has `"kind": "line"`, a `docs` field per ref, and `"site"` equal to `git -C <wt> rev-parse HEAD`;
   - `OPM_SRC_WORKTREE=site-src OPM_VERSIONS=v1.0=/src task -d <wt> build` (explicit mode, the live-edit path) is green;
   - the round trip, last: rerun the first build of this task (the explicit-mode build removed `versions.tsv` and `frozen.conf`), copy `site/.versions/frozen.conf` and `site/public/build-stamp.json` to `<scratch>`, then run `OPM_SRC_WORKTREE=site-src OPM_REQUIRE_DATES=1 OPM_VERSIONS_MANIFEST=<scratch>/frozen.conf task -d <wt> build`. It is green, its `build-stamp.json` names the same six SHAs per repository and the same `site` as the copy, with kind `anchored`, and cli, library and opm-operator carry the same tag names. `OPM_VERSIONS_MANIFEST=<wt>/site/.versions/frozen.conf task -d <wt> versions:check` fails with the "copy it first" error.
-- [ ] 3.8 `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green. Read `site/.shots/v1.0_docs/stamp-*.png` in all six variants: the longer footer wraps cleanly at phone width, links stay legible in light and dark, and nothing overlaps.
-- [ ] 3.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `OPM_SRC_WORKTREE=site-src task -d <wt> qa` (screenshots read in 3.8), `task -d <wt> ci:lint` and `git -C <wt> diff --check` green, run after any merge of `origin/main` into this branch (task 1.1), never before it. Stage `site/versions.conf`, `site/layouts/_partials/opm/build-stamp.html`, `site/layouts/_partials/opm/source.html`, `site/layouts/_partials/components/last-updated.html`, `site/tests/versions/two-versions.conf`, `site/tests/versions/check-two-versions.sh`, `.github/workflows/site.yml`, `README.md`, `AGENTS.md` and `openspec/changes/resolve-versions-from-release-lines/tasks.md`, then commit `feat(site): build v1.0 from its release lines`.
+- [x] 3.8 `OPM_SRC_WORKTREE=site-src task -d <wt> qa` green. Read `site/.shots/v1.0_docs/stamp-*.png` in all six variants: the longer footer wraps cleanly at phone width, links stay legible in light and dark, and nothing overlaps.
+- [x] 3.9 `task -d <wt> check`, `OPM_SRC_WORKTREE=site-src task -d <wt> ci`, `OPM_SRC_WORKTREE=site-src task -d <wt> qa` (screenshots read in 3.8), `task -d <wt> ci:lint` and `git -C <wt> diff --check` green, run after any merge of `origin/main` into this branch (task 1.1), never before it. Stage `site/versions.conf`, `site/layouts/_partials/opm/build-stamp.html`, `site/layouts/_partials/opm/source.html`, `site/layouts/_partials/components/last-updated.html`, `site/tests/versions/two-versions.conf`, `site/tests/versions/check-two-versions.sh`, `.github/workflows/site.yml`, `README.md`, `AGENTS.md` and `openspec/changes/resolve-versions-from-release-lines/tasks.md`, then commit `feat(site): build v1.0 from its release lines`.
 
 ## 4. Verify, report and archive (orchestration.md section 7, steps 6 and 7)
 

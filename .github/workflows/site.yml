@@ -10,7 +10,11 @@ on:
   push:
     branches: [main]
   schedule:
-    # Nightly: a merge in a source repository reaches CI within a day. An
+    # Nightly: a merge in a source repository reaches CI within a day, and,
+    # since a line version (site/versions.conf) resolves its release lines on
+    # every build, the nightly run on main is what publishes a newly tagged
+    # release or a release-branch docs fix (no source repository dispatches
+    # here; gh workflow run Site --ref main publishes at once). An
     # off-the-hour minute, because GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
   workflow_dispatch:
@@ -59,6 +63,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Check out opm
+        # fetch-depth: 0 brings every tag and every branch, the branches as
+        # refs/remotes/origin/*, into each source checkout: the version
+        # resolver reads them for a line version (the newest tag of a line,
+        # origin/main, release/*) and refuses a shallow checkout.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: open-platform-model/opm
@@ -136,13 +144,17 @@ jobs:
             exit 1
           fi
       - name: Summary
+        # Every version's resolved refs: the ref the stamp names, where its
+        # docs tree came from, the commit built and the rule that chose it
+        # (not the checkout heads, which a line version does not read).
         run: |
           {
             echo '### Site build'
             echo
-            echo '| Source | Commit |'
-            echo '|---|---|'
-            jq -r '.sources | to_entries[] | "| \(.key) | [\(.value[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value)) |"' site/public/build-stamp.json
+            echo '| Version | Repository | Ref | Docs from | Commit | Rule |'
+            echo '|---|---|---|---|---|---|'
+            jq -r '.versions | to_entries[] | .key as $v | .value.refs | to_entries[]
+              | "| \($v) | \(.key) | \(.value.ref) | \(.value.docs // "") | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -156,6 +168,20 @@ jobs:
         with:
           name: build-stamp
           path: opmodel.dev/site/public/build-stamp.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload the frozen manifest
+        # The build as an anchored manifest at the refs it resolved: check out
+        # opmodel.dev at the commit it names, copy it outside site/.versions/
+        # and run OPM_VERSIONS_MANIFEST=<the copy> task build to rebuild the
+        # same trees. Its own artifact, so build-stamp.json stays at the root
+        # of build-stamp; include-hidden-files, because upload-artifact skips
+        # paths under a dot directory such as .versions.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-manifest
+          path: opmodel.dev/site/.versions/frozen.conf
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
       - name: Build for GitHub Pages (interim)

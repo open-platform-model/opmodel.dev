@@ -1,17 +1,21 @@
 {{- /* Where a page's source lives: {key, repo, path, editURL, viewURL, ref,
        refText}, or an empty dict for a page with no content file. A file
        under <root>/<repo>/docs/site/<path> (in a normal build
-       /src/<repo>/docs/site/<path>, for an anchored version
+       /src/<repo>/docs/site/<path>, for an anchored or a line version
        .versions/<version>/<repo>/docs/site/<path>) belongs to that repo,
        found from the <repo>/docs/site/ path segment, so archives, fixture
        roots and test copies map the same way. Any other content file is
        site-owned: opmodel.dev, site/content/<path>. The key matches
        data/opm/lastmod.json.
-       "Edit" goes to main. viewURL is set only when the page's version is
-       anchored (data/opm/build.json, from site/versions.conf): it points at
-       the ref that version resolved for the repo, a tag or a SHA, never the
-       version name, which is no git ref. refText is that ref as shown: a
-       SHA as seven hex characters. */ -}}
+       viewURL is set only when the page's version is anchored or line
+       (data/opm/build.json, from site/versions.conf), never from the version
+       name, which is no git ref. An anchored version points at the ref it
+       resolved for the repo, a tag or a SHA. A line version points at the SHA
+       of the tree it archived, since a branch it read moves; refText is the
+       ref when that tree is the tag itself (docs "tag"), else the SHA.
+       refText shows a SHA as seven hex characters. "Edit" goes where a fix to
+       that tree lands: in a line version the branch the docs came from (main
+       or release/...), otherwise main. */ -}}
 {{- $out := dict -}}
 {{- with .File -}}
   {{- $fn := replace .Filename "\\" "/" -}}
@@ -23,14 +27,26 @@
   {{- end -}}
   {{- $base := printf "%s/%s" site.Params.opm.github $repo -}}
   {{- $ref := "" -}}
+  {{- $view := "" -}}
+  {{- $refText := "" -}}
+  {{- $editRef := "main" -}}
   {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}
-    {{- if eq .kind "anchored" -}}{{- with .refs -}}{{- with index . $repo -}}{{- $ref = .ref -}}{{- end -}}{{- end -}}{{- end -}}
+    {{- $kind := .kind -}}
+    {{- with .refs -}}{{- with index . $repo -}}
+      {{- $docs := .docs | default "" -}}
+      {{- if eq $kind "anchored" -}}
+        {{- $ref = .ref -}}{{- $view = .ref -}}{{- $refText = .ref -}}
+      {{- else if eq $kind "line" -}}
+        {{- $ref = .ref -}}{{- $view = .sha -}}
+        {{- $refText = cond (eq $docs "tag") .ref .sha -}}
+        {{- if or (eq $docs "main") (hasPrefix $docs "release/") -}}{{- $editRef = $docs -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}{{- end -}}
   {{- end -}}{{- end -}}{{- end -}}{{- end -}}
-  {{- $refText := $ref -}}
-  {{- if findRE `^[0-9a-f]{40}$` $ref -}}{{- $refText = substr $ref 0 7 -}}{{- end -}}
+  {{- if findRE `^[0-9a-f]{40}$` $refText -}}{{- $refText = substr $refText 0 7 -}}{{- end -}}
   {{- $out = dict "key" (printf "%s/%s" $repo $path) "repo" $repo "path" $path
-        "editURL" (printf "%s/edit/main/%s" $base $path)
-        "viewURL" (cond (ne $ref "") (printf "%s/blob/%s/%s" $base $ref $path) "")
+        "editURL" (printf "%s/edit/%s/%s" $base $editRef $path)
+        "viewURL" (cond (ne $view "") (printf "%s/blob/%s/%s" $base $view $path) "")
         "ref" $ref "refText" $refText -}}
 {{- end -}}
 {{- return $out -}}

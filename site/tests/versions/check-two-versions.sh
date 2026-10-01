@@ -121,6 +121,30 @@ check "the v0.9 stamp names the six test SHAs" [ -z "$stamp_bad" -a -n "$stamp" 
 why="no View source link at the test SHA for:$view_bad"
 check "v0.9 View source links carry the test SHAs" [ -z "$view_bad" ]
 
+# v1.0 is a line version: every expected ref, SHA and docs source is read
+# from versions.tsv, never written here, since the lines move.
+row10() { awk -F'\t' -v r="$1" -v c="$2" '!/^#/ && $1 == "v1.0" && $6 == r { print $c }' "$TSV"; }
+stamp10=$(tr '\n' ' ' < "$P/v1.0/docs/index.html" | grep -o '<div class="\{0,1\}opm-build-stamp.*' | sed 's#</footer>.*##')
+kind_bad=""; stamp10_bad=""; view10_bad=""; edit10_bad=""
+for r in $REPOS; do
+  [ "$(row10 "$r" 5)" = line ] || kind_bad="$kind_bad $r"
+  s=$(row10 "$r" 8); ref=$(row10 "$r" 7); docs=$(row10 "$r" 10)
+  case "$docs" in tag) text=$ref ;; *) text=$(printf '%.7s' "$s") ;; esac
+  printf '%s' "$stamp10" | grep -q "/$r/commit/$s\"\{0,1\}[ >]" && printf '%s' "$stamp10" | grep -qF "<code>$text</code>" || stamp10_bad="$stamp10_bad $r"
+  grep -rlq "github.com/open-platform-model/$r/blob/$s/docs/site/" "$P/v1.0" || view10_bad="$view10_bad $r"
+  case "$docs" in main|release/*) want=$docs ;; *) want=main ;; esac
+  got=$(grep -rhoE "open-platform-model/$r/edit/[^ \"'>]*/docs/site/" "$P/v1.0" | sed "s#.*/$r/edit/##; s#/docs/site/##" | sort -u | tr '\n' ' ')
+  [ "$got" = "$want " ] || edit10_bad="$edit10_bad $r(edit/$got, want edit/$want)"
+done
+why="not kind line:$kind_bad"
+check "versions.tsv resolves v1.0 as a line version for all six repositories" [ -z "$kind_bad" -a -n "$(row10 cli 8)" ]
+why="the stamp misses:$stamp10_bad"
+check "the v1.0 stamp links all six resolved SHAs" [ -z "$stamp10_bad" -a -n "$stamp10" ]
+why="no View source link at the resolved SHA for:$view10_bad"
+check "v1.0 View source links carry blob/<resolved SHA>/docs/site/ per repository" [ -z "$view10_bad" ]
+why="wrong edit target:$edit10_bad"
+check "v1.0 edit links go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
+
 edit09=$(grep -rl -e 'Edit this page' -e '/edit/main/' "$P/v0.9" | head -n 3 || true)
 why="an edit link on: $edit09"
 check "v0.9 pages have no Edit this page link" [ -z "$edit09" ]
@@ -136,26 +160,28 @@ one_version=$(printf '%s\n' "$site_keys" | awk 'NF && !(/"v1.0":/ && /"v0.9":/)'
 why="site-owned keys without both versions: $(printf '%s' "$one_version" | head -n 2)"
 check "data/opm/lastmod.json holds site-owned keys for both versions" [ -n "$site_keys" -a -z "$one_version" ]
 
-# The v0.9 source pages come from the anchored refs, not from the roots' HEADs:
-# per repository, the archive and the published v0.9 pages are exactly the
-# pages of git ls-tree at the test SHA, and a page added after it publishes
-# in v1.0 only.
+# The source pages of both versions come from the refs they resolved, not
+# from the roots' HEADs: per repository, each version's archive is exactly
+# the pages of git ls-tree at its SHA (v0.9's test SHA, v1.0's resolved SHA),
+# the published v0.9 pages are those pages, and a page added between the two
+# publishes in v1.0 only.
 mounts=$(sh -c '. "$0" >/dev/null
   sources
   for m in $MOUNTS; do [ "$m" = -v ] || printf "%s\n" "$m"; done' "$SITE/scripts/run-in-image.sh" tag)
 root_of() { printf '%s\n' "$mounts" | awk -v r="$1" '{ m = $0; sub(/:\/src\/.*/, "", m); d = $0; sub(/.*:\/src\//, "", d); sub(/:ro$/, "", d); if (d == r) print m }'; }
 pages_at() { git -C "$1" ls-tree -r --name-only "$2" docs/site | grep '\.md$' | sed 's#^docs/site/##' | sort; }
+pages_in() { (cd "$1" 2>/dev/null && find . -type f -name '*.md' | sed 's#^\./##' | sort); }
 url_of() { sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#'; }
-set_bad=""; newer=""; newer_bad=""
+set_bad=""; set10_bad=""; newer=""; newer_bad=""
 for r in $REPOS; do
-  root=$(root_of "$r"); s=$(sha_of "$r")
+  root=$(root_of "$r"); s=$(sha_of "$r"); s10=$(row10 "$r" 8)
   want=$(pages_at "$root" "$s")
-  have=$(cd "$SITE/.versions/v0.9/$r/docs/site" 2>/dev/null && find . -type f -name '*.md' | sed 's#^\./##' | sort)
-  [ "$want" = "$have" ] || set_bad="$set_bad $r(archive)"
+  [ "$want" = "$(pages_in "$SITE/.versions/v0.9/$r/docs/site")" ] || set_bad="$set_bad $r(archive)"
+  [ -n "$s10" ] && [ "$(pages_at "$root" "$s10")" = "$(pages_in "$SITE/.versions/v1.0/$r/docs/site")" ] || set10_bad="$set10_bad $r"
   unbuilt=$(printf '%s\n' "$want" | url_of | while IFS= read -r u; do [ -f "$P/v0.9/docs/${u}index.html" ] || echo "$u"; done | head -n 1)
   [ -z "$unbuilt" ] || set_bad="$set_bad $r(/v0.9/docs/$unbuilt)"
   printf '%s\n' "$want" > "$OUT/.want"
-  for u in $(pages_at "$root" HEAD | comm -23 - "$OUT/.want" | url_of); do
+  for u in $(pages_at "$root" "$s10" | comm -23 - "$OUT/.want" | url_of); do
     newer="$newer $r:$u"
     { [ ! -e "$P/v0.9/docs/${u}index.html" ] && [ -f "$P/v1.0/docs/${u}index.html" ]; } || newer_bad="$newer_bad $r:$u"
   done
@@ -163,10 +189,12 @@ done
 rm -f "$OUT/.want"
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
-why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from the roots at HEAD}; wrong for:$newer_bad"
+why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
+check "each repo's v1.0 archive is exactly its pages at the resolved SHA" [ -z "$set10_bad" ]
+why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from v1.0}; wrong for:$newer_bad"
 n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
-check "pages added after the test SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]
-if git -C "$(root_of catalog_opm)" cat-file -e HEAD:docs/site/extending/write-a-blueprint.md 2>/dev/null; then
+check "pages added between the test SHAs and v1.0's resolved SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]
+if git -C "$(root_of catalog_opm)" cat-file -e "$(row10 catalog_opm 8):docs/site/extending/write-a-blueprint.md" 2>/dev/null; then
   why="/v0.9/ has it, or /v1.0/ lacks it"
   check "/docs/extending/write-a-blueprint/ (catalog_opm, after its floor) is in v1.0 and not in v0.9" \
     [ ! -e "$P/v0.9/docs/extending/write-a-blueprint/index.html" -a -f "$P/v1.0/docs/extending/write-a-blueprint/index.html" ]

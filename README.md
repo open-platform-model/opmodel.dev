@@ -14,7 +14,7 @@ Most pages do not live here. Each of six repositories (opm, core, catalog_opm, c
 ## Architecture
 
 ```text
-<repo>/docs/site/**/*.md  (six source repos, mounted read-only at /src/<repo>)
+<repo>/docs/site/**/*.md  (six source repos, archived at the resolved refs into site/.versions/<v>/)
 site/content/             (landing and section overviews)
         |
         v
@@ -29,7 +29,7 @@ docgen: CUE schema -> site/data/schema/*.json; cobra -> CLI reference Markdown (
 
 Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2 and git, each pinned; a build runs with no network. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
 
-There is one version, `v1.0` (beta), built from each source repository's current checkout. Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
+There is one version, `v1.0` (beta), built from its release lines: the newest cli `v1.0` tag and exactly what it pins, the newest `opm-v4` catalog tag and opm's `main`, resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
 
 See [RFC-0006](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md) for the docgen design.
 
@@ -44,10 +44,13 @@ See [RFC-0006](https://github.com/open-platform-model/cli/blob/main/docs/rfc/000
 ## Quick Start
 
 ```bash
-# Dev server with live reload on http://127.0.0.1:1313/ (reads the sources in place)
-task serve
+# Dev server with live reload on http://127.0.0.1:1313/, editing the source pages live
+# (explicit mode: every docs/site/ read from its root; plain task serve serves the
+# resolved versions' archives)
+OPM_VERSIONS=v1.0=/src task serve
 
-# Full build with every check into site/public/, then serve it
+# Full build with every check into site/public/, then serve it; after a new release,
+# fetch the roots' tags and branches first (task versions:fetch build)
 task build
 task preview
 ```
@@ -89,7 +92,7 @@ opmodel.dev/
 ## Tasks
 
 ```bash
-task serve             # Dev server on http://127.0.0.1:${SITE_PORT:-1313}/, live reload
+task serve             # Dev server on http://127.0.0.1:${SITE_PORT:-1313}/ over the resolved versions; OPM_VERSIONS=v1.0=/src task serve edits sources live
 task build             # Lint, build and check the site into site/public/ (no network)
 task build OPM_BASE_URL=<url>  # The same, for another base URL (a path allowed); qa, shots and preview use the root
 task preview           # Serve the built site/public/ on SITE_PORT
@@ -103,8 +106,9 @@ task image             # Build the site's image if its tag is missing
 task qa:image          # Build the QA image if its tag is missing
 task brand:favicons    # Regenerate the favicon PNGs and favicon.ico from the drawn SVGs
 task brand:og          # Regenerate the Open Graph card, site/static/images/og-default.png
-task versions:prepare  # Resolve site/versions.conf on the host: refs, archives, git dates (build and serve run it)
-task versions:check    # Print every version's resolved refs and SHAs; writes nothing
+task versions:prepare  # Resolve site/versions.conf on the host, offline: refs, archives, git dates, frozen.conf (build and serve run it)
+task versions:check    # Print every version's resolved refs, SHAs and rules; writes nothing
+task versions:fetch    # Fetch every tag and branch of the six roots from origin; never moves or deletes a tag
 task versions:test     # Resolver tests and a two-version build into site/.check/versions-test/
 task clean             # Remove generated files
 task build:docgen      # Build the docgen tool
@@ -123,13 +127,13 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 | Build for GitHub Pages (interim) | `OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task build`, after the steps above (see GitHub Pages (interim) below) |
 
 - **Clean tree.** CI fails when `task ci` leaves the tree dirty, `.task/` excluded (Task's checksum files; one of them is tracked). Two examples: `go fmt` rewrote unformatted Go (`task check` formats but never fails), or a build step wrote a file that is not gitignored.
-- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`. Every checkout has full history and tags (`fetch-depth: 0`, which the git dates and the resolver tests of `task versions:test` need) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
+- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`, though a line version builds its trees from the tags and branches it resolves, not from the checkouts. Every checkout has full history, every tag and every branch as `refs/remotes/origin/*` (`fetch-depth: 0`, which the version resolver, the git dates and the resolver tests of `task versions:test` need; the resolver refuses a shallow checkout) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
 - **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
-- **Summary and artifacts.** The job summary lists the six source SHAs from `site/public/build-stamp.json` and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
+- **Summary and artifacts.** The job summary lists every version's resolved refs from `site/public/build-stamp.json` (repository, ref, where its docs came from, the commit and the rule that chose it) and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days, and `build-manifest` holds `frozen.conf`, the build as an anchored manifest (Site versions), for 90 days. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
 - **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same seven checkouts, since that build reads every source repository), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
 - **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, Go comes from `go.mod`, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
 - **Concurrency.** It is set per job, one group per job (`<workflow>-<ref>-<job>`), and a newer run cancels the older run's job. It is never set at workflow level, which would cancel a deploy job with the rest of a run; and two jobs never share one cancelling group, because they would cancel each other. A deploy job uses its own group, without `cancel-in-progress`. The `opmodel.dev` working directory is a per-job `defaults` entry for the same reason, never workflow-level: a deploy job runs a step before its checkout.
-- **Source repositories.** The nightly run is how a merge in a source repository reaches CI; no source repository dispatches a run. A source page that breaks the lint or a link fails the nightly run and every opmodel.dev pull request until it is fixed in its own repository, never here. GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
+- **Source repositories.** The nightly run is how a merge or a new release in a source repository reaches CI and the site: a line version resolves its release lines on every build, so the nightly run of `main` publishes a newly tagged release or a release-branch docs fix within about a day, and `gh workflow run Site --ref main` publishes it at once. No source repository dispatches a run. A source page that breaks the lint or a link fails the nightly run and every opmodel.dev pull request until it is fixed in its own repository, never here; a new release that fails resolution turns every run red, pushes, pull requests and the nightly, until it is recovered (Site versions, "When the resolution fails"). GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
 - **Pull request titles.** The `PR Title` workflow (`.github/workflows/pr-title.yml`) fails a pull request whose title is not a Conventional Commit with this repository's types (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`; the "Commit Standards" in `openspec/config.yaml`) and a lower-case subject. The squash merge keeps a single commit's subject, but a pull request with several commits, as every OpenSpec change has, lands on `main` under its title. The workflow runs on `pull_request_target`, which reads the workflow from `main`, so a change to it first applies to the pull request after it merges.
 
 ### GitHub Pages (interim)
@@ -181,7 +185,7 @@ curl -sS https://open-platform-model.github.io/opmodel.dev/v1.0/no-such-page/ | 
 curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/opmodel.dev/fonts/Geist-Variable.woff2
 # 200
 curl -sS https://open-platform-model.github.io/opmodel.dev/build-stamp.json
-# the six source SHAs of the run's job summary
+# every version's resolved refs, SHAs and docs sources and the opmodel.dev commit, as in the run's job summary
 ```
 
 Search runs only in a browser, so check it once by hand: on https://open-platform-model.github.io/opmodel.dev/v1.0/docs/, search for `quickstart`; every result opens a page under `/opmodel.dev/v1.0/`.
@@ -197,30 +201,75 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://open-platform-model.github.io/
 
 ## Site versions
 
-`site/versions.conf` is the only list of the versions the site publishes. It is in git-config syntax (`git config --file` reads it, so nothing new enters the build image), and it changes only by a reviewed commit. `task build` and `task serve` resolve it on the host first (`task versions:prepare`); `task versions:check` resolves it and prints every version's refs and SHAs without building.
+`site/versions.conf` is the only list of the versions the site publishes. It is in git-config syntax (`git config --file` reads it, so nothing new enters the build image), and the list itself changes only by a reviewed commit. `task build` and `task serve` resolve it on the host first (`task versions:prepare`, which never touches the network); `task versions:check` resolves it and prints every version's refs, SHAs and rules without building.
 
-A version is one of two kinds:
+A version is one of three kinds, chosen by its keys:
 
-- `source = main`: every source repository at its checked-out `HEAD` (in CI that is `main`; locally whatever `OPM_SRC_WORKTREE` points at). It is allowed only until `v1.0.0-beta.N` tags exist, and only for one version. The build records the six SHAs in the footer stamp and in `site/public/build-stamp.json`.
-- Anchored: fixed refs, bumped by commit, never a moving line resolved at build time. `cli` is the anchor, a tag or a full SHA. The library ref comes from the anchor's `go.mod`, core from that library's `DefaultSchemaModule` (`opm/schema/loader.go`), and opm-operator from the anchor's `PinnedOperatorVersion` (`internal/operator/manifest.go`). `catalog` and `opm` are explicit, because the CLI pins no catalog and opm has no repository-level tag. `cli/hack/platform/` is a test fixture and never a pin. A pin that is not an exact release, or that is wrong for the site, is replaced by `override = <repo> <ref> <reason>`; the reason is required and is recorded in the build stamp (the footer link title and `build-stamp.json`).
+- **Line** (`cli-line`, `catalog-line`): the kind the site publishes. It follows release lines and is resolved again on every build, the nightly one included, so a new release reaches the site with no commit here. Until 2026-10-01 the rule was the opposite, a published version moved only by a commit that bumped a fixed anchor ref and never a moving line resolved at build time; the owner reversed this on 2026-10-01. Reproducibility moved from the manifest to the record every build keeps (below).
+- **Anchored** (`cli`, `catalog`, `opm`): fixed refs, bumped by commit. `cli` is the anchor, a tag or a full SHA; library, core and opm-operator come from its pins as in a line version; `catalog` and `opm` are explicit, because the CLI pins no catalog and opm has no repository-level tag. It serves older versions, the tests and the recovery of a failing line.
+- **`source = main`**: every source repository at its checked-out `HEAD`, read in place, uncommitted edits included. It is for tests and local work, at most one version, and the published manifest has none. Local live editing of source pages is explicit mode instead: `OPM_VERSIONS=v1.0=/src task serve` reads every `docs/site/` in place, while a line version serves its archives in `site/.versions/v1.0/`.
 
-Moving `v1.0` onto beta tags is this edit (the tag names are examples):
+The manifest today:
 
 ```ini
 [version "v1.0"]
 	label = v1.0 (beta)
 	weight = 1
 	default = true
-	cli = v1.0.0-beta.1
-	catalog = opm-v4.6.0
-	opm = 0123456789abcdef0123456789abcdef01234567
+	cli-line = v1.0
+	catalog-line = opm-v4
 ```
 
-Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds, and no tag cut before it can: the resolver fails first, naming the repository and the ref. So each repository needs a tag cut after its floor before `v1.0` can move onto tags.
+How a line version resolves each repository:
+
+| Repository | Ref, as the stamp names it | Tree built |
+|---|---|---|
+| cli | the newest tag of `cli-line` (`v1.0.*`) by semver precedence, prereleases included: `v1.0.0` beats `v1.0.0-rc.1`, `beta.10` beats `beta.2`, and `v1.50.0` is not in `v1.5` | the tag |
+| library | the version `go.mod` requires at that cli tag | the tag |
+| opm-operator | `PinnedOperatorVersion` (`internal/operator/manifest.go`) at that cli tag | the tag |
+| core | `DefaultSchemaModule` (`opm/schema/loader.go`) at the pinned library tag | the docs rule below |
+| catalog_opm | the newest tag of the catalog major `catalog-line` (`opm-v4.*`); the cli consumes the catalog by major, so a new catalog minor needs no commit | the docs rule below |
+| opm | `main` | the head of `origin/main` |
+
+The docs rule, for core and catalog_opm, with `X.Y` the minor of the release the stamp names: the head of `release/<prefix>vX.Y` (`release/v2.0`, `release/opm-v4.4`) once that branch exists; else the head of `main` while `main` still releases `X.Y` (its newest merged release tag is in that minor); else, once `main` has moved past `X.Y` and no branch was cut, the named release's own tag. The release the stamp names must contain its floor, and a branch head it is read from must contain that release. The k8s catalog pages share catalog_opm's `docs/site/` and follow the opm line's tree; `release/k8s-v*` is never read. `cli/hack/platform/` is a test fixture and never a pin.
+
+So a docs fix reaches the site:
+
+- in core or catalog_opm, at the next build, from its release branch head (from `main` during beta);
+- in cli, through its next release in the line;
+- in library or opm-operator, only through a cli release that bumps its pin to a release carrying the fix: the site follows the cli's pins strictly, and nothing bumps them by itself.
+
+A new catalog major (`catalog-line = opm-v5`) or a new cli line (`cli-line = v1.1`) is a commit to the manifest, made when the cli moves to it; a new catalog minor or patch is not.
+
+**Overrides.** `override = <repo> <ref> <reason>` replaces one row with a tag or a full SHA; the reason is required and is recorded in the build stamp (the footer link title and `build-stamp.json`). cli is never overridden. In a line version an override is only for a row that fails: the row it replaces is still resolved and checked, the stamp records it (`override:<reason>; replaces <ref> (<rule>)`), and once that row passes every check the build fails with `... no longer needed: the line resolves <ref> (<rule>), which passes every check; remove the override`. An override written for one cli release therefore fails at the first release that no longer needs it, instead of replacing the pins of every later one. An opm override fails unless `main`'s head itself fails. An anchored version's overrides change only by commit, as the version does.
+
+**Refs and fetching.** A line version reads tags and the remote-tracking refs `refs/remotes/origin/main` and `refs/remotes/origin/release/*`, never a local branch or `HEAD`, so a worktree resolves exactly as its main checkout does. It assumes that `origin` is the upstream open-platform-model repository, so a local build needs that `origin`: a clone whose `origin` is a fork resolves the fork's tags and branches. It refuses a shallow root or one without `origin/main`, with a named error, and it never fetches. After a release, fetch first:
+
+```bash
+task versions:fetch build
+```
+
+`task versions:fetch` runs `git fetch` in the six roots with explicit refspecs, `+refs/heads/*:refs/remotes/origin/*` and `refs/tags/*:refs/tags/*` (the tag one without `+`), and `--no-prune --no-prune-tags --no-tags --no-write-fetch-head`: whatever your git config says, it never moves or deletes a tag and writes nothing in a worktree. A local tag that differs from origin's fails it, naming the root, with `would clobber existing tag`; tags are immutable, so report it and never force it. CI needs no fetch: its checkouts carry every tag and branch.
+
+**The record.** Every build records, per version and repository, the ref, the SHA of the tree built, the rule that chose it and where that tree came from (`docs`: `tag`, `sha`, `main`, `release/...`, or `worktree` for `source = main`), plus the opmodel.dev commit, the seventh input (the layouts, the site-owned pages, the floors, the image):
+
+- `site/.versions/versions.tsv`, with a `# site <sha>` line;
+- `site/public/build-stamp.json`: `versions.<v>.refs.<repo>.{ref,sha,how,docs}` and `site`;
+- the footer stamp, for example `core v2.0.0-beta.1 (docs main f5c4463)`, and every page's "View source at <ref>" link to the archived SHA;
+- the CI job summary.
+
+`site/.versions/frozen.conf` is the same build as an anchored manifest: a tree read at its tag by the tag name, every other tree by its SHA, every derived repository overridden, so nothing is derived again. CI keeps it for 90 days as the `build-manifest` artifact. To rebuild the same trees, check out opmodel.dev at the commit its header names, copy the file outside `site/.versions/` (the resolver refuses the generated file itself, because a run rewrites it) and run `OPM_VERSIONS_MANIFEST=<the copy> task build`.
+
+**When the resolution fails.** A new upstream release that fails a check turns every run red, pushes, pull requests and the nightly alike, until it is recovered; the whole manifest fails, never one version, and the deployed site stays at the last good deploy. The error names the version, the repository, the ref and the rule that chose it. Recover by the failing repository:
+
+- library, core, opm-operator or catalog_opm (a pseudo-version or `replace` pin, a release older than its floor, a release branch that does not contain the release the stamp names): add an override for that row; it fails again, as no longer needed, once the line passes on its own.
+- cli (its newest tag has no `docs/site/` or is older than its floor; cli is never overridden): move the version back to anchored at the last good refs, the version block of the last `build-manifest` artifact's `frozen.conf`, and back to line mode after the fix.
+
+Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds: the resolver fails first, naming the repository and the ref (in a line version also the rule), and it never skips back to an older tag.
 
 The site-owned pages (`site/content/`) are built into every version, so every link on them must resolve in every version, older ones included; a link to a page that exists only in a newer version fails that version's build.
 
-`OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) builds `site/tests/versions/two-versions.conf`, which adds a test version, into `site/.check/versions-test/`, never `site/public/`. When `task versions:test` fails naming `(version v0.9)`, a source or site-owned page no longer builds at the test version's SHAs: bump them in `two-versions.conf` to buildable SHAs after each floor, never edit the checks. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
+`OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) runs the resolver tests on fixture repositories (the line cases clone them, so `origin` and its refs exist as in CI) and on the real roots, then builds `site/tests/versions/two-versions.conf`, `v1.0` in line mode plus an anchored test version, into `site/.check/versions-test/`, never `site/public/`. When `task versions:test` fails naming `(version v0.9)`, a source or site-owned page no longer builds at the test version's SHAs: bump them in `two-versions.conf` to buildable SHAs after each floor, never edit the checks. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
 
 ## Implementation Status
 
@@ -232,14 +281,14 @@ The site-owned pages (`site/content/`) are built into every version, so every li
 - [x] All seven figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] `docgen schema` and `docgen cli` implementations, and pages generated from their output
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
-- [ ] `v1.0` on release tags (needs a tag cut after each repository's dialect floor)
+- [x] `v1.0` follows its release lines (`cli-line`, `catalog-line`), with every resolved SHA recorded and a frozen manifest per build
 - [ ] CI and deployment
 
 ## Contributing
 
 ### Preview
 
-Run `task serve` and open http://127.0.0.1:1313/. It reads every source repository's `docs/site/` in place, so an edit to a page shows without a restart. Before a pull request, run `task build` (every check) and, when anything visual changes, `task qa`, and look at the screenshots in `site/.shots/`.
+Run `OPM_VERSIONS=v1.0=/src task serve` and open http://127.0.0.1:1313/. In that explicit mode it reads every source repository's `docs/site/` in place, so an edit to a page shows without a restart; a plain `task serve` serves the line version's archives at the refs it resolved. Before a pull request, run `task build` (every check) and, when anything visual changes, `task qa`, and look at the screenshots in `site/.shots/`.
 
 ### Page dialect
 
