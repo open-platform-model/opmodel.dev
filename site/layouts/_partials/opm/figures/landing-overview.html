@@ -1,0 +1,108 @@
+{{- /* Figure body: the landing's overview (content/_index.md, beside the hero
+       text; site-owned, not a page-dialect figure). ModuleToCluster's story
+       with less detail and a third transformer: a Module and its Values make
+       an instance, rendered against a platform whose three transformers emit
+       one set of Kubernetes objects. That set is applied to the cluster once,
+       where a backup provider watches the backup object. The frame is
+       _partials/opm/figure.html, drawn without its visible caption; the
+       classes are in assets/css/opm/figures.css. 372 wide keeps its 10 px
+       labels at 9.2 px on a phone, where the figure is 342 px wide.
+
+       Each noun appears once: the kinds are named only on the transformer
+       chips, and the objects are drawn once, inside the cluster. The chips
+       feed one render set, so their lines join a rail with no arrowheads (a
+       bus, not three pipelines) and a single arrow applies it. Kubernetes'
+       own controllers act on the Deployment and the Service, so only the
+       backup provider is drawn in the cluster: the in-cluster engine the
+       platform team installs, which acts on the object the Backup
+       transformer emits (named so at the owner's request; in core's terms
+       the provider is the catalog behind the Backup chip).
+
+       The outer shapes span x=1 to 371 and start at y=1, so the drawing's
+       edges meet the page grid: the text gutter on a phone, the feature
+       grid's right edge and the pill's top on a desktop. Text sits 12 in from
+       a card's edge (x=13), and the three columns (x=13, 131 and 249, 110
+       wide, 8 apart) line up with it. The rendered-against arrow lands over
+       the gap between the first two chips: the instance is rendered against
+       the whole platform, not one transformer. */ -}}
+{{/* Row 1: what the author and the deployer write */}}
+<g class="card author">
+  <rect x="1" y="1" width="179" height="54" rx="8"></rect>
+  <text class="role" x="13" y="21">MODULE AUTHOR</text>
+  <text class="title" x="13" y="43">Module</text>
+</g>
+<g class="card deployer">
+  <rect x="192" y="1" width="179" height="54" rx="8"></rect>
+  <text class="role" x="204" y="21">DEPLOYER</text>
+  <text class="title" x="204" y="43">Values</text>
+</g>
+
+<g class="flow">
+  <line x1="90.5" y1="55" x2="90.5" y2="99" marker-end="url(#lov-arrow)"></line>
+  <text class="label" x="96.5" y="81">imported</text>
+  <line x1="281.5" y1="55" x2="281.5" y2="99" marker-end="url(#lov-arrow)"></line>
+  <text class="label" x="275.5" y="81" text-anchor="end">set</text>
+</g>
+
+{{/* Row 2: the instance */}}
+<g class="card deployer">
+  <rect x="48" y="101" width="276" height="54" rx="8"></rect>
+  <text class="role" x="60" y="121">DEPLOYER</text>
+  <text class="title" x="60" y="143">Module instance</text>
+</g>
+
+<g class="flow">
+  <line x1="127" y1="155" x2="127" y2="199" marker-end="url(#lov-arrow)"></line>
+  <text class="label" x="133" y="181">rendered against</text>
+</g>
+
+{{/* Row 3: the platform and its three transformers */}}
+<g class="card team">
+  <rect x="1" y="201" width="370" height="98" rx="8"></rect>
+  <text class="role" x="13" y="221">PLATFORM TEAM</text>
+  <text class="title" x="13" y="243">Platform</text>
+  <text class="label" x="359" y="243" text-anchor="end">transformers</text>
+  <rect class="chip" x="13" y="255" width="110" height="32" rx="6"></rect>
+  <text class="chip-text" x="68" y="275" text-anchor="middle">Deployment</text>
+  <rect class="chip" x="131" y="255" width="110" height="32" rx="6"></rect>
+  <text class="chip-text" x="186" y="275" text-anchor="middle">Service</text>
+  <rect class="chip" x="249" y="255" width="110" height="32" rx="6"></rect>
+  <text class="chip-text" x="304" y="275" text-anchor="middle">Backup</text>
+</g>
+
+{{/* The bus: each chip's line joins one rail at y=323, square and without
+     arrowheads (the outer lines run 0.75 past the rail, half its stroke, so
+     the corners close), and one arrow applies the set from the rail's
+     centre. */}}
+<g class="flow">
+  <line x1="68" y1="287" x2="68" y2="323.75"></line>
+  <line x1="186" y1="287" x2="186" y2="323"></line>
+  <line x1="304" y1="287" x2="304" y2="323.75"></line>
+  <line x1="67.25" y1="323" x2="304.75" y2="323"></line>
+  <text class="label" x="74" y="315">emitted</text>
+  <line x1="186" y1="323" x2="186" y2="359" marker-end="url(#lov-arrow)"></line>
+  <text class="label" x="192" y="339">applied</text>
+</g>
+
+{{/* Row 4: the cluster. The objects are drawn once. The watched-by arrow
+     runs at x=304, straight on from the Backup chip's line, so the watch
+     belongs to the backup's object, not to the whole set; it lands 9 right
+     of the backup provider's centre, since a box centred on 304 inside the
+     x=359 edge would leave its text about 6 of padding. The box shares the
+     zone's bottom row with the zone label. */}}
+<rect class="zone" x="1" y="349" width="370" height="122" rx="10"></rect>
+<g class="obj">
+  <rect x="13" y="361" width="346" height="32" rx="6"></rect>
+  <text x="186" y="381" text-anchor="middle">Kubernetes objects</text>
+</g>
+
+<g class="flow">
+  <line x1="304" y1="393" x2="304" y2="427" marker-end="url(#lov-arrow)"></line>
+  <text class="label" x="298" y="415" text-anchor="end">watched by</text>
+</g>
+
+<text class="zone-label" x="13" y="449">CLUSTER</text>
+<g class="tool">
+  <rect x="231" y="429" width="128" height="32" rx="6"></rect>
+  <text x="295" y="449" text-anchor="middle">Backup provider</text>
+</g>
