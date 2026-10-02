@@ -9,7 +9,7 @@ docs-kit (owner decisions of 2026-10-02, `docs-kit DESIGN decision 2`, `5`, `8`,
 Sections 1 to 4 are built and tested against fixture bundles and need nothing from docs-kit or the registry. **Section 5, and so the merge of this change, starts only when all of these hold:**
 
 - docs-kit `v0.1.0` is released (its binaries and `checksums.txt` are on the GitHub release).
-- catalog_opm `publish-docs-bundle` section 1 has merged, the owner has made `ghcr.io/open-platform-model/docs/catalog-opm` public, and the backfill has published `4.4.5` (full tag `4.4.5.0`, moving tags `4.4.5`, `4.4`, `4`) and `edge` has published from `main`.
+- catalog_opm `publish-docs-bundle` section 1 has merged and its section 2 (owner go-live) is done: the owner has made `ghcr.io/open-platform-model/docs/catalog-opm` public, and the backfill has published `4.4.5` (full tag `4.4.5.0`, moving tags `4.4.5`, `4.4`, `4`) and `edge` has published from `main`.
 - An anonymous `opm-docs pull` with this change's `site/bundles.cue` resolves and verifies `4.4` and `edge`.
 
 ## What Changes
@@ -76,7 +76,7 @@ There is no window in which the members are published twice (accepted into docs-
 - **Source repos (follow-ups, never edited from here).**
   - catalog_opm `publish-docs-bundle` section 1 (before section 5 here): `docs/catalogs/opm/_index.md` with the contract page's body; it must not link `/catalogs/k8s/` (no k8s tab).
   - cli (after this merges): `docs/site/reference/registry-namespaces.md`, **both** links to `/docs/reference/catalog-contract/` (lines 19 and 38) become `/catalogs/opm/4/`.
-  - catalog_opm `publish-docs-bundle` section 2 (after this merges, and after the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `/docs/reference/catalog-members/` links with it): delete `docs/site/reference/catalog-members/` and `catalog-contract.md`. The site already stopped publishing them at this merge, so the order of this and the cli fix does not matter.
+  - catalog_opm `publish-docs-bundle` section 3 (retire refgen; after this merges, and after the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `/docs/reference/catalog-members/` links with it): delete `docs/site/reference/catalog-members/` and `catalog-contract.md`. The site already stopped publishing them at this merge, so the order of this and the cli fix does not matter.
   - workspace `STYLE.md` ("Site Pages"): name the `/catalogs/<name>/<MAJOR>/` link form.
 - **Delivery.** One PR. Sections 1 to 4 may be committed before the Gate holds; the PR merges after section 5.
 
