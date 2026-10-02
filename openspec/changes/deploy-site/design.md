@@ -249,7 +249,7 @@ sh site/deploy/check-deploy.sh --self-test  builds fixtures in a mktemp director
 
 It sits under `## Deploy`, as `### Go live`, in owner order:
 
-1. **Before.** The supervisor recommends C, D, M and F merged. The owner's go is the only gate (O2). 0018:OQ15 (what a page must hold before publication) is the owner's to weigh here.
+1. **Before.** The supervisor recommends C, D, M and F merged. The owner's go is the only gate (O2). What a page must hold before publication is the owner's to weigh here.
 2. **Record the zone.** Screenshot Namecheap's Advanced DNS page. List the live records with `dig +short <name> <type>` for the apex (A, AAAA, MX, TXT, CAA), `www`, `_dmarc` and any mail-forwarding or verification record found. Keep both with the go-live notes.
 3. **Add the zone to Cloudflare (Free).** Compare Cloudflare's imported records with step 2. Add any missing TXT or MX record. Drop the Namecheap parking and URL-forward records (the apex A record to 192.64.119.93, and `www` to the parking host).
 4. **DNSSEC.** If it is on at Namecheap, turn it off before the move. Turn it on again with Cloudflare's DS record once the zone is active.

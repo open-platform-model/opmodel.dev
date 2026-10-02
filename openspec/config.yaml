@@ -13,7 +13,7 @@ context: |
   are in CONSTITUTION.md; commands and working rules are in AGENTS.md.
 
   ### I. Content Lives in the Owning Repository
-  A page's source lives in the repository whose change would make it wrong (0018:D8). This
+  A page's source lives in the repository whose change would make it wrong. This
   repo owns the pipeline, the theme overrides and the few site-owned pages (the landing and
   the section overviews); it does not own the prose it assembles.
   - A change here that needs page prose, front matter or links changed in a source repo names
@@ -106,7 +106,7 @@ context: |
 
   ## Comments and Enhancement References
   - Default to no enhancement reference: say what the code does and why, in the comment's own words.
-  - When the rationale genuinely lives in an enhancement, cite it once at the symbol as `0018:D14` — enhancement id, colon, decision id, no space. One enhancement, several decisions: `0018:D7/D9`. Across enhancements: `0018:D8, 0010:D34`. One requirement of a decision: `0018:D7:R1`; several: `0018:D7:R1/R2`. An open question: `0021:OQ15`. A bare `D14` names nothing, because decision numbers restart per enhancement.
+  - When the rationale genuinely lives in an enhancement, cite it once at the symbol as `0021:D4` — enhancement id, colon, decision id, no space. One enhancement, several decisions: `0021:D4/D9`. Across enhancements: `0021:D8, 0010:D34`. One requirement of a decision: `0021:D7:R1`; several: `0021:D7:R1/R2`. An open question: `0021:OQ15`. A bare `D14` names nothing, because decision numbers restart per enhancement.
   - Never cite a section, slice, phase, task or design-doc-local id (`§8.1`, `slice C2`, `task 4.2`, `design LD3`). They are not stable identifiers; a requirement number (`R2`) is.
   - Never put a reference in text the site publishes (page output, a layout's markup, `llms.txt`), a generated file, or a fixture a reader copies. Those reach people with no access to the enhancements repo.
   - No `Was:` rename history in comments; `git log` owns it.
@@ -145,8 +145,8 @@ rules:
       enhancement delivery logging waits for archive after the last PR."
     - "Never add a Capabilities section and never create a `specs/` directory; the change's `.openspec.yaml` MUST carry `skip_specs: true` (Principle II)."
     - When the change implements a slice of an enhancement, cite the entry and the decision
-      numbers it satisfies (`0018:D8`) or, when only part of a decision lands, the requirement
-      numbers (`0018:D7:R1`) rather than restating the design.
+      numbers it satisfies (`0021:D8`) or, when only part of a decision lands, the requirement
+      numbers (`0021:D7:R1`) rather than restating the design.
     - "If this change implements decisions from an enhancement in the sibling enhancements/ repo, create enhancement.yaml in this change directory declaring it (implements: [{enhancement: \"NNNN\", decisions: [D1, ...], resolves: []}]). Write it at creation time, while the enhancement is in context; it is what makes archive-time delivery logging mechanical."
 
   design:

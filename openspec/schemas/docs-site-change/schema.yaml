@@ -32,7 +32,7 @@ artifacts:
         (a follow-up in that repo, never an edit here); the published URLs or versions
         affected; and `Depends on:` for any change or merge this one waits for.
       - **Enhancement**: When the change implements decisions from an entry in the sibling
-        `enhancements/` repo, cite the entry and decision numbers (`0018:D8`) instead of
+        `enhancements/` repo, cite the entry and decision numbers (`0021:D8`) instead of
         restating the design, and create `enhancement.yaml` in this change directory now.
 
       This schema has no specs artifact. Do not add a Capabilities section and do not
