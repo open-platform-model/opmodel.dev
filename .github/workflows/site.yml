@@ -13,10 +13,9 @@ on:
     # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
     # every build, so the nightly run of main publishes what moved upstream:
     # new releases (cli, and the library, core and opm-operator releases a
-    # cli release pins; catalog_opm opm-v4.* tags), opm main, and core and
-    # catalog_opm main or release-branch heads while their docs rule reads
-    # them. A cli, library or opm-operator merge to main reaches the published
-    # build only through a release. The sources-main job checks every source
+    # cli release pins; catalog_opm opm-v4.* tags), opm main, and the main or
+    # release-branch heads of cli, library, opm-operator, core and catalog_opm
+    # while their docs rule reads them. The sources-main job checks every source
     # repository's main in explicit mode (lint, build checks, links) and
     # publishes nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because

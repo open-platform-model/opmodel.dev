@@ -71,6 +71,7 @@ Documentation site implementation status and roadmap.
   - [ ] Create link handler for cross-references
   - [ ] Call `cobra/doc.GenMarkdownTreeCustom()`
   - [ ] Output to `site/.gen/<version>/docs/reference/cli/` (mounted per version); today `task generate:cli` still writes to `site/content/docs/reference/cli/`
+  - [ ] Decide how the generator finds the cli release in an anchored version frozen from a line, where `cli` is the docs SHA (read the `; cli <tag>` comment, or freeze a separate key); open question from build-docs-from-branch-head
 
 #### Testing
 - [ ] Unit test for front matter generation

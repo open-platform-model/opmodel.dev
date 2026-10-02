@@ -12,7 +12,8 @@
 #     tags exist exactly as in CI. The upstreams then move through states A to
 #     E (release branches, a newer final, a branch past its line, a catalog
 #     major, a branch that misses its release), and --fetch moves the clones:
-#     the semver order, the pins, the docs rules, overrides in a line, the
+#     the semver order, the pins (always read at the release tags), the docs
+#     rules of all five released repositories, overrides in a line, the
 #     stamp, the frozen round trip, the recovery to the frozen version block,
 #     and the fetch under prune config, under a configured branch mapping and
 #     against a conflicting upstream tag;
@@ -119,6 +120,9 @@ gomod "$T/cli" v2.1.0; commit "$T/cli" beta3 > /dev/null; g "$T/cli" tag v1.5.0-
 page "$T/cli" decoy; commit "$T/cli" decoy > /dev/null; g "$T/cli" tag v1.50.0
 gomod "$T/cli" v2.2.0-oldcore; commit "$T/cli" oldcore > /dev/null; g "$T/cli" tag v1.6.0
 gomod "$T/cli" v2.1.0; commit "$T/cli" restore > /dev/null
+# then main moves its library pin past every v1.5 and v1.50 tag, so a line
+# whose docs come from main's head still reads its pins at the tag.
+gomod "$T/cli" v2.3.0; commit "$T/cli" "main pins library v2.3.0" > /dev/null
 
 # enhancements: an upstream with two commits holding INDEX.md (the first
 # tagged), and a commit without it; enh/ is its clone, the root of the
@@ -383,12 +387,37 @@ CORE_A=$(rev core main); CAT_A=$(rev catalog_opm main); OPM_HEAD=$(rev opm main)
 run "$(manifest line "$lgood")" -- --check
 expect line 0 "cli v1.5.0-beta.10 beats beta.3 and beta.2, ignores v1.50.0 and v1.6.0; the pins; catalog opm-v1.1.0; core and catalog docs from main; opm main" \
   "# site${TAB}$SITE_SHA" \
-  "${L}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}line:newest v1.5.* tag${TAB}tag" \
-  "${L}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}pin:cli go.mod${TAB}tag" \
-  "${L}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator v3.1.0)${TAB}pin:cli internal/operator/manifest.go${TAB}tag" \
+  "${L}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}line:newest v1.5.* tag; docs: v1.5.0-beta.10 (main is past v1.5, no release/v1.5)${TAB}tag" \
+  "${L}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}pin:cli go.mod; docs: v2.3.0 (main is past v2.3, no release/v2.3)${TAB}tag" \
+  "${L}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator v3.1.0)${TAB}pin:cli internal/operator/manifest.go; docs: v3.1.0 (main is past v3.1, no release/v3.1)${TAB}tag" \
   "${L}core${TAB}v4.2.0${TAB}$CORE_A${TAB}$CORE_HOW; docs: main head (no release/v4.2; main still releases v4.2)${TAB}main" \
   "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}line:newest opm-v1.* tag; docs: main head (no release/opm-v1.1; main still releases opm-v1.1)${TAB}main" \
   "${L}opm${TAB}main${TAB}$OPM_HEAD${TAB}line:main head${TAB}main"
+
+# cli v1.50.0 is the newest release on cli main, so main still releases v1.50:
+# the cli docs come from main's head, while the pins are read at the tag
+# (library v2.1.0, not main's v2.3.0).
+LV150=$(manifest line-cli-main "$lv
+	cli-line = v1.50
+	catalog-line = opm-v1")
+run "$LV150" -- --check
+expect line-cli-main 0 "cli docs from main's head while main still releases the cli line; the pins still come from the tag" \
+  "${L}cli${TAB}v1.50.0${TAB}$(rev cli main)${TAB}line:newest v1.50.* tag; docs: main head (no release/v1.50; main still releases v1.50)${TAB}main" \
+  "${L}library${TAB}v2.1.0${TAB}$(rev library v2.1.0)${TAB}pin:cli go.mod; docs: v2.1.0 (main is past v2.1, no release/v2.1)${TAB}tag"
+# shellcheck disable=SC2046 # env assignments hold no spaces
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$LV150" sh "$RESOLVE" --freeze > "$T/manifests/frozen-cli-main.conf" 2>/dev/null
+out=$(cat "$T/manifests/frozen-cli-main.conf"); rc=0
+expect line-cli-freeze 0 "a cli whose docs come from main's head freezes by that SHA, with a comment naming the release" \
+  "	; cli v1.50.0, docs main" "	cli = $(rev cli main)"
+run "$T/manifests/frozen-cli-main.conf" -- --check
+expect line-cli-freeze-check 0 "that frozen copy resolves anchored at main's head; the library override keeps its tag" \
+  "v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}anchored${TAB}cli${TAB}$(rev cli main)${TAB}$(rev cli main)${TAB}anchor${TAB}sha" \
+  "${TAB}library${TAB}v2.1.0${TAB}$(rev library v2.1.0)${TAB}override:frozen from line, docs tag${TAB}tag"
+# Freezing that anchored copy again names no release: its cli is a SHA, not a line.
+run "$T/manifests/frozen-cli-main.conf" -- --freeze
+if [ "$rc" = 0 ] && ! printf '%s\n' "$out" | grep -qE "^${TAB}; cli [0-9a-f]{40}, docs sha"; then
+  ok line-cli-refreeze "freezing a frozen copy again writes no cli release comment for its anchored cli"
+else bad line-cli-refreeze "exit $rc, or a '; cli <sha>, docs sha' comment"; fi
 
 run "$(manifest line-override-1 "$lv
 	cli-line = v1.2
@@ -429,7 +458,7 @@ run "$(manifest line-pre-floor "$lv
 	cli-line = v1.0
 	catalog-line = opm-v1")" -- --check
 expect line-pre-floor 1 "the newest tag of a line older than its floor fails, naming the rule" \
-  "v2.0: cli v1.0.0-old (newest tag of line v1.0): older than its floor $(rev cli dialect-floor)"
+  "v2.0: cli v1.0.0-old (newest tag of line v1.0; docs its tag): older than its floor $(rev cli dialect-floor)"
 
 run "$(manifest line-no-tag "$lv
 	cli-line = v9.9
@@ -480,6 +509,9 @@ R=$T/line
 # State B: release/v4.2 (core) and release/opm-v1.1 (catalog_opm), each with a docs commit.
 g "$T/core" switch -q -c release/v4.2 v4.2.0; page "$T/core" fix42; commit "$T/core" "docs fix on release/v4.2" > /dev/null; g "$T/core" switch -q main
 g "$T/catalog_opm" switch -q -c release/opm-v1.1 opm-v1.1.0; page "$T/catalog_opm" fix11; commit "$T/catalog_opm" "docs fix on release/opm-v1.1" > /dev/null; g "$T/catalog_opm" switch -q main
+# ... and release/v2.3 (library) and release/v3.1 (opm-operator), the same way.
+g "$T/library" switch -q -c release/v2.3 v2.3.0; page "$T/library" fix23; commit "$T/library" "docs fix on release/v2.3" > /dev/null; g "$T/library" switch -q main
+g "$T/opm-operator" switch -q -c release/v3.1 v3.1.0; page "$T/opm-operator" fix31; commit "$T/opm-operator" "docs fix on release/v3.1" > /dev/null; g "$T/opm-operator" switch -q main
 LGOOD=$(manifest line-b "$lgood")
 
 run "$LGOOD" -- --check
@@ -490,8 +522,10 @@ expect line-stale 0 "before --fetch the clones still resolve state A" \
 run "$LGOOD" -- --fetch
 expect fetch-b 0 "--fetch brings the release branches into the clones"
 run "$LGOOD" -- --check
-expect line-branch 0 "core and catalog docs from their release branch heads; the versions are unchanged" \
+expect line-branch 0 "core, catalog, library and operator docs from their release branch heads; the versions are unchanged" \
   "${L}core${TAB}v4.2.0${TAB}$(rev core release/v4.2)${TAB}$CORE_HOW; docs: release/v4.2 head${TAB}release/v4.2" \
+  "${L}library${TAB}v2.3.0${TAB}$(rev library release/v2.3)${TAB}pin:cli go.mod; docs: release/v2.3 head${TAB}release/v2.3" \
+  "${L}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator release/v3.1)${TAB}pin:cli internal/operator/manifest.go; docs: release/v3.1 head${TAB}release/v3.1" \
   "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}line:newest opm-v1.* tag; docs: release/opm-v1.1 head${TAB}release/opm-v1.1" \
   "${L}cli${TAB}v1.5.0-beta.10${TAB}"
 
@@ -502,9 +536,9 @@ env $(fixture_env) OPM_VERSIONS_MANIFEST="$LGOOD" sh "$RESOLVE" --check > "$T/st
 out=$(SITE_DIR="$T/stamp" OPM_VERSIONS='' OPM_BUILD_REFS='' sh "$SITE/scripts/gen-stamp.sh" 2>&1 && cat "$T/stamp/data/opm/build.json") && rc=0 || rc=$?
 expect line-stamp 0 "build.json records every SHA, every docs value, kind line and the opmodel.dev commit" \
   "\"site\": \"$SITE_SHA\"" "\"kind\": \"line\"" \
-  "\"cli\": {\"ref\": \"v1.5.0-beta.10\", \"sha\": \"$(rev cli v1.5.0-beta.10)\", \"how\": \"line:newest v1.5.* tag\", \"docs\": \"tag\"}" \
-  "\"library\": {\"ref\": \"v2.3.0\", \"sha\": \"$(rev library v2.3.0)\", \"how\": \"pin:cli go.mod\", \"docs\": \"tag\"}" \
-  "\"opm-operator\": {\"ref\": \"v3.1.0\", \"sha\": \"$(rev opm-operator v3.1.0)\"" \
+  "\"cli\": {\"ref\": \"v1.5.0-beta.10\", \"sha\": \"$(rev cli v1.5.0-beta.10)\", \"how\": \"line:newest v1.5.* tag; docs: v1.5.0-beta.10 (main is past v1.5, no release/v1.5)\", \"docs\": \"tag\"}" \
+  "\"library\": {\"ref\": \"v2.3.0\", \"sha\": \"$(rev library release/v2.3)\", \"how\": \"pin:cli go.mod; docs: release/v2.3 head\", \"docs\": \"release/v2.3\"}" \
+  "\"opm-operator\": {\"ref\": \"v3.1.0\", \"sha\": \"$(rev opm-operator release/v3.1)\"" \
   "\"core\": {\"ref\": \"v4.2.0\", \"sha\": \"$(rev core release/v4.2)\", \"how\": \"$CORE_HOW; docs: release/v4.2 head\", \"docs\": \"release/v4.2\"}" \
   "\"catalog_opm\": {\"ref\": \"opm-v1.1.0\", \"sha\": \"$(rev catalog_opm release/opm-v1.1)\"" "\"docs\": \"release/opm-v1.1\"" \
   "\"opm\": {\"ref\": \"main\", \"sha\": \"$OPM_HEAD\", \"how\": \"line:main head\", \"docs\": \"main\"}"
@@ -514,10 +548,10 @@ expect line-stamp 0 "build.json records every SHA, every docs value, kind line a
 env $(fixture_env) OPM_VERSIONS_MANIFEST="$LGOOD" sh "$RESOLVE" --freeze > "$T/manifests/frozen-b.conf" 2>/dev/null
 run "$T/manifests/frozen-b.conf" -- --check
 A="v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}anchored${TAB}"
-expect line-freeze 0 "the frozen copy resolves the same six SHAs, anchored, cli, library and opm-operator by tag name" \
+expect line-freeze 0 "the frozen copy resolves the same six SHAs, anchored, cli by tag name, library and opm-operator by their branch heads" \
   "${A}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}anchor${TAB}tag" \
-  "${A}library${TAB}v2.3.0${TAB}$(rev library v2.3.0)${TAB}override:frozen from line, docs tag${TAB}tag" \
-  "${A}opm-operator${TAB}v3.1.0${TAB}$(rev opm-operator v3.1.0)${TAB}override:frozen from line, docs tag${TAB}tag" \
+  "${A}library${TAB}$(rev library release/v2.3)${TAB}$(rev library release/v2.3)${TAB}override:frozen from line v2.3.0, docs release/v2.3${TAB}sha" \
+  "${A}opm-operator${TAB}$(rev opm-operator release/v3.1)${TAB}$(rev opm-operator release/v3.1)${TAB}override:frozen from line v3.1.0, docs release/v3.1${TAB}sha" \
   "${A}core${TAB}$(rev core release/v4.2)${TAB}$(rev core release/v4.2)${TAB}override:frozen from line v4.2.0, docs release/v4.2${TAB}sha" \
   "${A}catalog_opm${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}explicit${TAB}sha" \
   "${A}opm${TAB}$OPM_HEAD${TAB}$OPM_HEAD${TAB}explicit${TAB}sha"
@@ -532,14 +566,14 @@ freeze_block() { awk '/^\[version /{ on = 1 } on' "$1"; }
 run "$(manifest line-recover "$(freeze_block "$T/manifests/frozen-b.conf")")" -- --check
 expect line-recover 0 "the frozen version block pasted into a manifest resolves anchored at the same six SHAs" \
   "${A}cli${TAB}v1.5.0-beta.10${TAB}$(rev cli v1.5.0-beta.10)${TAB}anchor${TAB}tag" \
-  "${A}library${TAB}v2.3.0${TAB}" "${A}opm-operator${TAB}v3.1.0${TAB}" \
+  "${A}library${TAB}$(rev library release/v2.3)${TAB}" "${A}opm-operator${TAB}$(rev opm-operator release/v3.1)${TAB}" \
   "${A}core${TAB}$(rev core release/v4.2)${TAB}" "${A}catalog_opm${TAB}$(rev catalog_opm release/opm-v1.1)${TAB}" \
   "${A}opm${TAB}$OPM_HEAD${TAB}"
 
-# State C: cli v1.5.0, a final, pinning library v2.1.0 (so core v4.1.0); core
+# State C: cli v1.5.0, a final on main, pinning library v2.1.0 (so core v4.1.0); core
 # v4.1.1 on a side branch fix-v4.1 off v4.1.0, never merged into main; catalog
 # opm-v1.2.0 on main after a docs commit.
-page "$T/cli" final; commit "$T/cli" "v1.5.0" > /dev/null; g "$T/cli" tag v1.5.0
+gomod "$T/cli" v2.1.0; page "$T/cli" final; commit "$T/cli" "v1.5.0" > /dev/null; g "$T/cli" tag v1.5.0
 g "$T/core" switch -q -c fix-v4.1 v4.1.0; page "$T/core" fix41; commit "$T/core" "fix on v4.1" > /dev/null; g "$T/core" tag v4.1.1; g "$T/core" switch -q main
 page "$T/catalog_opm" c; commit "$T/catalog_opm" "docs before opm-v1.2.0" > /dev/null; g "$T/catalog_opm" tag opm-v1.2.0
 run "$LGOOD" -- --fetch
@@ -559,13 +593,16 @@ run "$LGOOD" -- --check
 expect line-catalog-major 0 "the catalog stays on its major (opm-v1.2.0), docs at its tag once main is past opm-v1.2" \
   "${L}catalog_opm${TAB}opm-v1.2.0${TAB}$(rev catalog_opm opm-v1.2.0)${TAB}line:newest opm-v1.* tag; docs: opm-v1.2.0 (main is past opm-v1.2, no release/opm-v1.2)${TAB}tag"
 
-# State E: core release/v4.1 from the floor commit, plus a docs commit.
+# State E: core release/v4.1 from the floor commit, and cli release/v1.5 from
+# v1.5.0-beta.10, each plus a docs commit; neither contains the release.
 g "$T/core" switch -q -c release/v4.1 dialect-floor; page "$T/core" fix41b; commit "$T/core" "docs on release/v4.1" > /dev/null; g "$T/core" switch -q main
+g "$T/cli" switch -q -c release/v1.5 v1.5.0-beta.10; page "$T/cli" fix15; commit "$T/cli" "docs on release/v1.5" > /dev/null; g "$T/cli" switch -q main
 run "$LGOOD" -- --fetch
 expect fetch-e 0 "--fetch brings state E into the clones"
 run "$LGOOD" -- --check
-expect line-contain 1 "a release branch that does not contain the release the stamp names fails" \
-  "v2.0: core release/v4.1 $(short "$(rev core release/v4.1)") (docs for v4.1.0): does not contain v4.1.0, the release the stamp names"
+expect line-contain 1 "a release branch that does not contain the release the stamp names fails, cli included (no override recovers it)" \
+  "v2.0: core release/v4.1 $(short "$(rev core release/v4.1)") (docs for v4.1.0): does not contain v4.1.0, the release the stamp names" \
+  "v2.0: cli release/v1.5 $(short "$(rev cli release/v1.5)") (docs for v1.5.0): does not contain v1.5.0, the release the stamp names"
 
 # The fetch: a local-only tag survives prune config, and a worktree root gets no FETCH_HEAD.
 g "$R/opm" tag v0.0.0-localonly
@@ -652,6 +689,8 @@ fi
 # The recovery on the real roots: the frozen version block of that line, with
 # the real floors, resolves as an anchored version at the same six SHAs.
 line_shas=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "line" { print $6 " " $8 }' | sort)
+# A cli whose docs are not its tag freezes by the SHA of its docs tree.
+want_fcli=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "line" && $6 == "cli" { print ($10 == "tag") ? $7 : $8 }')
 realf=$SITE/.check/versions-test/repos/manifests/real-line-frozen.conf
 {
   for r in $REPOS; do printf '[repo "%s"]\n\tfloor = %s\n' "$r" "$(git config --file "$SITE/versions.conf" --get "repo.$r.floor")"; done
@@ -659,7 +698,7 @@ realf=$SITE/.check/versions-test/repos/manifests/real-line-frozen.conf
 } > "$realf"
 out=$(OPM_VERSIONS='' OPM_VERSIONS_MANIFEST="$realf" sh "$RESOLVE" --check 2>&1) && rc=0 || rc=$?
 frozen_shas=$(printf '%s\n' "$out" | awk -F'\t' '$5 == "anchored" { print $6 " " $8 }' | sort)
-expect real-line-frozen 0 "the real line's frozen version block resolves anchored" "${RL%line${TAB}}anchored${TAB}cli${TAB}$want_cli${TAB}"
+expect real-line-frozen 0 "the real line's frozen version block resolves anchored" "${RL%line${TAB}}anchored${TAB}cli${TAB}$want_fcli${TAB}"
 if [ -z "$line_shas" ] || [ "$line_shas" != "$frozen_shas" ]; then
   bad real-line-frozen-shas "line: $(printf '%s' "$line_shas" | tr '\n' ' '); frozen: $(printf '%s' "$frozen_shas" | tr '\n' ' ')"
 fi
