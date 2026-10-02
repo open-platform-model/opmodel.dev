@@ -8,8 +8,11 @@
        weighted ones). A page of any other type is still listed, last.
        not-prose keeps Hextra's prose styles (bullets, link colour, the page
        h2 size) off the cards; data-pagefind-ignore keeps the section page
-       from matching every child's title and description in search. */ -}}
+       from matching every child's title and description in search.
+       Reference is its own tab, so the docs home leaves it out, as the
+       sidebar override does. */ -}}
 {{- $items := where (union .RegularPages .Sections) "Params.sidebar.exclude" "!=" true -}}
+{{- with site.GetPage "/docs/reference" }}{{ $items = complement (slice .) $items }}{{ end -}}
 {{- $keyed := slice -}}
 {{- range $items -}}
   {{- $weight := cond (gt .Weight 0) .Weight 1000000 -}}

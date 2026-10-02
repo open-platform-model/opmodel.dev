@@ -173,6 +173,7 @@ def main():
         (f"/{version}/docs/", "search", "search"),
         (f"/{version}/docs/", "section cards", None),
         (f"/{version}/docs/operating/", "section cards", None),
+        (f"/{version}/docs/reference/", "reference tab", None),
     ]
     # The Enhancements section, outside every version: its page, the graph, a
     # draft entry with its decisions and an archived entry.

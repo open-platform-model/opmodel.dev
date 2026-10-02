@@ -177,17 +177,21 @@ if [ $rc -eq 0 ]; then
   else bad "dialect/svg-space" "component<tspan: the minifier trimmed the figure's text"; fi
 
   # Order is weight, then title: in a source section and across the sections.
+  # Reference is its own tab: the docs tree leaves it out, and the Reference
+  # home's tree holds it in weight order.
   nav=$OUT/$name/site/.check/v1.0/nav-order.txt
+  rnav=$OUT/$name/site/.check/v1.0/nav-order-reference.txt
   prev=0; order_ok=1
-  for u in start concepts authoring operating extending embedding reference diagnostics; do
+  for u in start concepts authoring operating extending embedding diagnostics; do
     n=$(line_of "/v1.0/docs/$u/" "$nav")
     if [ "$n" -le "$prev" ]; then order_ok=0; fi; prev=$n
   done
   z=$(line_of /v1.0/docs/start/zeta-first/ "$nav"); a=$(line_of /v1.0/docs/start/alpha-second/ "$nav")
-  d=$(line_of /v1.0/docs/reference/definitions/ "$nav"); cl=$(line_of /v1.0/docs/reference/cli/ "$nav")
-  if [ $order_ok = 1 ] && [ "$z" -gt 0 ] && [ "$z" -lt "$a" ] && [ "$d" -gt 0 ] && [ "$d" -lt "$cl" ]; then
-    ok "dialect/weight" "nav-order.txt: zeta-first (weight 1) before alpha-second (weight 2); sections in weight order"
-  else bad "dialect/weight" "nav-order.txt is not in weight order" "$nav"; fi
+  d=$(line_of /v1.0/docs/reference/definitions/ "$rnav"); cl=$(line_of /v1.0/docs/reference/cli/ "$rnav")
+  dd=$(line_of /v1.0/docs/reference/definitions/ "$nav"); rd=$(line_of /v1.0/docs/start/ "$rnav")
+  if [ $order_ok = 1 ] && [ "$z" -gt 0 ] && [ "$z" -lt "$a" ] && [ "$d" -gt 0 ] && [ "$d" -lt "$cl" ] && [ "$dd" = 0 ] && [ "$rd" = 0 ]; then
+    ok "dialect/weight" "nav-order.txt: zeta-first (weight 1) before alpha-second (weight 2); sections in weight order; Reference in its own tree, definitions before cli"
+  else bad "dialect/weight" "nav-order.txt or nav-order-reference.txt is not in weight order, or a tree holds the other's pages" "$nav"; fi
 
   # Root-absolute links resolve through the link hook in the current version.
   if grep -q 'href="\{0,1\}/v1.0/docs/concepts/fixture-concept/#why"\{0,1\}>the fixture concept</a>' "$q" &&
