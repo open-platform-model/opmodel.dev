@@ -101,6 +101,9 @@ else echo "build-all: no enhancements section"; fi
 step "drift guard: overridden theme files unchanged upstream"
 sh "$SCRIPTS/check-overrides.sh"
 
+step "vendored files match their pins"
+sh "$SCRIPTS/check-vendored.sh"
+
 step "source lint"
 dirs=""
 for pair in $VERSIONS; do

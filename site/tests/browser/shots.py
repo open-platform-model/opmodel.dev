@@ -29,7 +29,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import PUBLIC, SITE, default_version, enhancement_pages, new_page, serve, slug, versions
+from qa_common import PUBLIC, SITE, default_version, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
 
 OUT = SITE / ".shots"
 MIN_TEXT_PX = 9
@@ -195,6 +195,7 @@ def main():
                 page = new_page(browser, width, theme, scheme, phone)
                 page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
                 page.goto(base + url, wait_until="networkidle")
+                wait_for_diagrams(page)
                 if kind == "search":
                     page.locator("[data-search-open]:visible").first.click()
                     page.locator("input.hextra-search-input").fill("module")

@@ -98,14 +98,19 @@ defaultContentVersionInSubdir = true
   # from jsDelivr or unpkg when they are on: image zoom (medium-zoom) and
   # remote icons are switched off here. Math (KaTeX, MathJax) loads only
   # through a Goldmark extension this site leaves off (Hugo's default).
-  # Mermaid, asciinema and PhotoSwipe load only for a mermaid code fence or
-  # Hextra's asciinema and gallery shortcodes: the source lint rejects every
-  # shortcode but the opm/ figures, a mermaid fence fails the network-less
-  # build (the Enhancements section renders one as code instead, through its
-  # own hook in layouts/enhancements/_markup/), and check 11 fails on any CDN
-  # URL in the output.
+  # Asciinema and PhotoSwipe load only for Hextra's asciinema and gallery
+  # shortcodes, which the source lint rejects (it allows only the opm/
+  # figures), and check 11 fails on any CDN URL in the output.
   [params.imageZoom]
     enable = false
+  # Mermaid is vendored (assets/lib/mermaid/, pinned in vendored.sha256), so
+  # Hextra's scripts/mermaid.html loads it with resources.Get, fingerprinted
+  # and with SRI, never from its CDN default; only a page whose content set
+  # hasMermaid loads it. Only the Enhancements section draws a diagram
+  # (layouts/enhancements/_markup/render-codeblock-mermaid.html); a mermaid
+  # fence anywhere else fails the build (layouts/_markup/).
+  [params.mermaid]
+    js = 'lib/mermaid/mermaid.min.js'
   [params.icons.remote]
     enable = false
   [params.opm]

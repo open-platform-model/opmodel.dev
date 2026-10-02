@@ -101,6 +101,7 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 - **Docker only.** The site builds, serves and is tested only in the images the Taskfile defines: the build image `site/Dockerfile` (Hugo, Pagefind, git) and the QA image `site/tests/browser/Dockerfile` (Chromium, Playwright, axe-core). Never run `hugo`, `npm`, `npx` or `node` on the host, and never commit `node_modules/`. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`), so parallel worktrees never replace each other's image; never give an image a fixed tag or a container a fixed `--name`. Builds, tests and QA run with `--network none`; only `task image` and `task qa:image` reach the network, and only when their tag is missing. `serve` and `preview` publish only `127.0.0.1:${SITE_PORT:-1313}`.
 - **The source lint is the page dialect.** `site/scripts/lint-sources.sh` is byte-identical to the workspace dialect contract and runs before every build. When it fails, fix the page in its source repository, never the lint; a rule change is a change to the contract, made there first.
 - **Vendored theme, hash-guarded overrides.** Hextra is vendored as files by `site/scripts/vendor-hextra.sh` (runtime tree only, pinned commit in `site/themes/hextra.COMMIT`); it is never a Hugo module and never fetched at build time. `site/overrides.sha256` pins the upstream file behind every override copy, and the drift guard (`site/scripts/check-overrides.sh`) fails the build when upstream changes one. Diff upstream and merge the hunk before re-pinning; never run `--update` only to turn a build green. A new override copy appends its line by hand.
+- **Vendored files are pinned.** A third-party file the site serves as it came (Mermaid, `site/assets/lib/mermaid/`) is pinned by SHA-256 in `site/vendored.sha256`, with its version, source and licence in the comment above its line, and `site/scripts/check-vendored.sh` fails the build when its bytes differ. Never edit such a file or re-pin what is on disk; re-vendor from the source the comment names and verify it there. Mermaid draws only in the Enhancements section; a mermaid fence anywhere else fails the build.
 - **Checks fail the build.** Every check in `site/scripts/` has a failing case under `site/tests/` that `task test:site` runs; a new check brings its case.
 - Generated content under `site/data/schema/` is gitignored — never hand-edit; regenerate via `docgen`.
 
@@ -148,6 +149,7 @@ Read these on entry:
 │   ├── Dockerfile         # Build image: Hugo, Pagefind, git (pinned)
 │   ├── NOTICE             # Third-party licences
 │   ├── overrides.sha256   # Upstream theme files behind every override copy
+│   ├── vendored.sha256    # Vendored third-party files (Mermaid), with version and source
 │   ├── versions.conf      # The site versions (git-config syntax; see ## Site versions)
 │   ├── config/_default/   # hugo.toml
 │   ├── enhancements/      # Content adapter for the unversioned Enhancements section
@@ -158,6 +160,7 @@ Read these on entry:
 │   ├── assets/css/opm/    # One CSS file per owner
 │   ├── assets/js/         # Pagefind adapter for Hextra's search palette
 │   ├── assets/js/core/    # Override copy of Hextra's sidebar.js (pinned in overrides.sha256)
+│   ├── assets/lib/mermaid/ # Vendored Mermaid 11 and its licence (pinned in vendored.sha256)
 │   ├── static/            # Fonts, favicon, images
 │   ├── themes/hextra/     # Vendored Hextra v0.13.0 (+ hextra.COMMIT)
 │   ├── scripts/           # run-in-image.sh, resolve-versions.sh, materialise.sh (host), build-all.sh, checks, lint, serve.sh, test-site.sh
@@ -185,7 +188,7 @@ Read these on entry:
 - `task preview` — serve the built `site/public/` on `SITE_PORT`.
 - `task lint:sources` — the page-dialect lint over the six source repos.
 - `task test:site` — prove every check fails on its fixture (the fixtures write only `site/.check/tests/`), then `task versions:test`.
-- `task shots` — build, then screenshot every page with a figure and the extras (landing, a docs page, 404, search) in six variants (light, dark, both theme/OS mismatches, phone light and dark) into `site/.shots/`; fails when figure text drops below 9 px on a phone. Read the PNGs before committing anything visual.
+- `task shots` — build, then screenshot every page with a figure and the extras (landing, a docs page, 404, search) in six variants (light, dark, both theme/OS mismatches, phone light and dark) into `site/.shots/`; fails when figure text drops below 9 px on a phone. Then `diagrams.py` draws every Enhancements diagram and fails on a Mermaid error, a label under 9 px or under AA contrast (PNGs in `site/.shots/diagrams/`). Read the PNGs before committing anything visual.
 - `task qa` — `shots`, then the axe WCAG 2.1 A and AA smoke test and the search smoke test.
 - `task ci` — `check`, `image`, `build`, `test:site`.
 - `task image`, `task qa:image` — build an image if its hash tag is missing (the only steps that use the network).

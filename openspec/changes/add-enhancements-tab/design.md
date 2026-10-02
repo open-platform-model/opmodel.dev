@@ -2,7 +2,7 @@
 
 The site is one Hugo 0.167 build over Hextra v0.13.0, run in Docker with `--network none`. Sources are the six repositories' `docs/site/` trees, mounted per version from `site/.versions/<v>/` (a `git archive` of the SHAs `resolve-versions.sh` picks from `site/versions.conf`), or read in place in explicit mode (`OPM_VERSIONS`). The enhancements repository (27 publishable entries, 216 core pages, Mermaid in 36 fences, generated INDEX.md and GRAPH.md) is not a source today. `research-notes.md` in this change holds the research and the spike report in full; `.claude/worktrees/enhancements-tab-spike` holds the spike's code.
 
-Files under `site/` this change touches are listed in proposal.md's Impact. Section 1 also touched `site/scripts/gen-stamp.sh` (the stamp's `sections` key), `site/assets/js/opm-pagefind.js` and the override copies `layouts/_partials/scripts/search.html`, `sidebar.html` and `components/last-updated.html`, the site's own `layouts/sitemap.xml`, plus `opm/source.html`, `opm/build-stamp.html`, `opm/docs-main.html`, `opm/version-switch.html` and `custom/head-end.html`; no upstream pin in `site/overrides.sha256` changed.
+Files under `site/` this change touches are listed in proposal.md's Impact. Section 1 also touched `site/scripts/gen-stamp.sh` (the stamp's `sections` key), `site/assets/js/opm-pagefind.js` and the override copies `layouts/_partials/scripts/search.html`, `sidebar.html` and `components/last-updated.html`, the site's own `layouts/sitemap.xml`, plus `opm/source.html`, `opm/build-stamp.html`, `opm/docs-main.html`, `opm/version-switch.html` and `custom/head-end.html`; no upstream pin in `site/overrides.sha256` changed. Section 2 adds `site/vendored.sha256`, `site/scripts/check-vendored.sh` (a build step), `site/NOTICE`, `site/tests/browser/{diagrams,qa_common,a11y,shots}.py` and `site/scripts/run-in-image.sh` (diagrams.py in `shots` and `qa`), and pins one more upstream file, Hextra's `layouts/_markup/render-codeblock-mermaid.html`, behind the section's copy of it. The build gains one vendored input: Mermaid 11.17.2.
 
 ## Goals / Non-Goals
 
@@ -40,6 +40,8 @@ Files under `site/` this change touches are listed in proposal.md's Impact. Sect
 ### 5. Mermaid vendored, sized and fenced in
 
 Mermaid 11 under `site/assets/lib/mermaid/`, fingerprinted with SRI and loaded only by pages with a fence (Hextra's `params.mermaid.js`). `useMaxWidth: false` inside a focusable scroller: without it 21 of 36 diagrams render text under 9 px, with it none. Edge labels need a contrast fix in dark mode. A global codeblock hook fails a fence outside the section, so docs pages stay diagram-free (0018:D14).
+
+As built (section 2): the file is the npm tarball's `dist/mermaid.min.js`, verified against the registry's `dist.integrity` and pinned in `site/vendored.sha256` (SHA-256 581ed7d7…eb8, identical to the spike's copy), checked by `check-vendored.sh` with the `vendored-drift` fixture. `useMaxWidth: false` is an init directive the section hook prepends, so Hextra's `scripts/mermaid.html` stays un-overridden. Dark mode keeps Mermaid's dark theme (it follows the site's toggle) and darkens only the edge-label box (#ccc on #585858, 4.4:1, becomes #ccc on neutral-800) by an `!important` rule in `enhancements.css`, because Mermaid scopes its rules by the diagram's id; forcing the light theme would have put a white panel in the dark page. `diagrams.py` draws all 36 diagrams at 1280 px light and 390 px dark and fails on an error drawing, a label under 9 px or an axe colour-contrast violation, after proving on two canary diagrams that it catches the first two.
 
 ### 6. Direction notes link the section
 
@@ -83,5 +85,7 @@ The dialect lint accepts `/enhancements/<id>/` (and `#fragment`); the contract a
 
 - **The enhancements are an unversioned section at `/enhancements/`, built from the enhancements repository at a resolved SHA, with URLs keyed by id.** Lands in README ("Site versions" and "Sources") and AGENTS.md.
 - **Draft and accepted entries are `noindex` and stay out of `llms.txt` and the docs search.** Lands in README.
-- **Mermaid renders only inside the section; a fence elsewhere fails the build.** Lands in README ("Adding a figure").
+- **Mermaid renders only inside the section; a fence elsewhere fails the build.** Lands in README ("Adding a figure") and AGENTS.md.
+- **Vendored third-party files are pinned in `site/vendored.sha256` with version and source, checked before every build, and re-vendored from source, never re-pinned from disk.** Lands in AGENTS.md (Repository Rules) and README ("The Enhancements section").
+- **Every section diagram is drawn in the QA image and fails on an error, a label under 9 px or under AA contrast (`diagrams.py`).** Lands in README and AGENTS.md (`task shots`).
 - **Source pages may link `/enhancements/<id>/`.** Lands in the dialect contract and README; the workspace `STYLE.md` follows in its own PR.

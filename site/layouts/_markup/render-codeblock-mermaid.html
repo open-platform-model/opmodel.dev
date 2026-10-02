@@ -1,0 +1,9 @@
+{{- /* A mermaid fence outside the Enhancements section fails the build: the
+       docs draw their figures by hand as inline SVG (README "Adding a
+       figure"), and only the section's own hook
+       (layouts/enhancements/_markup/render-codeblock-mermaid.html) draws a
+       diagram. This replaces Hextra's hook (v0.13.0, pinned in
+       overrides.sha256, since the section's hook is a copy of it), which
+       would draw one anywhere. */ -}}
+{{- $src := "a generated page" -}}{{- with .Page.File -}}{{- $src = .Filename -}}{{- end -}}
+{{- errorf "mermaid fence in %s: only the Enhancements section may draw a diagram; a docs page draws its figure as an opm/ shortcode" $src -}}

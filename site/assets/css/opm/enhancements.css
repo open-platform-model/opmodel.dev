@@ -59,3 +59,18 @@ html.dark .content .opm-enh-meta dt { color: var(--hx-color-gray-100); }
 @media (max-width: 47.999rem) {
   .opm-enh-table .opm-enh-col-wide { display: none; }
 }
+
+/* Diagrams (layouts/enhancements/_markup/render-codeblock-mermaid.html) are
+   drawn at their natural size, so their labels keep the body size; a diagram
+   wider than the column scrolls sideways in its box. The box takes the focus
+   (tabindex 0) so a keyboard can scroll it, and a hairline frame, so a
+   reader who sees only part of a wide diagram sees where it ends. */
+.opm-enh-diagram { overflow-x: auto; margin-top: 1.5rem; padding: 0.75rem; border: 1px solid var(--hx-color-gray-200); border-radius: 0.375rem; }
+html.dark .opm-enh-diagram { border-color: var(--hx-color-neutral-800); }
+.opm-enh-diagram:focus-visible { outline: 2px solid var(--hx-color-primary-600); outline-offset: 2px; }
+.opm-enh-diagram pre.mermaid { width: max-content; margin: 0; padding: 0; background: transparent; }
+/* In the dark theme Mermaid 11 sets edge labels #ccc on #585858, 4.4:1, under
+   WCAG AA. Its rules are scoped by the diagram's id, so only !important
+   reaches them: the label's box takes the column's dark grey instead. */
+html.dark .opm-enh-diagram :is(.edgeLabel, .edgeLabel p, .labelBkg) { background-color: var(--hx-color-neutral-800) !important; }
+html.dark .opm-enh-diagram .edgeLabel rect { fill: var(--hx-color-neutral-800) !important; }

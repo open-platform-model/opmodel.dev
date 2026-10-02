@@ -12,8 +12,8 @@
 #   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only, mounts no source root
 #   run-in-image.sh qa-image build opmodel-dev-qa:<first 12 hex of sha256(site/tests/browser/Dockerfile)> if missing (network)
 #   run-in-image.sh qa-tag   print that tag
-#   run-in-image.sh shots    site/tests/browser/shots.py over the built site/public/, --network none -> site/.shots/
-#   run-in-image.sh qa       shots.py, then a11y.py and search.py, --network none, no published port
+#   run-in-image.sh shots    site/tests/browser/shots.py and diagrams.py over the built site/public/, --network none -> site/.shots/
+#   run-in-image.sh qa       shots.py and diagrams.py, then a11y.py and search.py, --network none, no published port
 #
 # Environment. Each is read from the environment first; an empty value counts as unset.
 #   OPM_WS             workspace root. Default: the parent of the opmodel.dev main checkout, from
@@ -172,7 +172,8 @@ case "$mode" in
     [ -f site/public/_redirects ] || die "site/public/ holds no build; run the build task first"
     qa_image >/dev/null
     b=/work/repo/site/tests/browser
-    if [ "$mode" = shots ]; then cmd="python3 $b/shots.py"; else cmd="python3 $b/shots.py && python3 $b/a11y.py && python3 $b/search.py"; fi
+    cmd="python3 $b/shots.py && python3 $b/diagrams.py"
+    if [ "$mode" = qa ]; then cmd="$cmd && python3 $b/a11y.py && python3 $b/search.py"; fi
     run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
   *) sed -n '2,15p' "$0" >&2; exit 2 ;;
 esac

@@ -9,10 +9,10 @@
 
 ## 2. Diagrams
 
-- [ ] 2.1 Vendor Mermaid 11 under `site/assets/lib/mermaid/` with its licence and a pin (version and SHA-256) the drift guard checks; set `params.mermaid.js`; load it only on pages that hold a fence.
-- [ ] 2.2 A global Mermaid codeblock hook fails the build outside the section; the section's hook wraps each diagram in a focusable scroller and sets `useMaxWidth: false`; diagram labels meet contrast in dark mode.
-- [ ] 2.3 A QA rule in `site/tests/browser/` renders every section diagram and fails on a Mermaid error or label text under 9 px.
-- [ ] 2.4 Gates green, the diagram PNGs read, then commit `feat(site): draw the enhancement diagrams`.
+- [x] 2.1 Vendor Mermaid 11 under `site/assets/lib/mermaid/` with its licence and a pin (version and SHA-256) the drift guard checks; set `params.mermaid.js`; load it only on pages that hold a fence.
+- [x] 2.2 A global Mermaid codeblock hook fails the build outside the section; the section's hook wraps each diagram in a focusable scroller and sets `useMaxWidth: false`; diagram labels meet contrast in dark mode.
+- [x] 2.3 A QA rule in `site/tests/browser/` renders every section diagram and fails on a Mermaid error or label text under 9 px.
+- [x] 2.4 Gates green, the diagram PNGs read, then commit `feat(site): draw the enhancement diagrams`.
 
 ## 3. Direction notes link the section
 

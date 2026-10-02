@@ -304,12 +304,23 @@ if [ $rc -eq 0 ]; then
 
   why=""
   grep -rqF 'quokkabrief' "$E" && why="a planning comment reached the section"
-  grep -qE 'class="?mermaid' "$E/0001/index.html" && why="${why:+$why; }a mermaid fence rendered as a diagram"
-  grep -qF 'graph LR' "$E/0001/index.html" || why="${why:+$why; }the mermaid fence is not shown as code"
   grep -qF 'author --&gt; platform' "$d" || why="${why:+$why; }the ASCII arrow is missing from the code block"
   grep -qE '<h1[^>]*>Enhancement 0001' "$E/0001/index.html" && why="${why:+$why; }the source title line was kept"
-  if [ -z "$why" ]; then ok "enhancements/content" "comments and the title line stripped; a mermaid fence shows as code; an escaped --> in a code block passes the comment check"
+  if [ -z "$why" ]; then ok "enhancements/content" "comments and the title line stripped; an escaped --> in a code block passes the comment check"
   else bad "enhancements/content" "$why"; fi
+
+  # A mermaid fence in the section is drawn: in a focusable, labelled
+  # scroller, at its natural size, and only that page loads the vendored
+  # Mermaid, fingerprinted with SRI; no other page loads it.
+  why=""
+  r=$(dq "$E/0001/index.html")
+  printf '%s' "$r" | grep -qF '<div class=opm-enh-diagram tabindex=0 role=region aria-label=Diagram><pre class=mermaid>' || why="no focusable diagram scroller"
+  printf '%s' "$r" | grep -qF '%%{init: {&#34;flowchart&#34;: {&#34;useMaxWidth&#34;: false}' || why="${why:+$why; }no useMaxWidth false directive"
+  printf '%s' "$r" | grep -qE '<script defer src=/lib/mermaid/mermaid\.min\.581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8\.js integrity=sha256-[^ ]+ crossorigin=anonymous>' || why="${why:+$why; }the page does not load the pinned Mermaid with SRI"
+  others=$(grep -rlF 'lib/mermaid/' "$OUT/$name/site/public" --include='*.html' | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html")
+  [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
+  if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
+  else bad "enhancements/diagrams" "$why"; fi
 fi
 
 # ---------------------------------------------------------------------------

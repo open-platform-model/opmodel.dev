@@ -74,6 +74,16 @@ def enhancement_pages():
     return pages
 
 
+def wait_for_diagrams(page, timeout=30000):
+    """Waits until every Mermaid diagram on the page has rendered (Hextra's
+    script draws them after DOMContentLoaded, so networkidle can come first);
+    returns at once on a page without one."""
+    page.wait_for_function(
+        "() => [...document.querySelectorAll('pre.mermaid')].every(e => e.dataset.processed && e.querySelector('svg'))",
+        timeout=timeout,
+    )
+
+
 def new_page(browser, width, site_theme, os_scheme, phone=False):
     """A page with the site's theme switch set (Hextra's 'color-theme' key) and
     the OS colour scheme set separately, so the two can disagree."""
