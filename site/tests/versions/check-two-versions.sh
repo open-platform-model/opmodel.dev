@@ -199,6 +199,11 @@ for r in $REPOS; do
   [ -z "$unbuilt" ] || set_bad="$set_bad $r(/v0.9/docs/$unbuilt)"
   printf '%s\n' "$want" > "$OUT/.want"
   for u in $(pages_at "$root" "$s10" | comm -23 - "$OUT/.want" | url_of); do
+    # A new file at a URL v0.9 already publishes is no new page: a page moved
+    # to a section of its own (x.md to x/_index.md), or a source page taking a
+    # site placeholder's place (gen-mounts.sh).
+    if printf '%s\n' "$want" | url_of | grep -qxF "$u" ||
+       grep -qx 'placeholder: true' "$SITE/content/docs/${u}_index.md" 2>/dev/null; then continue; fi
     newer="$newer $r:$u"
     { [ ! -e "$P/v0.9/docs/${u}index.html" ] && [ -f "$P/v1.0/docs/${u}index.html" ]; } || newer_bad="$newer_bad $r:$u"
   done
