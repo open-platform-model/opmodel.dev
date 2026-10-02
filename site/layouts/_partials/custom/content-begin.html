@@ -3,8 +3,8 @@
        is guarded with .IsHome unless the landing should show it.
        - the page lead: the front-matter description, which is also the
          page's Pagefind description (the element form stores its text), so
-         the lead and the search sub-line cannot drift apart (0018:D7);
-       - the page-type badge (0018:D7), with Hextra's own badge partial;
+         the lead and the search sub-line cannot drift apart;
+       - the page-type badge, with Hextra's own badge partial;
        - Pagefind metadata: the breadcrumb, shown in the search palette. */ -}}
 {{- if not .IsHome }}{{ with .Description -}}
   <p class="opm-lead" data-pagefind-meta="description">{{ . }}</p>

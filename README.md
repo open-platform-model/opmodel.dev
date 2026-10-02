@@ -305,11 +305,11 @@ Run `OPM_VERSIONS=v1.0=/src task serve` and open http://127.0.0.1:1313/. In that
 
 ### Page dialect
 
-Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`, or, into the Enhancements section, `/enhancements/`, `/enhancements/<NNNN>/` and `/enhancements/<NNNN>/<document>/` (one of the seven document slugs), each with an optional `#fragment` (`/enhancements/0018/decisions/#d3`); nothing else under `/enhancements`. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract (the embedded copy in `openspec/changes/deploy-site/orchestration.md`, with its SHA-256): fix the page, never the lint, and change both together when the contract changes.
+Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`, or, into the Enhancements section, `/enhancements/`, `/enhancements/<NNNN>/` and `/enhancements/<NNNN>/<document>/` (one of the seven document slugs), each with an optional `#fragment` (`/enhancements/0021/decisions/#d3`); nothing else under `/enhancements`. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract (the embedded copy in `openspec/changes/deploy-site/orchestration.md`, with its SHA-256): fix the page, never the lint, and change both together when the contract changes.
 
 The link hook (`site/layouts/_markup/render-link.html`) resolves a `/enhancements/` link to the one unversioned section from every version (the section's pages live only in the default version's page tree), and fails the build when the section has no such page or the build has no section.
 
-A direction note (0018:D3) is a NOTE alert whose bold title line is **Direction**:
+A direction note is a NOTE alert whose bold title line is **Direction**:
 
 ```markdown
 > [!NOTE]

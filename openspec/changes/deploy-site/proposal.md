@@ -134,5 +134,5 @@ GitHub (owner, after the first Cloudflare deploy is verified)
 None as a delivery claim. This change carries no `enhancement.yaml`, because no change in this set claims delivery (supervisor ruling O7).
 
 Related decisions, for context only:
-- 0018:D8 has every page built and shown while the site is unpublished. The preview host serves that purpose: it is public but sends `noindex`, and nothing links to it.
-- 0018:OQ15 (what a page must hold before the site is published) is still open. The interim GitHub Pages publication answered it for the interim site only, by the owner's explicit acceptance recorded in that change's pull request. It applies again at the owner's go-live (design.md decision 9, step 1), not to this change, whose preview host is `noindex` and unlinked.
+- Every page is built and shown while the site is unpublished. The preview host serves that purpose: it is public but sends `noindex`, and nothing links to it.
+- What a page must hold before the site is published is still the owner's call. The interim GitHub Pages publication answered it for the interim site only, by the owner's explicit acceptance recorded in that change's pull request. It applies again at the owner's go-live (design.md decision 9, step 1), not to this change, whose preview host is `noindex` and unlinked.

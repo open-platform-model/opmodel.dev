@@ -91,7 +91,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 4. A (owner).
 5. E.
 6. B, C, D and M in any order; I1b.
-7. G (owner), after the owner accepts 0018:OQ15 publication. The supervisor then verifies the first Pages deploy.
+7. G (owner), after the owner accepts publishing every page as it stands. The supervisor then verifies the first Pages deploy.
 8. F (owner), on the owner's Cloudflare go. The supervisor then verifies the first deploy; the owner turns Pages off after it.
 9. The DNS cutover is the owner's action, on the owner's go (O2). The supervisor recommends having C, D, M and F merged first. B is not on the go-live path.
 
@@ -249,7 +249,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `25b023fb27518f466558930f1b5b7ceeea577d79dc379a843fe8f7b4694262d7`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `4dc241a46dd6e37f202c4bc5ef15b0b9bc8a79ddbfa14f070bc8d8476dd42abf`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -277,7 +277,7 @@ for dir in "$@"; do
       *.mdx) echo "$f:0: MDX file; rename to .md and replace components with {{< opm/... >}} shortcodes" >> "$out"; continue ;;
       index.md|*/index.md) echo "$f:0: index.md is a leaf bundle in Hugo; a section page is _index.md" >> "$out" ;;
       *.md) ;;
-      *) echo "$f:0: not a page; docs/site holds only .md files (no images or data, 0018:D14)" >> "$out"; continue ;;
+      *) echo "$f:0: not a page; docs/site holds only .md files (no images or data)" >> "$out"; continue ;;
     esac
     if ! printf '%s\n' "$rel" | grep -Eq '^([a-z0-9]+(-[a-z0-9]+)*/)*(_index|index|[a-z0-9]+(-[a-z0-9]+)*)\.md$'; then
       echo "$f:0: file and directory names are lower-case kebab-case (a-z, 0-9, -)" >> "$out"
@@ -334,7 +334,7 @@ for dir in "$@"; do
       /^[ \t]*>[ \t]*\[!/ {
         if ($0 !~ /^> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/) err(NR, "alert marker must be exactly \"> [!NOTE]\" (or TIP, IMPORTANT, WARNING, CAUTION) alone on its line")
       }
-      /!\[/ || /<[Ii][Mm][Gg][ \t>\/]/ { err(NR, "image; docs/site pages carry no images (0018:D14)") }
+      /!\[/ || /<[Ii][Mm][Gg][ \t>\/]/ { err(NR, "image; docs/site pages carry no images") }
       /[Hh][Rr][Ee][Ff][ \t]*=|[Ss][Rr][Cc][ \t]*=/ { err(NR, "raw HTML link or source; write a Markdown link [text](/docs/<section>/<page>/)") }
       /^ ? ? ?\[[^]^][^]]*\]:/ {
         t = $0; sub(/^ ? ? ?\[[^]]+\]:[ \t]*/, "", t); sub(/[ \t].*$/, "", t); sub(/^</, "", t); sub(/>$/, "", t)
@@ -355,7 +355,7 @@ for dir in "$@"; do
         if (LEAF == 1) {
           if (!("type" in val)) err(1, "missing type (tutorial, how-to, explanation or reference)")
           else { t = unq(val["type"]); if (t !~ /^(tutorial|how-to|explanation|reference)$/) err(line["type"], "invalid type \"" t "\"") }
-        } else if ("type" in val) err(line["type"], "a section overview (_index.md) declares no type (0018:D7)")
+        } else if ("type" in val) err(line["type"], "a section overview (_index.md) declares no type")
         if ("weight" in val) { w = unq(val["weight"]); if (w !~ /^[1-9][0-9]*$/) err(line["weight"], "weight must be a positive integer") }
       }' "$f" >> "$out"
   done < "$out.files"
