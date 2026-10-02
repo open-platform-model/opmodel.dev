@@ -368,6 +368,11 @@ run "$T/manifests/frozen-cli-main.conf" -- --check
 expect line-cli-freeze-check 0 "that frozen copy resolves anchored at main's head; the library override keeps its tag" \
   "v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}anchored${TAB}cli${TAB}$(rev cli main)${TAB}$(rev cli main)${TAB}anchor${TAB}sha" \
   "${TAB}library${TAB}v2.1.0${TAB}$(rev library v2.1.0)${TAB}override:frozen from line, docs tag${TAB}tag"
+# Freezing that anchored copy again names no release: its cli is a SHA, not a line.
+run "$T/manifests/frozen-cli-main.conf" -- --freeze
+if [ "$rc" = 0 ] && ! printf '%s\n' "$out" | grep -qE "^${TAB}; cli [0-9a-f]{40}, docs sha"; then
+  ok line-cli-refreeze "freezing a frozen copy again writes no cli release comment for its anchored cli"
+else bad line-cli-refreeze "exit $rc, or a '; cli <sha>, docs sha' comment"; fi
 
 run "$(manifest line-override-1 "$lv
 	cli-line = v1.2
