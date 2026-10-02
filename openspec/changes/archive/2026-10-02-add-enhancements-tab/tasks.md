@@ -22,5 +22,5 @@
 
 ## 4. Verify and archive
 
-- [ ] 4.1 Follow `.claude/skills/openspec-verify-change/SKILL.md`; check that the diff touches only the files in proposal.md's Impact; land the durable decisions in README and AGENTS.md.
-- [ ] 4.2 Archive with `openspec archive add-enhancements-tab --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, commit `chore(openspec): archive add-enhancements-tab`.
+- [x] 4.1 Follow `.claude/skills/openspec-verify-change/SKILL.md`; check that the diff touches only the files in proposal.md's Impact; land the durable decisions in README and AGENTS.md.
+- [x] 4.2 Archive with `openspec archive add-enhancements-tab --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, commit `chore(openspec): archive add-enhancements-tab`.
