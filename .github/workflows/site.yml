@@ -298,6 +298,12 @@ jobs:
         with:
           version: 3.52.0
       - name: Screenshots, accessibility and search smoke tests
+        # The fixture docs bundles give the build its Catalogs section, so
+        # the catalog shots, accessibility and search checks run, until the
+        # pull step (openspec add-catalogs-tab, task 5.4) replaces this with
+        # the real bundles. This build is QA only; nothing deploys it.
+        env:
+          OPM_BUNDLES: site/tests/fixtures/bundles
         run: task qa
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         # The screenshots are the only way to see why an accessibility or

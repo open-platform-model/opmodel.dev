@@ -27,7 +27,7 @@
 # whose entries disagree on root, a root that is not /catalogs/<name>/, or a
 # manifest whose placement is not that tab root; a segment that is not
 # MAJOR.MINOR of the version (or edge for an edge build); a segment listed
-# twice.
+# twice; two projects placed at one root.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$SITE_DIR"
@@ -78,6 +78,8 @@ done < "$tmp/entries"
 [ -s "$tmp/rows" ] || die "$L lists no bundles"
 bad=$(sort -u "$tmp/roots" | cut -f1 | uniq -d)
 [ -z "$bad" ] || die "project $bad: its entries name more than one root"
+bad=$(sort -u "$tmp/roots" | cut -f2 | sort | uniq -d)
+[ -z "$bad" ] || die "root $bad: more than one project is placed there"
 dup=$(jq -r '"\(.project) \(.segment)"' "$tmp/rows" | sort | uniq -d)
 [ -z "$dup" ] || die "$dup: the lock lists the segment twice"
 
@@ -99,13 +101,19 @@ jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" '
           version, revision, commit, digest, local, dir}]}))}
 ' "$tmp/rows" > data/opm/catalogs.json
 
-# The /catalogs/ section page: one line per catalog, linking its newest
-# minor (edge for a tab that has no minor yet).
+# The /catalogs/ section page: one line per catalog, linking its bare tab
+# root (its newest minor; edge for a tab that has no release yet). Its date
+# is the newest lastmod among the indexed segments' pages, so edge never
+# dates it (Hugo would otherwise date a section by its newest descendant).
+newest=$(jq -r '.catalogs[] | .segments[] | select(.indexed) | .dir' data/opm/catalogs.json | while IFS= read -r d; do
+  jq -r '.pages[].lastmod // empty' "$CAT_DIR/$d/manifest.json"; done | sort | tail -n 1)
 {
   printf -- '---\ntitle: Catalogs\n'
   printf 'description: The reference of every catalog OPM publishes, one tab per catalog, versioned by the catalog'"'"'s own minor releases.\n'
-  printf 'url: /catalogs/\nparams:\n  llms: true\n  cards: false\n---\n\n'
+  printf 'url: /catalogs/\n'
+  [ -z "$newest" ] || printf 'date: %s\nlastmod: %s\n' "$newest" "$newest"
+  printf 'params:\n  llms: true\n  cards: false\n---\n\n'
   printf 'Each catalog documents its members once per minor release, and once more for its unreleased main branch. Pick a catalog to read its newest release; the version switch on every catalog page moves between releases.\n\n'
-  jq -r '.catalogs[] | "- [\(.name)](\(.root)\(if .newest != "" then .newest else "edge" end)/): `\(.repo)`, newest release \(if .newest != "" then .newest else "none yet" end)"' data/opm/catalogs.json
+  jq -r '.catalogs[] | "- [\(.name)](\(.root)\(if .newest != "" then "" else "edge/" end)): `\(.repo)`, newest release \(if .newest != "" then .newest else "none yet" end)"' data/opm/catalogs.json
 } > .gen/catalogs/_index.md
 echo "gen-catalogs: wrote data/opm/catalogs.json and .gen/catalogs/_index.md ($(jq -r '[.catalogs[] | "\(.name): \([.segments[].segment] | join(" "))"] | join("; ")' data/opm/catalogs.json))"

@@ -423,9 +423,10 @@ if [ $rc -eq 0 ]; then
   grep -qF '](https://opmodel.dev/catalogs/opm/4.5/traits/backup/)' "$P/llms.txt" || why="${why:+$why; }llms.txt lacks 4.5 backup"
   ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/llms.txt" || why="${why:+$why; }llms.txt lists 4.4 or edge"
   tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/catalogs/opm/4.5/traits/backup/</loc><lastmod>2026-09-28T08:30:00' || why="${why:+$why; }the sitemap lacks 4.5 backup with its lastmod"
-  grep -qF '<loc>https://opmodel.dev/catalogs/</loc>' "$P/sitemap.xml" || why="${why:+$why; }the sitemap lacks /catalogs/"
+  tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/catalogs/</loc><lastmod>2026-09-28T08:30:00' || why="${why:+$why; }the sitemap lacks /catalogs/ with 4.5's lastmod (not edge's)"
+  [ "$(grep -n '^## ' "$P/llms.txt" | sed 's/^[0-9]*:## //' | tr '\n' '|')" = "Documentation|Catalogs|" ] || why="${why:+$why; }llms.txt does not list Documentation, then Catalogs"
   ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/sitemap.xml" || why="${why:+$why; }the sitemap lists 4.4 or edge"
-  if [ -z "$why" ]; then ok "catalogs/indexing" "/catalogs/ and 4.5 indexed, in llms.txt and the sitemap (manifest lastmod); 4.4 and edge noindex and in neither"
+  if [ -z "$why" ]; then ok "catalogs/indexing" "/catalogs/ and 4.5 indexed, in llms.txt after the docs and in the sitemap (manifest lastmod, edge's never); 4.4 and edge noindex and in neither"
   else bad "catalogs/indexing" "$why"; fi
 
   # Aliases: _redirects lines and meta-refresh stubs to the newest minor;
@@ -463,6 +464,23 @@ if [ $rc -eq 0 ]; then
     ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, the lock digest and every bundle (local); sections.enhancements kept"
   else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi
+
+# ---------------------------------------------------------------------------
+# Manifest mode (no OPM_VERSIONS, a resolved .versions/versions.tsv, as
+# task build runs) with bundles.cue and a lock pulled for it: the section is
+# required and read from site/.bundles/, CAT_FROM manifest.
+name=catalogs/manifest
+copy_site "$name"
+mkdir -p "$OUT/$name/site/.versions/v1.0"
+cp -R "$WS/." "$OUT/$name/site/.versions/v1.0/"
+rm -rf "$OUT/$name/site/.versions/v1.0/enhancements"
+printf 'v1.0\tv1.0 (manifest)\t1\ttrue\tanchored\n' > "$OUT/$name/site/.versions/versions.tsv"
+(SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+st=$OUT/$name/site/public/build-stamp.json
+if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (manifest)" "$OUT/$name/log" &&
+   [ "$(jq -r '.sections.catalogs.from' "$st")" = manifest ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
+  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest)"
+else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------
 # The fixture workspace under a two-segment base path (tests/subpath/env): the

@@ -6,9 +6,10 @@
          resolve to a page of that segment; the renderer rewrites own-root
          links to its segment, so one at another segment, or at a major,
          fails;
-       - another catalog, and the /catalogs/ page's own links, resolve as
-         on docs pages (opm/catalog-resolve.html: the bare tab root, a major
-         alias, or a segment);
+       - another catalog resolves as on docs pages (opm/catalog-resolve.html),
+         through its bare tab root or a major alias only (docs-kit C8, C11);
+         the generated /catalogs/ page may also name a segment (edge, for a
+         tab with no release yet);
        - /docs/... resolves in the default version, which holds the section;
        - /enhancements/... resolves as the global hook does.
        External, #fragment and mailto: links pass through. The anchor
@@ -36,6 +37,9 @@
     {{- else -}}
       {{- $r := partial "opm/catalog-resolve.html" (dict "path" $path) -}}
       {{- if not $r.page -}}{{- errorf "catalogs: %s: link %q: %s" $at $dest $r.err -}}{{- end -}}
+      {{- if and $c (eq $r.form "segment") -}}
+        {{- errorf "catalogs: %s: link %q names another catalog at a minor or edge; a bundle page links another catalog through /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/ (docs-kit C8)" $at $dest -}}
+      {{- end -}}
       {{- $p = $r.page -}}
     {{- end -}}
   {{- else if or (eq $path "/enhancements") (hasPrefix $path "/enhancements/") -}}

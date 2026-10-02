@@ -1,0 +1,3 @@
++ gen-catalogs: 
++ schema is "docs.opmodel.dev/lock/v2", not docs.opmodel.dev/lock/v1
+- == hugo build

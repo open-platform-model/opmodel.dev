@@ -1,0 +1,2 @@
++ gen-catalogs: catalog-opm 4.5 (local): catalog-opm/4.5/manifest.json places the bundle as tab at "/catalogs/other/", the lock's root is /catalogs/opm/
+- == hugo build

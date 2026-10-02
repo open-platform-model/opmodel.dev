@@ -27,8 +27,9 @@ RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}
 # static httpd that serves site/public/ for preview; it is pinned to the
 # busybox build the base image carries, so a newer Alpine package fails the
 # image build instead of floating. jq reads the docs bundles' lock and
-# manifests (scripts/sections.sh, gen-catalogs.sh, check-pages.sh), pinned
-# the same way.
+# manifests and the data/opm/catalogs.json derived from them (the build and
+# check scripts under scripts/, and test-site.sh); it is pinned to the
+# Alpine 3.24 package, so a newer one fails the image build too.
 FROM ${ALPINE}
 RUN apk add --no-cache git busybox-extras=1.37.0-r31 jq=1.8.2-r0 \
  && git config --system --add safe.directory '*'

@@ -126,7 +126,7 @@ Rules `gen-catalogs.sh` enforces, each failing the build naming project, segment
 [[mounts]]                      # the bundles, as assets; only the files a bundle may hold
   source = "<CAT_DIR>"
   target = "assets/bundles"
-  files  = ['*/*/manifest.json', '*/*/content/**.md', '*/*/data/*.json']   # phase 1b adds '*/history.json'
+  files  = ['*/*/manifest.json', '*/*/content/**', '*/*/data/*.json']   # phase 1b adds '*/history.json'
 [[mounts]]                      # the adapter, default version only
   source = "catalogs"
   target = "content/catalogs"
@@ -276,7 +276,7 @@ Browser: `qa_common.catalog_pages()`; `shots.py` adds a catalog landing, a membe
 
 **Context**: docs-kit's orchestration suggests one mount per lock entry.
 **Decision**: one `assets/bundles` mount with a `files` filter, and the adapter walks `catalogs.json`.
-**Rationale**: the mount list stops depending on the segment count; the filter keeps anything but `manifest.json`, `content/**.md` and `data/*.json` out of the build, including a future history file until the templates need it.
+**Rationale**: the mount list stops depending on the segment count; the filter keeps anything but `manifest.json`, `content/` and `data/*.json` out of the build, including a future history file until the templates need it. All of `content/` is mounted, not `content/**.md`: with the narrower glob, `resources.Match` does not walk nested directories, so the adapter could not see (and refuse) a file the manifest does not list.
 
 ### Docs links: write the alias or the resolved minor?
 

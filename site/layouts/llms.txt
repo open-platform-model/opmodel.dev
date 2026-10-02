@@ -2,12 +2,18 @@
        Each entry prints the page's description (required on every page)
        instead of its summary: the summary of a page that holds only a
        planning comment is that comment, and plainify ends a tag at the first
-       ">", so a brief with ">=" or "->" would leak its tail here. */ -}}
+       ">", so a brief with ">=" or "->" would leak its tail here. The
+       Catalogs section (in the default version, unversioned) is listed after
+       the version's own sections, whatever its date. */ -}}
 # {{ .Site.Title }}
 
 > {{ .Site.Params.description | default "" }}
 
-{{ range where site.Sections "Params.llms" "ne" false }}
+{{ $sections := where site.Sections "Params.llms" "ne" false }}
+{{- range where $sections "Section" "ne" "catalogs" }}
+{{- template "llms-section-tree" dict "context" . "level" 2 }}
+{{ end }}
+{{- range where $sections "Section" "eq" "catalogs" }}
 {{- template "llms-section-tree" dict "context" . "level" 2 }}
 {{ end }}
 

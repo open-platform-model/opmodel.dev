@@ -47,8 +47,10 @@
 #
 # The Catalogs section, when CAT_DIR names the docs bundles (sections.sh sets
 # it; gen-catalogs.sh has written data/opm/catalogs.json from their lock): the
-# bundles are mounted at assets/bundles, only manifest.json, content/**.md
-# and data/*.json of each <project>/<segment>/, where the content adapter
+# bundles are mounted at assets/bundles, only manifest.json, content/ and
+# data/*.json of each <project>/<segment>/ (all of content/, so the adapter
+# sees, and refuses, a file there that is no listed page; a narrower glob
+# hides nested directories from resources.Match), where the content adapter
 # site/catalogs/_content.gotmpl reads them; the adapter and the section page
 # gen-catalogs.sh wrote (.gen/catalogs/_index.md) go to content/catalogs in
 # the default version only, as for the enhancements section. The hugo.toml
@@ -162,7 +164,7 @@ mkdir -p "$(dirname "$out")"
     # adapter site/catalogs/_content.gotmpl reads them; the adapter and the
     # section page into the default version only.
     printf '[[mounts]]\n  source = "%s"\n  target = "assets/bundles"\n  files = [%s]\n' "$CAT_DIR" \
-      "'*/*/manifest.json', '*/*/content/**.md', '*/*/data/*.json'"
+      "'*/*/manifest.json', '*/*/content/**', '*/*/data/*.json'"
     for d in catalogs .gen/catalogs; do
       printf '[[mounts]]\n  source = "%s"\n  target = "content/catalogs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
     done

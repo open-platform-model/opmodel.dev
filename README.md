@@ -72,7 +72,7 @@ OPM_VERSIONS=v1.0=/src OPM_SRC_CLI=/path/to/cli-worktree task serve
 ```text
 opmodel.dev/
 ├── site/
-│   ├── Dockerfile              # Build image: Hugo, Pagefind, git
+│   ├── Dockerfile              # Build image: Hugo, Pagefind, git, jq
 │   ├── NOTICE                  # Third-party licences
 │   ├── overrides.sha256        # Theme files behind every override copy (drift guard)
 │   ├── vendored.sha256         # Vendored third-party files (Mermaid), with version and source

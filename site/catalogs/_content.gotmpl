@@ -19,11 +19,16 @@
        The build fails, naming project, segment, digest (or local) and page,
        on a page manifest.json lists that the bundle does not hold, a content
        file it does not list, front matter that is not the dialect's (keys
-       title, description, type, weight; title and description required), and
+       title, description, type, weight; title and description required;
+       type, one of the four, on a leaf page only; weight a positive integer),
+       and
        a Hugo shortcode delimiter other than an opm/<figure> call or a shown
        (escaped) shortcode. opm-docs pull lints every bundle already; this
        is the site's own guard, and the only one a fixture bundle gets. */ -}}
-{{- $figures := slice "module-to-cluster" "roles-and-artifacts" "component-to-objects" "where-things-live" "three-ways-to-deploy" "helm-and-opm" "one-trait-any-provider" -}}
+{{- /* The figure names come from the one list the Markdown outputs use. */ -}}
+{{- $figures := slice -}}
+{{- range $k, $_ := partial "opm/figure-titles.html" . -}}{{- $figures = $figures | append $k -}}{{- end -}}
+{{- $types := slice "tutorial" "how-to" "explanation" "reference" -}}
 {{- $allowedKeys := slice "title" "description" "type" "weight" -}}
 {{- with hugo.Data.opm.catalogs -}}
 {{- range .catalogs -}}
@@ -37,8 +42,9 @@
     {{- $listed := dict -}}
     {{- range $m.pages -}}{{- $listed = merge $listed (dict .path true) -}}{{- end -}}
     {{- $prefix := printf "bundles/%s/content/" .dir -}}
-    {{- range resources.Match (printf "%s**.md" $prefix) -}}
+    {{- range resources.Match (printf "%s**" $prefix) -}}
       {{- $rel := strings.TrimPrefix $prefix (strings.TrimPrefix "/" .Name) -}}
+      {{- if not (hasSuffix $rel ".md") -}}{{- errorf "%s: content/%s is not a page; a bundle's content/ holds only .md pages" $who $rel -}}{{- end -}}
       {{- if not (index $listed $rel) -}}{{- errorf "%s: content/%s is not listed in manifest.json's pages" $who $rel -}}{{- end -}}
     {{- end -}}
     {{- range $m.pages -}}
@@ -52,8 +58,12 @@
       {{- $body := index (index $parts 0) 2 -}}
       {{- $fm := dict -}}
       {{- with strings.TrimSpace $fmText -}}
-        {{- $fm = resources.FromString (printf "catalogs-fm/%s/%s.yaml" $seg.dir $pg.path) . | transform.Unmarshal -}}
+        {{- with try (resources.FromString (printf "catalogs-fm/%s/%s.yaml" $seg.dir $pg.path) . | transform.Unmarshal) -}}
+          {{- with .Err -}}{{- errorf "%s: front matter is not YAML: %s" $at . -}}{{- end -}}
+          {{- $fm = .Value -}}
+        {{- end -}}
       {{- end -}}
+      {{- if not (reflect.IsMap $fm) -}}{{- errorf "%s: front matter is not a map of keys" $at -}}{{- end -}}
       {{- range $k, $_ := $fm -}}
         {{- if not (in $allowedKeys $k) -}}{{- errorf "%s: front-matter key %q is not allowed (title, description, type, weight)" $at $k -}}{{- end -}}
       {{- end -}}
@@ -72,6 +82,15 @@
       {{- if eq $p "_index" -}}{{- $p = "" -}}{{- $kind = "section" -}}
       {{- else if hasSuffix $p "/_index" -}}{{- $p = strings.TrimSuffix "/_index" $p -}}{{- $kind = "section" -}}
       {{- end -}}
+      {{- $type := printf "%v" ($fm.type | default "") -}}
+      {{- if eq $kind "page" -}}
+        {{- if not (in $types $type) -}}{{- errorf "%s: type must be tutorial, how-to, explanation or reference (got %q)" $at $type -}}{{- end -}}
+      {{- else if $type -}}
+        {{- errorf "%s: a section page (_index.md) declares no type (got %q)" $at $type -}}
+      {{- end -}}
+      {{- with $fm.weight -}}
+        {{- if not (findRE `^[1-9][0-9]*$` (printf "%v" .)) -}}{{- errorf "%s: weight must be a positive integer (got %v)" $at . -}}{{- end -}}
+      {{- end -}}
       {{- $path := printf "%s/%s" $cat.name $seg.segment -}}
       {{- $url := printf "%s%s/" $cat.root $seg.segment -}}
       {{- with $p -}}{{- $path = printf "%s/%s" $path . -}}{{- $url = printf "%s%s/" $url . -}}{{- end -}}
@@ -79,13 +98,13 @@
         "path" $path "kind" $kind "url" $url
         "title" $title "description" $desc
         "sitemap" (dict "disable" (not $seg.indexed))
-        "params" (dict "llms" $seg.indexed "docType" ($fm.type | default "")
+        "params" (dict "llms" $seg.indexed "docType" $type
           "catalog" (dict "project" $cat.project "name" $cat.name "root" $cat.root "segment" $seg.segment "label" $seg.label
             "version" $seg.version "revision" $seg.revision "edge" $seg.edge "indexed" $seg.indexed "newest" (eq $seg.segment $cat.newest)
             "commit" $seg.commit "repo" $cat.repo "source" ($pg.source | default "") "generated" $pg.generated))
         "content" (dict "mediaType" "text/markdown" "value" $body) -}}
       {{- with $fm.weight -}}{{- $page = merge $page (dict "weight" (int .)) -}}{{- end -}}
-      {{- with $pg.lastmod -}}{{- $page = merge $page (dict "dates" (dict "lastmod" (time.AsTime .))) -}}{{- end -}}
+      {{- with $pg.lastmod -}}{{- $page = merge $page (dict "dates" (dict "date" (time.AsTime .) "lastmod" (time.AsTime .))) -}}{{- end -}}
       {{- $.AddPage $page -}}
     {{- end -}}
   {{- end -}}
