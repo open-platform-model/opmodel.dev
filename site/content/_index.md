@@ -13,9 +13,7 @@ layout: hextra-home
 
 <div class="opm-hero-text">
 
-{{< hextra/hero-badge >}}
-  <span>This site is under construction</span>
-{{< /hextra/hero-badge >}}
+<p class="opm-construction" role="note">{{< icon "exclamation" >}}<span><strong>This site is under construction.</strong> OPM is in beta: some pages are still placeholders, and any page may change without notice.</span></p>
 
 <div class="hx:mt-6 hx:mb-6">
 {{< hextra/hero-headline >}}
