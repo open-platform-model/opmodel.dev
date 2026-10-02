@@ -35,16 +35,20 @@
 #             every build: cli is the newest vX.Y.* tag by SemVer precedence,
 #             prereleases included; library, opm-operator and core are exactly
 #             what that tag pins; catalog_opm is the newest opm-vN.* tag; opm
-#             is the head of main. The docs of core and catalog_opm come from
+#             is the head of main. The docs of every released repository (cli,
+#             library, opm-operator, core and catalog_opm) come from
 #             release/<prefix>vX.Y (X.Y: the minor of the release the stamp
 #             names) when that branch exists, else from main's head while main
-#             still releases X.Y, else from that release's own tag.
+#             still releases X.Y, else from that release's own tag. The stamp
+#             still names the release; only the docs tree moves. The pins are
+#             always read at the cli tag and the library release, never at a
+#             docs head.
 # cli/hack/platform/ is a test fixture and never read. An override
 # (<repo> <ref> <reason>) replaces one row, never cli. In a line version it is
 # only for a row that fails: the row it replaces is still resolved and
 # checked, and the run fails once that row passes again. Every tree built must
 # be a commit, hold docs/site and contain its repository's dialect floor; in a
-# line version the release the stamp names for core and catalog_opm must
+# line version the release the stamp names for each released repository must
 # contain its floor too, and a branch head its docs come from must contain it.
 #
 # Line mode reads tags and the remote-tracking refs refs/remotes/origin/main
@@ -549,8 +553,8 @@ EOF
 }
 # check_ref VERSION REPO REFTEXT SHA KIND: the tree built holds docs/site and contains the floor.
 check_ref() { report "$1" "$2" "$3: " "$(tree_problems "$2" "$4" "$5")"; }
-# release_problems REPO REF RSHA DOCS DSHA SHORT RELTEXT: the problems of a core
-# or catalog_opm row in a line version, one "<ref text>: <reason>" per line.
+# release_problems REPO REF RSHA DOCS DSHA SHORT RELTEXT: the problems of a
+# released repository's row in a line version, one "<ref text>: <reason>" per line.
 # Under docs_source rule 3 the tree is the release itself, checked once; under
 # rules 1 and 2 the branch head is checked, the release the stamp names must
 # contain its floor too, and the head must contain the release.
@@ -612,8 +616,11 @@ resolve_line() {
   croot=$(root_of cli); csha=""
   if cref=$(newest_in_line "$croot" "" "${cl#v}"); then
     csha=$(commit_of "$croot" "refs/tags/$cref")
-    check_ref "$lv" cli "$cref (newest tag of line $cl)" "$csha" line
-    lrow cli "$cref" "$csha" "line:newest $cl.* tag" tag
+    # The docs move to the line's branch head; csha stays the tag, where the
+    # pins are read.
+    release_docs cli "" "$cref" "$csha" "newest tag of line $cl"
+    report "$lv" cli "" "$rd_problems"
+    [ -z "$rd_sha" ] || lrow cli "$cref" "$rd_sha" "line:newest $cl.* tag; docs: $rd_rule" "$rd_docs"
   else
     err "$lv: cli line $cl: no tag $cl.<patch>[-<pre>] in $croot; fetch its tags (task versions:fetch)"
   fi
@@ -640,24 +647,22 @@ resolve_line() {
         fi
         passes=no
         if [ -n "$rsha" ]; then
-          if [ "$r" = core ]; then
-            release_docs core "" "$rref" "$rsha" "the release the stamp names"
-            if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
-          elif [ -z "$(tree_problems "$r" "$rsha" line)" ]; then passes=yes; fi
+          release_docs "$r" "" "$rref" "$rsha" "the release the stamp names"
+          if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
         fi
         if [ -n "$rref" ] && is_ref_text "$rref"; then replaced="$rref ($rhow)"; else replaced="no pin"; fi
         override_row "$lv" "$r" "$ref" "$sha" "$how" "$replaced" "$passes"
-      elif [ "$r" = core ]; then
-        release_docs core "" "$ref" "$sha" "the release the stamp names, pinned by library $lib"
-        report "$lv" core "" "$rd_problems"
-        [ -z "$rd_sha" ] || lrow core "$ref" "$rd_sha" "$how; docs: $rd_rule" "$rd_docs"
       else
+        # The release the pin names is checked; its docs come from the line's
+        # branch head when one applies (release_docs).
         case "$r" in
-          library) rule="pinned in cli go.mod at cli $cref" ;;
-          *) rule="pinned in cli internal/operator/manifest.go at cli $cref" ;;
+          core) rule="the release the stamp names, pinned by library $lib" ;;
+          library) rule="the release the stamp names, pinned in cli go.mod at cli $cref" ;;
+          *) rule="the release the stamp names, pinned in cli internal/operator/manifest.go at cli $cref" ;;
         esac
-        check_ref "$lv" "$r" "$ref ($rule)" "$sha" line
-        lrow "$r" "$ref" "$sha" "$how" tag
+        release_docs "$r" "" "$ref" "$sha" "$rule"
+        report "$lv" "$r" "" "$rd_problems"
+        [ -z "$rd_sha" ] || lrow "$r" "$ref" "$rd_sha" "$how; docs: $rd_rule" "$rd_docs"
       fi
     done
   fi
@@ -773,7 +778,8 @@ case "$manifest" in "$(dirname "$SITE")"/*) mshow=${manifest#"$(dirname "$SITE")
 # freeze: the resolved build as an anchored manifest, so nothing is re-derived:
 # the floors, then every version with cli, catalog and opm explicit and
 # library, core and opm-operator overridden. A row whose docs is a tag freezes
-# by its tag name (tags are immutable), every other row by its SHA.
+# by its tag name (tags are immutable), every other row by its SHA; a cli
+# frozen by SHA gets a comment naming the release the stamp named.
 freeze() {
   printf '; generated by resolve-versions.sh from %s at opmodel.dev %s\n' "$mshow" "${site_sha:-unknown}"
   printf '; rebuild: check out opmodel.dev at that commit, copy this file outside site/.versions/,\n'
@@ -782,7 +788,7 @@ freeze() {
   printf '%s' "$rows" | awk -F'\t' '
     function val() { return ($10 == "tag") ? $7 : $8 }
     !($1 in seen) { seen[$1]; order[++n] = $1; head[$1] = sprintf("[version \"%s\"]\n\tlabel = \"%s\"\n\tweight = %s\n\tdefault = %s\n", $1, $2, $3, $4) }
-    $6 == "cli" { key[$1, "cli"] = val() }
+    $6 == "cli" { key[$1, "cli"] = val(); if ($10 != "tag") note[$1] = sprintf("\t; cli %s, docs %s\n", $7, $10) }
     $6 == "catalog_opm" { key[$1, "catalog"] = val() }
     $6 == "opm" { key[$1, "opm"] = val() }
     $6 == "library" || $6 == "core" || $6 == "opm-operator" {
@@ -793,7 +799,7 @@ freeze() {
     END {
       for (i = 1; i <= n; i++) {
         v = order[i]; printf "%s", head[v]
-        printf "\tcli = %s\n\tcatalog = %s\n\topm = %s\n", key[v, "cli"], key[v, "catalog"], key[v, "opm"]
+        printf "%s\tcli = %s\n\tcatalog = %s\n\topm = %s\n", note[v], key[v, "cli"], key[v, "catalog"], key[v, "opm"]
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }
     }'
