@@ -457,6 +457,32 @@ if [ $rc -eq 0 ]; then
   if [ -z "$why" ]; then ok "catalogs/search" "4.4, 4.5 and edge each have a Pagefind bundle, and their pages' search loads it"
   else bad "catalogs/search" "$why"; fi
 
+  # Docs pages link the tab through the bare root and the major alias; the
+  # site writes the newest 4.x minor's URL, and the .md output the alias.
+  why=""
+  r=$(dq "$P/docs/concepts/catalog-links/index.html")
+  for want in 'href=/catalogs/opm/4.5/>opm catalog' 'href=/catalogs/opm/4.5/>newest 4.x' 'href=/catalogs/opm/4.5/traits/backup/#spec>the backup trait'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  grep -qF '](https://opmodel.dev/catalogs/opm/4/traits/backup/#spec)' "$P/docs/concepts/catalog-links.md" || why="${why:+$why; }the .md output does not link the absolute alias"
+  if [ -z "$why" ]; then ok "catalogs/docs-links" "/catalogs/opm/ and /catalogs/opm/4/... resolve to /catalogs/opm/4.5/..., fragment kept; the .md output keeps the alias, absolute"
+  else bad "catalogs/docs-links" "$why"; fi
+
+  # The transition: with catalog-opm, the Reference copies are not
+  # published, the two old targets resolve to the tab, and the build lists
+  # the pages that still write them; no redirect or stub for the old URLs.
+  why=""
+  [ ! -e "$P/docs/reference/catalog-contract" ] && [ ! -e "$P/docs/reference/catalog-members" ] || why="a Reference copy was published"
+  [ ! -e "$OUT/$name/site/public/latest/docs/reference/catalog-contract" ] || why="${why:+$why; }a /latest/ stub for the old URL"
+  ! grep -q 'catalog-contract\|catalog-members' "$OUT/$name/site/public/_redirects" || why="${why:+$why; }_redirects names an old URL"
+  dq "$P/docs/reference/registry-fixture/index.html" | grep -qF 'href=/catalogs/opm/4.5/#contract-levels>the catalog contract' || why="${why:+$why; }catalog-contract/ is not mapped to the 4.5 landing"
+  dq "$P/docs/reference/kubernetes-fixture/index.html" | grep -qF 'href=/catalogs/opm/4.5/#catalog-members>the catalog members' || why="${why:+$why; }catalog-members/ is not mapped to #catalog-members"
+  grep -qF '](https://opmodel.dev/catalogs/opm/4/#contract-levels)' "$P/docs/reference/registry-fixture.md" || why="${why:+$why; }the .md output keeps the old target"
+  grep -qF '  v1.0: cli/docs/site/reference/registry-fixture.md' "$log" && grep -qF '  v1.0: catalog_opm/docs/site/reference/kubernetes-fixture.md' "$log" &&
+    ! grep -qE '^  v1.0: catalog_opm/docs/site/reference/catalog-' "$log" || why="${why:+$why; }the build does not list the pages that still link the old targets"
+  if [ -z "$why" ]; then ok "catalogs/transition" "the Reference copies are not published, no redirect for them; catalog-contract/ and catalog-members/ resolve to the 4.5 landing (#catalog-members); the build lists both pages that write them"
+  else bad "catalogs/transition" "$why" "$log"; fi
+
   st=$OUT/$name/site/public/build-stamp.json
   got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
   if [ "$got" = "explicit true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
@@ -481,6 +507,27 @@ if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.
    [ "$(jq -r '.sections.catalogs.from' "$st")" = manifest ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
   ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest)"
 else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
+
+# ---------------------------------------------------------------------------
+# The fixture workspace without docs bundles: no Catalogs section and no tab,
+# the Reference copies of the members published, the old targets their own.
+name=no-catalogs
+copy_site "$name"; copy_ws "$name"
+rm -rf "$OUT/$name/site/.bundles" "$OUT/$name/site/bundles.cue" "$OUT/$name/ws/core/docs/site/concepts/catalog-links.md"
+build "$name" "$OUT/$name/ws"; rc=$?
+P=$OUT/$name/site/public/v1.0
+if [ $rc -ne 0 ]; then bad "$name" "the build without bundles failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  [ ! -e "$OUT/$name/site/public/catalogs" ] || why="public/catalogs exists"
+  ! dq "$P/docs/start/quickstart/index.html" | grep -qF 'href=/catalogs/' || why="${why:+$why; }a Catalogs tab"
+  [ -f "$P/docs/reference/catalog-contract/index.html" ] && [ -f "$P/docs/reference/catalog-members/index.html" ] || why="${why:+$why; }the Reference copies are missing"
+  dq "$P/docs/reference/registry-fixture/index.html" | grep -qF 'href=/v1.0/docs/reference/catalog-contract/#contract-levels>' || why="${why:+$why; }catalog-contract/ is mapped without the tab"
+  ! grep -q '^/catalogs/' "$OUT/$name/site/public/_redirects" || why="${why:+$why; }_redirects has catalog lines"
+  ! grep -q '^transition:' "$OUT/$name/log" || why="${why:+$why; }the transition listing ran"
+  if [ -z "$why" ]; then ok "$name" "no section, no tab, no catalog _redirects lines; the Reference copies publish and the old links are their own"
+  else bad "$name" "$why" "$OUT/$name/log"; fi
+fi
 
 # ---------------------------------------------------------------------------
 # The fixture workspace under a two-segment base path (tests/subpath/env): the
