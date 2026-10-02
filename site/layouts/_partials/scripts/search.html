@@ -7,7 +7,10 @@
        results render in Hextra's own palette and never leave the version
        being read. A page of the Enhancements section reads the section's own
        bundle (/enhancements/pagefind/) instead, so the docs search never
-       returns a design and the section's search returns nothing else.
+       returns a design and the section's search returns nothing else. A
+       page of the Catalogs section reads its segment's bundle
+       (/catalogs/<name>/<segment>/pagefind/), so a search stays in the
+       minor (or edge) being read; the /catalogs/ page reads the version's.
        Nothing is loaded from a CDN. */ -}}
 {{- if (site.Params.search.enable | default true) -}}
   {{- $type := site.Params.search.type | default "pagefind" -}}
@@ -19,6 +22,10 @@
   {{- if eq .Section "enhancements" -}}
     {{- $prefix = printf "enhancements.%s" .Language.Lang -}}
     {{- $base = "enhancements/" | relURL -}}
+  {{- end -}}
+  {{- with and (eq .Section "catalogs") .Params.catalog -}}
+    {{- $prefix = printf "catalogs-%s-%s.%s" .name .segment $.Language.Lang -}}
+    {{- $base = printf "catalogs/%s/%s/" .name .segment | relURL -}}
   {{- end -}}
   {{- $data := resources.Get "js/opm-pagefind.js" | resources.ExecuteAsTemplate (printf "%s.pagefind.js" $prefix) (dict "base" $base) -}}
   {{- $dialog := resources.Get "js/search-dialog.js" | resources.ExecuteAsTemplate (printf "%s.search-dialog.js" $prefix) . -}}

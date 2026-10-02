@@ -12,8 +12,8 @@
        Per page of manifest.json's pages[]: title, description and weight
        from its front matter, the dialect's type kept as params.docType (the
        page-type badge), lastmod from the manifest, and params.catalog
-       {project, name, segment, label, version, revision, edge, indexed,
-       commit, repo, source, generated}. Only the newest minor of each major
+       {project, name, root, segment, label, version, revision, edge,
+       indexed, newest, commit, repo, source, generated}. Only the newest minor of each major
        is indexed: the others, and edge, stay out of the sitemap and
        llms.txt (and carry noindex, custom/head-end.html).
        The build fails, naming project, segment, digest (or local) and page,
@@ -81,7 +81,7 @@
         "sitemap" (dict "disable" (not $seg.indexed))
         "params" (dict "llms" $seg.indexed "docType" ($fm.type | default "")
           "catalog" (dict "project" $cat.project "name" $cat.name "root" $cat.root "segment" $seg.segment "label" $seg.label
-            "version" $seg.version "revision" $seg.revision "edge" $seg.edge "indexed" $seg.indexed
+            "version" $seg.version "revision" $seg.revision "edge" $seg.edge "indexed" $seg.indexed "newest" (eq $seg.segment $cat.newest)
             "commit" $seg.commit "repo" $cat.repo "source" ($pg.source | default "") "generated" $pg.generated))
         "content" (dict "mediaType" "text/markdown" "value" $body) -}}
       {{- with $fm.weight -}}{{- $page = merge $page (dict "weight" (int .)) -}}{{- end -}}

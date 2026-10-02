@@ -101,6 +101,15 @@ step "root files and search, per version"
 # _redirects is Cloudflare's; a host that ignores it (GitHub Pages) routes
 # through the root index.html and the /latest/ stubs, which carry the base path.
 printf '/ /latest/ 302\n/latest/* /%s/:splat 302\n' "$DEFAULT" > "$PUBLIC/_redirects"
+# The Catalogs section's aliases (custom/head-end.html publishes the same as
+# stubs): /catalogs/<name>/ to the newest minor, /catalogs/<name>/<MAJOR>/
+# and below to the newest minor of that major; none to edge, and none
+# starting with /latest/.
+if [ -n "$CAT_DIR" ]; then
+  jq -r '.catalogs[] | .root as $r | (if .newest != "" then "\($r) \($r)\(.newest)/ 302" else empty end),
+    (.majors | to_entries[] | "\($r)\(.key)/ \($r)\(.value)/ 302", "\($r)\(.key)/* \($r)\(.value)/:splat 302")' \
+    data/opm/catalogs.json >> "$PUBLIC/_redirects"
+fi
 printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s/latest/"><title>Open Platform Model</title><a href="%s/latest/">%s/latest/</a>\n' "$BASE_PATH" "$BASE_PATH" "$BASE_PATH" > "$PUBLIC/index.html"
 cp "$PUBLIC/$DEFAULT/404.html" "$PUBLIC/404.html"
 cp data/opm/build.json "$PUBLIC/build-stamp.json"
@@ -121,8 +130,17 @@ if [ -n "$ENH_TREE" ]; then
   printf 'enhancements: pagefind %s pages, %s\n' "$(find "$PUBLIC/enhancements/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC/enhancements/pagefind" | cut -f1)"
 fi
 
+# Each catalog segment (every minor and edge) has its own bundle, so a search
+# stays in the minor being read (layouts/_partials/scripts/search.html).
 if [ -n "$CAT_DIR" ]; then
   [ -f "$PUBLIC/catalogs/index.html" ] || fail "CATALOGS FAIL: $PUBLIC/catalogs/index.html was not built"
+  for d in $(jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\(.segment)"' data/opm/catalogs.json); do
+    [ -f "$PUBLIC$d/index.html" ] || fail "CATALOGS FAIL: $PUBLIC$d/index.html was not built"
+    pagefind --site "$PUBLIC$d" --root-selector 'main#content > .content' \
+      --exclude-selectors '.hextra-page-context-menu, .opm-type-badge, .hextra-code-copy-btn' \
+      --quiet
+    printf '%s: pagefind %s pages, %s\n' "${d#/}" "$(find "$PUBLIC$d/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC$d/pagefind" | cut -f1)"
+  done
 fi
 
 step "page set, stray files, sidebar order, links"
@@ -135,6 +153,24 @@ for f in _redirects index.html 404.html robots.txt latest/index.html build-stamp
   [ -s "$PUBLIC/$f" ] || fail "REDIRECT FAIL: $PUBLIC/$f is missing"
 done
 grep -qxF '/ /latest/ 302' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send / to /latest/"
+# The catalog aliases: their _redirects lines and stubs exist exactly when
+# the build has the section, and neither names edge.
+if [ -n "$CAT_DIR" ]; then
+  for c in $(jq -r '.catalogs[] | "\(.name):\(.newest):\(.majors | keys | join(","))"' data/opm/catalogs.json); do
+    n=${c%%:*}; newest=${c#*:}; newest=${newest%%:*}; majors=${c##*:}
+    if [ -n "$newest" ]; then
+      grep -qxF "/catalogs/$n/ /catalogs/$n/$newest/ 302" "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send /catalogs/$n/ to /catalogs/$n/$newest/"
+      [ -s "$PUBLIC/catalogs/$n/index.html" ] || fail "REDIRECT FAIL: the alias stub $PUBLIC/catalogs/$n/index.html is missing"
+    fi
+    for m in $(printf '%s' "$majors" | tr ',' ' '); do
+      grep -q "^/catalogs/$n/$m/\* /catalogs/$n/[0-9.]*/:splat 302\$" "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects has no /catalogs/$n/$m/* line"
+      [ -s "$PUBLIC/catalogs/$n/$m/index.html" ] || fail "REDIRECT FAIL: the alias stub $PUBLIC/catalogs/$n/$m/index.html is missing"
+    done
+  done
+  ! grep -q '/edge/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects sends an alias to edge"
+else
+  ! grep -q '^/catalogs/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects holds /catalogs/ lines, but the build has no catalogs section"
+fi
 echo "redirects: _redirects, root index.html, 404.html, robots.txt and the /latest/ stubs present"
 # Check 9: a Starlight aside that reached the output as text.
 raw=$(find "$PUBLIC" -name '*.html' -exec grep -l -e '<p>:::' -e '^:::' {} + || true)

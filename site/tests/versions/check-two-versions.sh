@@ -46,10 +46,13 @@ mkdir -p "$OUT"
 rm -rf "$P" "$C"
 marker=$OUT/.started; : > "$marker"
 unset OPM_VERSIONS
+# The fixture docs bundles give the build its Catalogs section (sources()
+# mounts OPM_BUNDLES and sets CAT).
+OPM_BUNDLES=$SITE/tests/fixtures/bundles; export OPM_BUNDLES
 if ! sh -c '. "$0" >/dev/null
   sources; image >/dev/null
   # shellcheck disable=SC2086
-  run --network none --env "OPM_BUILD_REFS=$REFS" $MOUNTS --entrypoint sh "$(tag)" \
+  run --network none --env "OPM_BUILD_REFS=$REFS" $MOUNTS $CAT --entrypoint sh "$(tag)" \
     /work/repo/site/scripts/build-all.sh --public .check/versions-test/public --check .check/versions-test/check' \
   "$SITE/scripts/run-in-image.sh" tag > "$LOG" 2>&1; then
   tail -n 30 "$LOG"
@@ -88,9 +91,11 @@ check "a nav-order.txt per version, in .check/versions-test/check/" [ -s "$C/v1.
 why="robots.txt: $(tr '\n' ' ' < "$P/robots.txt")"
 # shellcheck disable=SC2016 # $1 expands in the inner shell
 check "robots.txt names both sitemaps" sh -c 'grep -qx "Sitemap: https://opmodel.dev/v1.0/sitemap.xml" "$1" && grep -qx "Sitemap: https://opmodel.dev/v0.9/sitemap.xml" "$1"' - "$P/robots.txt"
-foreign=$(for v in v1.0 v0.9; do grep -o '<loc>[^<]*' "$P/$v/sitemap.xml" | grep -v "^<loc>https://opmodel.dev/$v/" | sed "s/^/$v: /"; done | head -n 3)
+foreign=$(for v in v1.0 v0.9; do grep -o '<loc>[^<]*' "$P/$v/sitemap.xml" | grep -v "^<loc>https://opmodel.dev/$v/" | grep -v '^<loc>https://opmodel.dev/catalogs/' | sed "s/^/$v: /"; done | head -n 3)
 why="foreign URLs: $foreign"
-check "each sitemap lists only its own version's URLs" [ -z "$foreign" -a -s "$P/v0.9/sitemap.xml" ]
+check "each sitemap lists only its own version's URLs (and the default one the Catalogs section's)" [ -z "$foreign" -a -s "$P/v0.9/sitemap.xml" ]
+why="v1.0's sitemap lacks /catalogs/opm/4.5/, or v0.9's lists a catalog page"
+check "only the default version's sitemap lists the Catalogs section" sh -c 'grep -q "<loc>https://opmodel.dev/catalogs/opm/4.5/</loc>" "$1/v1.0/sitemap.xml" && ! grep -q "opmodel.dev/catalogs/" "$1/v0.9/sitemap.xml"' - "$P"
 check "each version has its own llms.txt and 404.html" [ -s "$P/v1.0/llms.txt" -a -s "$P/v0.9/llms.txt" -a -s "$P/v1.0/404.html" -a -s "$P/v0.9/404.html" ]
 check "the root 404.html is v1.0's" cmp -s "$P/404.html" "$P/v1.0/404.html"
 
@@ -115,6 +120,20 @@ for v in v1.0 v0.9; do
 done
 why="missing or broken on:$tab_bad"
 check "both versions link the Enhancements tab to /enhancements/, in the navbar and the phone menu" [ -z "$tab_bad" ]
+
+# The Catalogs section belongs to no version either: it publishes once, at
+# /catalogs/, from the fixture bundles, and every version carries its tab.
+why="no $P/catalogs/opm/4.5/index.html, or a copy under a version"
+check "the catalogs section publishes once, outside every version" \
+  [ -f "$P/catalogs/index.html" -a -f "$P/catalogs/opm/4.5/index.html" -a -f "$P/catalogs/opm/edge/index.html" -a ! -e "$P/v1.0/catalogs" -a ! -e "$P/v0.9/catalogs" ]
+tab_bad=""
+for v in v1.0 v0.9; do
+  f=$P/$v/docs/index.html
+  tr -d '"' < "$f" | grep -qE '<a title href=/catalogs/ class=' || tab_bad="$tab_bad $v(navbar)"
+  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/catalogs/>Catalogs' || tab_bad="$tab_bad $v(phone menu)"
+done
+why="missing on:$tab_bad"
+check "both versions link the Catalogs tab to /catalogs/, in the navbar and the phone menu" [ -z "$tab_bad" ]
 
 # The test SHAs: v0.9's refs in the manifest (cli, catalog, opm, overrides).
 sha_of() {
