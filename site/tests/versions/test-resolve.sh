@@ -239,7 +239,7 @@ run "$(manifest catalog-prefix "$v
 	cli = v1.1.0
 	catalog = v9.9.9
 	opm = $OPM_SHA")" -- --check
-expect catalog-prefix 1 "a catalog tag without its opm-v or k8s-v prefix fails" "v2.0: catalog_opm v9.9.9: a catalog tag is opm-v* or k8s-v*"
+expect catalog-prefix 1 "a catalog tag without its opm-v prefix fails" "v2.0: catalog_opm v9.9.9: a catalog tag is opm-v*"
 
 run "$(manifest pseudo "$v
 	cli = v1.2.0-pseudo
@@ -474,7 +474,7 @@ for c in \
   "cli-minor|	cli-line = 1.5|version v2.0: cli-line \"1.5\": not a cli minor line vX.Y" \
   "catalog-v1|	catalog-line = v1|version v2.0: catalog-line \"v1\": not an opm catalog major opm-vN" \
   "catalog-minor|	catalog-line = opm-v4.4|version v2.0: catalog-line \"opm-v4.4\": a minor; the catalog line is the opm catalog major (opm-v4)" \
-  "catalog-k8s|	catalog-line = k8s-v1|version v2.0: catalog-line \"k8s-v1\": only the opm catalog line opm-vN is followed"; do
+  "catalog-k8s|	catalog-line = k8s-v1|version v2.0: catalog-line \"k8s-v1\": not an opm catalog major opm-vN"; do
   name=${c%%|*}; rest=${c#*|}; extra=${rest%%|*}; want=${rest#*|}
   case "$name" in
     no-catalog-line) body="$lv

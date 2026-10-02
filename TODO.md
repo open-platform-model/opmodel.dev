@@ -30,7 +30,7 @@ Since 2026-10-02 the site generates nothing: each repository generates its refer
 
 - [ ] cli: every `opm` command and flag, at `/docs/reference/cli/`
 - [ ] opm-operator: the four operator resources, at `/docs/reference/operator-resources/`
-- [ ] catalog_opm: one page per abstraction member, and the raw Kubernetes table
+- [ ] catalog_opm: one page per abstraction member
 - [ ] core: the definitions, at `/docs/reference/definitions/`
 - [ ] Delete the site's `placeholder: true` pages once every version has its source page
 

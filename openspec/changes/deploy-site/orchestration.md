@@ -705,7 +705,7 @@ Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git 
     - core in library `opm/schema/loader.go` `DefaultSchemaModule`;
     - the operator in cli `internal/operator/manifest.go` `PinnedOperatorVersion`;
     - catalogs in no CLI pin at all: they are explicit in the manifest.
-    `cli/hack/platform/` is a test fixture, never a pin source. Catalog git tags carry prefixes (`opm-v4.4.2`, `k8s-v1.0.0-alpha.5`). No repo has a `v1.0.0-beta*` tag yet, and `opm` has no repo-level tag.
+    `cli/hack/platform/` is a test fixture, never a pin source. Catalog git tags carry prefixes (`opm-v4.4.2`). No repo has a `v1.0.0-beta*` tag yet, and `opm` has no repo-level tag.
 29. **gen-lastmod needs full git history.** CI checks out with `fetch-depth: 0`.
 
 **Process.**
