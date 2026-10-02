@@ -29,7 +29,9 @@
 #   nav    writes SITE_DIR/.check/<version>/nav-order.txt (CHECK_DIR, default
 #          .check): the sidebar's links on the version's docs home, in
 #          document order, as site-root paths (BASE_PATH stripped), so the
-#          file is the same for every base URL;
+#          file is the same for every base URL; and nav-order-reference.txt,
+#          the same for the Reference home, whose tree the docs home leaves
+#          out (Reference is its own tab);
 #   links  fails when a URL in the published output names nothing the site
 #          serves. This covers the links layouts, shortcodes and stylesheets
 #          write, which the link render hook (check Q1) never sees. Pagefind's
@@ -116,15 +118,17 @@ for pair in "$@"; do
   if [ -n "$stray" ]; then rc=1; echo "STRAY FAIL $v: files that are no known output:"; echo "$stray" | sed 's/^/  /'; fi
 
   mkdir -p "$CHECK_DIR/$v"
-  home="$PUBLIC/$v/docs/index.html"
-  if [ -f "$home" ]; then
-    tr '\n' ' ' < "$home" | sed -n 's#.*<aside[^>]*hextra-sidebar-container##p' | sed 's#</aside>.*##' |
-      grep -oE 'href="?[^" >]+' | sed -E 's#^href="?##' | grep '^/' |
-      awk -v B="$BASE_PATH" 'B != "" && index($0, B "/") == 1 { $0 = substr($0, length(B) + 1) } { print }' > "$CHECK_DIR/$v/nav-order.txt" || true
-  else
-    : > "$CHECK_DIR/$v/nav-order.txt"
-  fi
-  echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/$v.have" | tr -d ' ') built, $(wc -l < "$CHECK_DIR/$v/nav-order.txt" | tr -d ' ') sidebar links in $CHECK_DIR/$v/nav-order.txt"
+  for nav in "docs nav-order.txt" "docs/reference nav-order-reference.txt"; do
+    home="$PUBLIC/$v/${nav% *}/index.html"; navf="$CHECK_DIR/$v/${nav#* }"
+    if [ -f "$home" ]; then
+      tr '\n' ' ' < "$home" | sed -n 's#.*<aside[^>]*hextra-sidebar-container##p' | sed 's#</aside>.*##' |
+        grep -oE 'href="?[^" >]+' | sed -E 's#^href="?##' | grep '^/' |
+        awk -v B="$BASE_PATH" 'B != "" && index($0, B "/") == 1 { $0 = substr($0, length(B) + 1) } { print }' > "$navf" || true
+    else
+      : > "$navf"
+    fi
+  done
+  echo "$v: $(wc -l < "$tmp/$v.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/$v.have" | tr -d ' ') built, $(wc -l < "$CHECK_DIR/$v/nav-order.txt" | tr -d ' ') docs and $(wc -l < "$CHECK_DIR/$v/nav-order-reference.txt" | tr -d ' ') reference sidebar links in $CHECK_DIR/$v/"
 done
 
 if [ "$mode" = post ]; then
