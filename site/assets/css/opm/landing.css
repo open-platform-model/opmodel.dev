@@ -28,3 +28,18 @@
 .opm-hero .hextra-feature-card h3 svg { height: 1.125rem; width: auto; }
 .opm-hero .hextra-feature-card p { font-size: 0.875rem; line-height: 1.375rem; color: var(--hx-color-gray-600); text-wrap: pretty; }
 html.dark .opm-hero .hextra-feature-card p { color: var(--hx-color-gray-400); }
+
+/* The under-construction notice above the headline: the amber of the
+   outdated-version bar (versions.css), as a callout rather than a badge, so
+   nobody takes the site for finished. */
+.opm-construction {
+  display: flex; gap: 0.625rem; align-items: flex-start;
+  max-width: 40rem; padding: 0.875rem 1rem; border-radius: 0.75rem;
+  font-size: 1rem; line-height: 1.5rem;
+  color: oklch(41.4% .112 45.904);
+  background: oklch(96.2% .059 95.617);
+  border: 1px solid oklch(87.9% .169 91.605);
+}
+.opm-construction svg { flex: none; width: 1.25rem; height: 1.25rem; margin-top: 0.125rem; }
+.opm-construction strong { font-weight: 700; }
+html.dark .opm-construction { color: oklch(92.4% .12 95.746); background: oklch(27.9% .077 45.635); border-color: oklch(47.6% .114 61.907); }
