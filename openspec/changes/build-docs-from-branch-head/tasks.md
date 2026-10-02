@@ -15,4 +15,4 @@
 
 ## 3. Archive
 
-- [ ] 3.1 Archive the change on this branch (`openspec archive`), so the archive rides the implementing PR; never push to main
+- [ ] 3.1 Archive the change on this branch (`openspec archive --skip-specs`), so the archive rides the implementing PR; never push to main. `task check` green, then commit `chore(openspec): archive build-docs-from-branch-head`
