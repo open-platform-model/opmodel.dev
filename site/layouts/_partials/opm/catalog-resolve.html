@@ -1,0 +1,50 @@
+{{- /* Resolves a /catalogs/ link path to a page of the Catalogs section,
+       through data/opm/catalogs.json (scripts/gen-catalogs.sh) and
+       hugo.Sites (the section lives in the default version's page tree
+       only). Takes {path}; returns {page, segment, form, err}: page is false
+       and err says why on a miss. form is "root" for the bare tab root
+       /catalogs/<name>/ (the newest minor's landing), "major" for
+       /catalogs/<name>/<MAJOR>/<rel> (the same rel in the newest minor of
+       that major; docs-kit C8's alias), "segment" for
+       /catalogs/<name>/<MAJOR.MINOR or edge>/<rel> (a page of that segment
+       itself, which only catalog pages may write). */ -}}
+{{- $path := .path -}}
+{{- $parts := split (strings.Trim $path "/") "/" -}}
+{{- $out := dict "page" false "segment" "" "form" "" "err" "" -}}
+{{- $cats := slice -}}
+{{- with hugo.Data.opm.catalogs -}}{{- $cats = .catalogs -}}{{- end -}}
+{{- if or (lt (len $parts) 2) (ne (index $parts 0) "catalogs") -}}
+  {{- return merge $out (dict "err" "it names no catalog: write /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/...") -}}
+{{- end -}}
+{{- $name := index $parts 1 -}}
+{{- $cat := false -}}
+{{- range $cats -}}{{- if eq .name $name -}}{{- $cat = . -}}{{- end -}}{{- end -}}
+{{- if not $cat -}}
+  {{- return merge $out (dict "err" (printf "the build has no catalog %q (no Catalogs section, or no such tab; run task bundles:pull)" $name)) -}}
+{{- end -}}
+{{- $seg := "" -}}{{- $form := "" -}}{{- $rel := "" -}}
+{{- if eq (len $parts) 2 -}}
+  {{- $seg = $cat.newest -}}{{- $form = "root" -}}
+  {{- if not $seg -}}{{- return merge $out (dict "err" (printf "catalog %s has no release yet" $name)) -}}{{- end -}}
+{{- else -}}
+  {{- $s := index $parts 2 -}}
+  {{- $rel = delimit (after 3 $parts) "/" -}}
+  {{- if findRE `^(0|[1-9][0-9]*)$` $s -}}
+    {{- $seg = index $cat.majors $s | default "" -}}{{- $form = "major" -}}
+    {{- if not $seg -}}{{- return merge $out (dict "err" (printf "catalog %s has no release of major %s" $name $s)) -}}{{- end -}}
+  {{- else -}}
+    {{- range $cat.segments -}}{{- if eq .segment $s -}}{{- $seg = $s -}}{{- end -}}{{- end -}}
+    {{- $form = "segment" -}}
+    {{- if not $seg -}}{{- return merge $out (dict "err" (printf "catalog %s has no segment %q" $name $s)) -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $target := printf "/catalogs/%s/%s" $name $seg -}}
+{{- with $rel -}}{{- $target = printf "%s/%s" $target . -}}{{- end -}}
+{{- $p := false -}}
+{{- range hugo.Sites -}}
+  {{- with .GetPage $target -}}{{- $p = . -}}{{- break -}}{{- end -}}
+{{- end -}}
+{{- if not $p -}}
+  {{- return merge $out (dict "segment" $seg "form" $form "err" (printf "catalog %s %s has no page %s" $name $seg (cond (eq $rel "") "landing" $rel))) -}}
+{{- end -}}
+{{- return dict "page" $p "segment" $seg "form" $form "err" "" -}}

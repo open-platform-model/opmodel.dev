@@ -27,6 +27,13 @@
 #          besides each page's index.html and index.md (its Markdown output)
 #          only the section's Pagefind bundle. Without ENH_TREE,
 #          public/enhancements/ must not exist;
+#   catalogs  with CAT_DIR set (the build has the Catalogs section), Q2
+#          and stray for public/catalogs/, which belongs to no version: the
+#          /catalogs/ page and every page each segment's manifest.json lists;
+#          besides each page's index.html and index.md only the segments'
+#          Pagefind bundles; and nav-order-catalogs-<segment>.txt under
+#          CHECK_DIR/catalogs/. Without CAT_DIR, public/catalogs/ must not
+#          exist;
 #   nav    writes SITE_DIR/.check/<version>/nav-order.txt (CHECK_DIR, default
 #          .check): the sidebar's links on the version's docs home, in
 #          document order, as site-root paths (BASE_PATH stripped), so the
@@ -174,6 +181,57 @@ if [ "$mode" = post ]; then
     echo "enhancements: $(wc -l < "$tmp/enh.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/enh.have" | tr -d ' ') built"
   elif [ -e "$E" ]; then
     rc=1; echo "Q2 FAIL enhancements: $E exists, but the build has no enhancements section"
+  fi
+
+  # The Catalogs section (CAT_DIR set: data/opm/catalogs.json lists its
+  # bundles): the /catalogs/ page and, per segment, every page its
+  # manifest.json lists, at <root><segment>/<page URL>/ (docs-kit C8);
+  # besides each page's index.html and index.md only the segments' Pagefind
+  # bundles. Without CAT_DIR, public/catalogs/ must not exist.
+  K=$PUBLIC/catalogs
+  if [ -n "${CAT_DIR:-}" ]; then
+    {
+      echo /catalogs/
+      jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\t\(.segment)\t\(.dir)"' data/opm/catalogs.json |
+        while IFS='	' read -r croot seg dir; do
+          jq -r '.pages[].path' "$CAT_DIR/$dir/manifest.json" | sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' | sed "s#^#$croot$seg/#"
+        done
+    } | sort > "$tmp/cat.want"
+    if [ -d "$K" ]; then
+      (cd "$PUBLIC" && find catalogs -type f -name index.html ! -path '*/pagefind/*') | sed 's|^|/|; s|index\.html$||' | sort > "$tmp/cat.have"
+    else
+      : > "$tmp/cat.have"
+    fi
+    missing=$(comm -23 "$tmp/cat.want" "$tmp/cat.have")
+    extra=$(comm -13 "$tmp/cat.want" "$tmp/cat.have")
+    if [ -n "$missing" ]; then rc=1; echo "Q2 FAIL catalogs: no page built for:"; echo "$missing" | sed 's/^/  /'; fi
+    if [ -n "$extra" ]; then rc=1; echo "Q2 FAIL catalogs: unexpected pages:"; echo "$extra" | sed 's/^/  /'; fi
+    stray=""
+    [ ! -d "$K" ] || stray=$( (cd "$PUBLIC" && find catalogs -type f) | sort | while IFS= read -r f; do
+      case "$f" in
+        */pagefind/*) jq -e --arg d "${f%%/pagefind/*}" '[.catalogs[] | .root as $r | .segments[] | ($r + .segment)] | index("/" + $d) != null' data/opm/catalogs.json >/dev/null || echo "$f" ;;
+        */index.html) ;;
+        */index.md) grep -qxF "/${f%index.md}" "$tmp/cat.have" || echo "$f" ;;
+        *) echo "$f" ;;
+      esac
+    done)
+    if [ -n "$stray" ]; then rc=1; echo "STRAY FAIL catalogs: files that are no known output:"; echo "$stray" | sed 's/^/  /'; fi
+    # nav-order-catalogs-<segment>.txt: the sidebar's links on each
+    # segment's landing, as for the docs home.
+    mkdir -p "$CHECK_DIR/catalogs"
+    jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\t\(.segment)"' data/opm/catalogs.json | while IFS='	' read -r croot seg; do
+      home="$PUBLIC${croot}$seg/index.html"; navf="$CHECK_DIR/catalogs/nav-order-catalogs-$seg.txt"
+      if [ -f "$home" ]; then
+        tr '\n' ' ' < "$home" | sed -n 's#.*<aside[^>]*hextra-sidebar-container##p' | sed 's#</aside>.*##' |
+          grep -oE 'href="?[^" >]+' | sed -E 's#^href="?##' | grep '^/' |
+          awk -v B="$BASE_PATH" 'B != "" && index($0, B "/") == 1 { $0 = substr($0, length(B) + 1) } { print }' > "$navf" || true
+      else
+        : > "$navf"
+      fi
+    done
+    echo "catalogs: $(wc -l < "$tmp/cat.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/cat.have" | tr -d ' ') built, sidebar order in $CHECK_DIR/catalogs/"
+  elif [ -e "$K" ]; then
+    rc=1; echo "Q2 FAIL catalogs: $K exists, but the build has no catalogs section"
   fi
 
   # Each extractor prints "<file>\t<kind>\t<url>": kind "root" is a

@@ -10,11 +10,12 @@
        a branch. The date comes from data/opm/lastmod.json
        (scripts/gen-lastmod.sh), because Hugo's GitInfo cannot see directory
        mounts from other repos; on an Enhancements section page it is the
-       entry's updated date from its config.yaml (the page's Lastmod). */ -}}
+       entry's updated date from its config.yaml (the page's Lastmod), and on
+       a Catalogs section page the lastmod its bundle's manifest records. */ -}}
 {{- $src := partial "opm/source.html" . -}}
 {{- $date := "" -}}
 {{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- $date = index . site.Version.Name -}}{{- end -}}{{- end -}}
-{{- if eq $src.repo "enhancements" -}}{{- with .Lastmod -}}{{- if not .IsZero -}}{{- $date = . -}}{{- end -}}{{- end -}}{{- end -}}
+{{- if or (eq $src.repo "enhancements") (eq .Section "catalogs") -}}{{- with .Lastmod -}}{{- if not .IsZero -}}{{- $date = . -}}{{- end -}}{{- end -}}{{- end -}}
 {{- $kind := "" -}}
 {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}{{- $kind = .kind -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
 {{- $edit := and (or site.Version.IsDefault (and (ne $kind "anchored") (ne $kind "line"))) $src.editURL -}}

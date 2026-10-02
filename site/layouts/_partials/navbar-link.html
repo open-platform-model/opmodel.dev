@@ -2,7 +2,10 @@
        overrides.sha256). Reference is its own tab though its pages sit under
        docs/reference/ (the sidebar override shows its tree apart), so on a
        page there the Docs entry, whose section holds it, is not marked
-       current; only the Reference entry is. The rest is upstream's. */ -}}
+       current; only the Reference entry is. The Catalogs entry is current
+       on every page of the Catalogs section, whose segments are no
+       descendants Hugo's menu can see through a root pageRef. The rest is
+       upstream's. */ -}}
 {{- $currentPage := .currentPage -}}
 {{- $link := .link -}}
 {{- $item := .item -}}
@@ -21,6 +24,7 @@
 {{- with site.GetPage "/docs/reference" -}}
   {{- if and $active (ne $item.PageRef "docs/reference") (or (eq . $currentPage) (.IsAncestor $currentPage)) -}}{{ $active = false }}{{- end -}}
 {{- end -}}
+{{- if and (eq $currentPage.Section "catalogs") (eq $item.PageRef "/catalogs/") -}}{{ $active = true }}{{- end -}}
 {{- $activeClass := cond $active "hx:font-medium" "hx:text-gray-600 hx:hover:text-gray-800 hx:dark:text-gray-400 hx:dark:hover:text-gray-200" -}}
 
 {{- if $item.HasChildren -}}

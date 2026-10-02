@@ -63,6 +63,8 @@ CALLER=build-all
 echo "build-all: versions $VERSIONS (default $DEFAULT)"
 if [ -n "$ENH_TREE" ]; then echo "build-all: enhancements section from $ENH_TREE (${ENH_SHA:-no commit}, $ENH_HOW)"
 else echo "build-all: no enhancements section"; fi
+if [ -n "$CAT_DIR" ]; then echo "build-all: catalogs section from $CAT_DIR ($CAT_FROM)"
+else echo "build-all: no catalogs section"; fi
 
 step "drift guard: overridden theme files unchanged upstream"
 sh "$SCRIPTS/check-overrides.sh"
@@ -82,6 +84,7 @@ sh "$SCRIPTS/lint-sources.sh" $dirs
 step "dates, stamp, mounts, collisions"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
+sh "$SCRIPTS/gen-catalogs.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
@@ -116,6 +119,10 @@ if [ -n "$ENH_TREE" ]; then
     --exclude-selectors '.hextra-page-context-menu, .hextra-code-copy-btn, .opm-enh-status, .opm-enh-meta' \
     --quiet
   printf 'enhancements: pagefind %s pages, %s\n' "$(find "$PUBLIC/enhancements/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC/enhancements/pagefind" | cut -f1)"
+fi
+
+if [ -n "$CAT_DIR" ]; then
+  [ -f "$PUBLIC/catalogs/index.html" ] || fail "CATALOGS FAIL: $PUBLIC/catalogs/index.html was not built"
 fi
 
 step "page set, stray files, sidebar order, links"
@@ -200,4 +207,5 @@ for pair in $VERSIONS; do
   echo "$v: $(find "$PUBLIC/$v" -name index.html ! -path "$PUBLIC/$v/pagefind/*" | wc -l | tr -d ' ') pages"
 done
 [ -z "$ENH_TREE" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
+[ -z "$CAT_DIR" ] || echo "catalogs: $(find "$PUBLIC/catalogs" -name index.html ! -path '*/pagefind/*' | wc -l | tr -d ' ') pages"
 echo "build-all: OK in $(( $(date +%s) - t0 )) s -> $SITE_DIR/$PUBLIC ($(find "$PUBLIC" -type f | wc -l | tr -d ' ') files, $(du -sh "$PUBLIC" | cut -f1))"

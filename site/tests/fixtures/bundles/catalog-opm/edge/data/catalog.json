@@ -1,0 +1,44 @@
+{
+  "schema": "docs.opmodel.dev/data/cue-catalog/v1",
+  "modulePath": "opmodel.dev/catalogs/opm@v4",
+  "version": "edge",
+  "members": [
+    {
+      "kind": "blueprint",
+      "name": "stateless-workload",
+      "apiVersion": "v1",
+      "level": "stable",
+      "title": "Stateless workload",
+      "page": "blueprints/stateless-workload",
+      "description": "A replicated workload that keeps no state of its own"
+    },
+    {
+      "kind": "resource",
+      "name": "volumes",
+      "apiVersion": "v1beta1",
+      "level": "beta",
+      "title": "Volumes",
+      "page": "resources/volumes",
+      "description": "Persistent and ephemeral storage a component mounts"
+    },
+    {
+      "kind": "trait",
+      "name": "backup",
+      "apiVersion": "v1alpha2",
+      "level": "alpha",
+      "title": "Backup",
+      "page": "traits/backup",
+      "description": "Scheduled backup policy for a component's persistent state"
+    },
+    {
+      "kind": "trait",
+      "name": "expose",
+      "apiVersion": "v1alpha1",
+      "level": "alpha",
+      "title": "Expose",
+      "page": "traits/expose",
+      "description": "Publishes a component's ports outside the cluster"
+    }
+  ],
+  "transformers": []
+}

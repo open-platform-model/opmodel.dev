@@ -124,10 +124,10 @@ defaultContentVersionInSubdir = true
     # params.opm.versions, an array of {name, label} (so no param key holds a
     # dot), is generated into config/<environment>/hugo.toml.
 
-# Weight 3 is the Enhancements tab, between Reference and Search:
-# scripts/gen-mounts.sh writes it into config/<environment>/hugo.toml only
-# for a build that has the enhancements section, so a build without it shows
-# no tab whose link names nothing.
+# Weights 3 and 4 are the Catalogs and Enhancements tabs, between Reference
+# and Search: scripts/gen-mounts.sh writes each into
+# config/<environment>/hugo.toml only for a build that has its section, so a
+# build without it shows no tab whose link names nothing.
 [menus]
   [[menus.main]]
     name = 'Docs'
@@ -139,17 +139,17 @@ defaultContentVersionInSubdir = true
     weight = 2
   [[menus.main]]
     name = 'Search'
-    weight = 4
+    weight = 5
     [menus.main.params]
       type = 'search'
   [[menus.main]]
     name = 'GitHub'
-    weight = 5
+    weight = 6
     url = 'https://github.com/open-platform-model'
     [menus.main.params]
       icon = 'github'
   [[menus.main]]
     name = 'Theme'
-    weight = 6
+    weight = 7
     [menus.main.params]
       type = 'theme-toggle'

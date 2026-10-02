@@ -1,0 +1,3 @@
++ build-all: no catalogs section
++ Q2 FAIL catalogs: public/catalogs exists, but the build has no catalogs section
+- LINK FAIL
