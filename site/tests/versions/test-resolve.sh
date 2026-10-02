@@ -548,13 +548,16 @@ run "$LGOOD" -- --check
 expect line-catalog-major 0 "the catalog stays on its major (opm-v1.2.0), docs at its tag once main is past opm-v1.2" \
   "${L}catalog_opm${TAB}opm-v1.2.0${TAB}$(rev catalog_opm opm-v1.2.0)${TAB}line:newest opm-v1.* tag; docs: opm-v1.2.0 (main is past opm-v1.2, no release/opm-v1.2)${TAB}tag"
 
-# State E: core release/v4.1 from the floor commit, plus a docs commit.
+# State E: core release/v4.1 from the floor commit, and cli release/v1.5 from
+# v1.5.0-beta.10, each plus a docs commit; neither contains the release.
 g "$T/core" switch -q -c release/v4.1 dialect-floor; page "$T/core" fix41b; commit "$T/core" "docs on release/v4.1" > /dev/null; g "$T/core" switch -q main
+g "$T/cli" switch -q -c release/v1.5 v1.5.0-beta.10; page "$T/cli" fix15; commit "$T/cli" "docs on release/v1.5" > /dev/null; g "$T/cli" switch -q main
 run "$LGOOD" -- --fetch
 expect fetch-e 0 "--fetch brings state E into the clones"
 run "$LGOOD" -- --check
-expect line-contain 1 "a release branch that does not contain the release the stamp names fails" \
-  "v2.0: core release/v4.1 $(short "$(rev core release/v4.1)") (docs for v4.1.0): does not contain v4.1.0, the release the stamp names"
+expect line-contain 1 "a release branch that does not contain the release the stamp names fails, cli included (no override recovers it)" \
+  "v2.0: core release/v4.1 $(short "$(rev core release/v4.1)") (docs for v4.1.0): does not contain v4.1.0, the release the stamp names" \
+  "v2.0: cli release/v1.5 $(short "$(rev cli release/v1.5)") (docs for v1.5.0): does not contain v1.5.0, the release the stamp names"
 
 # The fetch: a local-only tag survives prune config, and a worktree root gets no FETCH_HEAD.
 g "$R/opm" tag v0.0.0-localonly
