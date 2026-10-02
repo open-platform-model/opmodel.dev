@@ -5,6 +5,7 @@
 #
 #   { "sources": { "opm": "<sha>", ... },
 #     "site": "<opmodel.dev sha>",
+#     "sections": { "enhancements": { "ref": "...", "sha": "...", "how": "..." } },
 #     "versions": { "<v>": { "label": "...", "default": true, "kind": "line",
 #                            "refs": { "<repo>": { "ref": "...", "sha": "...", "how": "...",
 #                                                  "docs": "..." } } } } }
@@ -26,7 +27,10 @@
 # the opmodel.dev commit, from the "# site" line of versions.tsv; it is absent
 # when there is no versions.tsv. With OPM_VERSIONS set, or no versions.tsv,
 # the versions are the arguments, kind "explicit", label = name, the first the
-# default, no refs. layouts/_partials/opm/build-stamp.html shows it in the
+# default, no refs. "sections" comes from ENH_REF, ENH_SHA and ENH_HOW (set by
+# build-all.sh and serve.sh when the build has the enhancements section; the
+# ref is "worktree" and the sha may be empty in explicit mode); it is absent
+# without the section. layouts/_partials/opm/build-stamp.html shows it in the
 # footer, opm/source.html builds "View source" and "Edit" links from the
 # refs, and build-all.sh publishes it as public/build-stamp.json.
 set -eu
@@ -61,6 +65,11 @@ fi
   [ -z "$sep" ] || printf '\n  '
   printf '},\n'
   [ -z "$site" ] || printf '  "site": "%s",\n' "$site"
+  if [ -n "${ENH_TREE:-}" ]; then
+    case "${ENH_SHA:-}" in *[!0-9a-f]*) echo "gen-stamp: enhancements: not a commit SHA: $ENH_SHA" >&2; exit 1 ;; esac
+    case "${ENH_REF:-}${ENH_HOW:-}" in *[\"\\]*) echo "gen-stamp: enhancements: the ref or how holds a quote or a backslash" >&2; exit 1 ;; esac
+    printf '  "sections": {"enhancements": {"ref": "%s", "sha": "%s", "how": "%s"}},\n' "$ENH_REF" "${ENH_SHA:-}" "${ENH_HOW:-}"
+  fi
   printf '  "versions": {'
   printf '%s\n' "$rows" | awk -F'\t' '
     NF < 5 { next }

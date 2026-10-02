@@ -13,14 +13,15 @@
 #                                    (frozen.conf), write nothing
 #   resolve-versions.sh --pins REF   print the library, core and opm-operator refs that cli REF
 #                                    pins; no docs/site or floor check
-#   resolve-versions.sh --fetch      fetch every tag and branch of the six roots from origin
+#   resolve-versions.sh --fetch      fetch every tag and branch of the six roots (and of the
+#                                    enhancements root, when there is one) from origin
 #                                    (task versions:fetch); never moves or deletes a tag
 #
 # Environment:
 #   OPM_VERSIONS_MANIFEST  the manifest (default site/versions.conf); never
 #                          site/.versions/frozen.conf itself, which write mode rewrites
 #   OPM_VERSIONS           set by a caller that owns the version set (fixture builds)
-#   OPM_WS, OPM_SRC_WORKTREE, OPM_SRC_<REPO>
+#   OPM_WS, OPM_SRC_WORKTREE, OPM_SRC_<REPO>, OPM_SRC_ENHANCEMENTS
 #                          the source roots, resolved by run-in-image.sh exactly as for a build
 #
 # A version has one of three kinds, chosen by its keys:
@@ -67,9 +68,18 @@
 # records the opmodel.dev commit. frozen.conf is the same build as an anchored
 # manifest: a row whose docs is a tag by its tag name, every other row by SHA.
 #
+# The manifest may also name the enhancements section, [section "enhancements"],
+# which belongs to no version: ref = origin/<branch> (the remote-tracking ref,
+# never a local branch or HEAD), a tag or a full SHA, resolved on every run;
+# override = <full SHA> <reason> replaces it, and the ref it replaces is still
+# resolved for the record. The tree at the SHA must hold INDEX.md. It is one
+# "# section" line of versions.tsv ("# section\tenhancements\t<ref>\t<sha>\t<how>")
+# and a [section "enhancements"] block of frozen.conf, at the SHA. A manifest
+# without the stanza builds no such section.
+#
 # Failures print one line each, "<version>: <repo> <ref>: <reason>" (in a line
-# version the ref names the rule that chose it), all of them, and then the run
-# exits 1.
+# version the ref names the rule that chose it; for the section, "section
+# enhancements <ref>: <reason>"), all of them, and then the run exits 1.
 set -euf
 export LC_ALL=C
 REPOS="opm core catalog_opm cli library opm-operator"
@@ -157,7 +167,9 @@ if [ -n "$rootbad" ]; then printf '%s' "$rootbad" >&2; exit 1; fi
 # local branch is created or moved.
 if [ "$mode" = fetch ]; then
   failed=""
-  for r in $REPOS; do
+  fetch_roots=$REPOS
+  [ -z "$(root_of enhancements)" ] || fetch_roots="$REPOS enhancements"
+  for r in $fetch_roots; do
     root=$(root_of "$r")
     echo "resolve-versions: fetching $r ($root)"
     if git -C "$root" fetch --no-write-fetch-head --no-prune --no-prune-tags --no-tags --refmap= origin \
@@ -406,6 +418,8 @@ while IFS= read -r k; do
     repo.floor) case " $REPOS " in *" $sub "*) ;; *) err "$(basename "$manifest"): unknown key \"$k\" (repositories: $REPOS)" ;; esac ;;
     version.label|version.weight|version.default|version.source|version.cli|version.catalog|version.opm|version.override|version.cli-line|version.catalog-line)
       case " $versions " in *" $sub "*) ;; *) versions="$versions${versions:+ }$sub" ;; esac ;;
+    section.ref|section.override)
+      [ "$sub" = enhancements ] || err "$(basename "$manifest"): unknown key \"$k\" (the only section is enhancements)" ;;
     *) err "$(basename "$manifest"): unknown key \"$k\"" ;;
   esac
 done <<EOF
@@ -502,6 +516,30 @@ set -- $defaults
 # shellcheck disable=SC2086
 set -- $mains
 [ $# -le 1 ] || err "$(basename "$manifest"): at most one version has source = main; found:$mains"
+
+# The enhancements section: exactly one ref, at most one override with a
+# reason, and a root that is its own git top level.
+enh=""; enh_ref=""; enh_ovr=""
+if [ "$(count section.enhancements.ref)" -gt 0 ] || [ "$(count section.enhancements.override)" -gt 0 ]; then
+  enh=yes
+  n=$(count section.enhancements.ref); enh_ref=$(one section.enhancements.ref)
+  if [ "$n" -ne 1 ]; then err "section enhancements: exactly one ref is required ($n found)"
+  elif ! is_ref_text "$enh_ref"; then err "section enhancements: ref \"$enh_ref\": not origin/<branch>, a tag or a full SHA"; fi
+  n=$(count section.enhancements.override)
+  if [ "$n" -gt 1 ]; then err "section enhancements: more than one override"
+  elif [ "$n" -eq 1 ]; then
+    enh_ovr=$(one section.enhancements.override)
+    osha=${enh_ovr%% *}; reason=${enh_ovr#"$osha"}; reason=${reason# }
+    if ! is_sha "$osha" || [ -z "$reason" ]; then err "section enhancements: override \"$enh_ovr\": write override = <full 40-hex SHA> <reason>; the reason is required"
+    elif bad_text "$reason" || [ "$(lines section.enhancements.override)" -gt 1 ]; then err "section enhancements: override $osha: the reason holds a tab, ', \" or \\ or a line break"; fi
+  fi
+  eroot=$(root_of enhancements)
+  if [ -z "$eroot" ]; then
+    err "section enhancements: no enhancements root (a checkout holding INDEX.md); set OPM_SRC_ENHANCEMENTS, or remove the [section \"enhancements\"] stanza to build without the section"
+  elif [ "$(top_of enhancements)" = none ]; then
+    err "section enhancements: root $eroot: not its own git top level; set OPM_SRC_ENHANCEMENTS to a checkout or worktree of enhancements"
+  fi
+fi
 
 # A line version reads tags and remote-tracking refs, which a shallow root
 # lacks and a root without refs/remotes/origin/main has never fetched.
@@ -760,6 +798,37 @@ for v in $ordered; do
   [ -z "$fails" ] || errs="$errs$fails$NL"
 done
 
+# --- The enhancements section ---------------------------------------------------------
+# enh_resolve REF: the SHA that REF names in the enhancements root, else the
+# reason: origin/<branch> is refs/remotes/origin/<branch> (never a local branch
+# or HEAD), anything else a tag or a full SHA.
+enh_resolve() {
+  er_root=$(root_of enhancements)
+  case "$1" in
+    origin/?*)
+      commit_of "$er_root" "refs/remotes/$1" || { echo "no refs/remotes/$1 in $er_root; fetch it (task versions:fetch)"; return 1; } ;;
+    *)
+      if is_sha "$1"; then commit_of "$er_root" "$1" || { echo "not a commit in $er_root"; return 1; }
+      else commit_of "$er_root" "refs/tags/$1" || { echo "not origin/<branch>, a tag or a full SHA in $er_root (no refs/remotes/$1, no tag $1)"; return 1; }; fi ;;
+  esac
+}
+secline=""
+if [ -n "$enh" ]; then
+  if esha=$(enh_resolve "$enh_ref"); then ehow="ref $enh_ref"; else err "section enhancements $enh_ref: $esha"; esha=""; fi
+  if [ -n "$enh_ovr" ]; then
+    osha=${enh_ovr%% *}; reason=${enh_ovr#"$osha"}; reason=${reason# }
+    replaced=${esha:+ $(short "$esha")}
+    if esha=$(enh_resolve "$osha"); then ehow="override:$reason; replaces $enh_ref$replaced"
+    else err "section enhancements override $osha: $esha"; esha=""; fi
+  fi
+  if [ -n "$esha" ]; then
+    if ! git -C "$(root_of enhancements)" cat-file -e "$esha:INDEX.md" 2>/dev/null; then
+      err "section enhancements $enh_ref ($(short "$esha")): no INDEX.md at this commit"
+    fi
+    secline="# section${TAB}enhancements${TAB}$enh_ref${TAB}$esha${TAB}$ehow$NL"
+  fi
+fi
+
 if [ -n "$errs" ]; then
   printf '%s' "$errs" >&2
   echo "resolve-versions: $manifest: $(printf '%s' "$errs" | grep -c .) problem(s)" >&2
@@ -804,13 +873,15 @@ freeze() {
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }
     }'
+  # The section, at the SHA it built (its how, in a comment).
+  printf '%s' "$secline" | awk -F'\t' 'NF >= 5 { printf "[section \"%s\"]\n\t; frozen from %s (%s)\n\tref = %s\n", $2, $3, $5, $4 }'
 }
 
 nvers=$(printf '%s' "$ordered" | grep -c .)
 case "$mode" in
   check)
-    printf '%s\n%s%s' "$header" "$siteline" "$rows"
-    echo "resolve-versions: $nvers version(s) resolved from $manifest; nothing written" >&2
+    printf '%s\n%s%s%s' "$header" "$siteline" "$secline" "$rows"
+    echo "resolve-versions: $nvers version(s)${secline:+ and the enhancements section} resolved from $manifest; nothing written" >&2
     exit 0 ;;
   freeze)
     freeze
@@ -818,8 +889,8 @@ case "$mode" in
     exit 0 ;;
 esac
 mkdir -p "$(dirname "$OUT")"
-printf '%s\n%s%s' "$header" "$siteline" "$rows" > "$OUT.tmp"
+printf '%s\n%s%s%s' "$header" "$siteline" "$secline" "$rows" > "$OUT.tmp"
 freeze > "$FROZEN.tmp"
 mv "$OUT.tmp" "$OUT"
 mv "$FROZEN.tmp" "$FROZEN"
-echo "resolve-versions: $nvers version(s) from $manifest -> $OUT, $FROZEN"
+echo "resolve-versions: $nvers version(s)${secline:+ and the enhancements section} from $manifest -> $OUT, $FROZEN"

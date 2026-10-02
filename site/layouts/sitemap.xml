@@ -1,9 +1,11 @@
 {{- /* Hugo's sitemap, per version, plus <lastmod> from data/opm/lastmod.json
        (Hugo's own .Lastmod is empty: GitInfo cannot see the mounted repos).
-       Hextra ships no sitemap template, so this copies nothing. */ -}}
+       Hextra ships no sitemap template, so this copies nothing. The
+       Enhancements section belongs to no version, so no version's sitemap
+       lists it. */ -}}
 {{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  {{- range where .Pages "Sitemap.Disable" "ne" true }}
+  {{- range where (where .Pages "Sitemap.Disable" "ne" true) "Section" "ne" "enhancements" }}
   <url>
     <loc>{{ .Permalink }}</loc>
     {{- with (partial "opm/source.html" .).key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- with index . site.Version.Name }}

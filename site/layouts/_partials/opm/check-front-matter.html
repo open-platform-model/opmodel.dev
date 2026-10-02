@@ -5,9 +5,11 @@
        front matter. A bad type would otherwise make Hugo pick another layout,
        silently. Rules (0018:D7, 0018:D7:R1): title and description are
        required; a leaf page declares one of four types; a section overview
-       and the home declare none. */ -}}
+       and the home declare none. A page a content adapter adds reports the
+       adapter (_content.gotmpl) as its file and has no front matter of its
+       own; the adapter sets its fields, so it is not checked here. */ -}}
 {{- with .File -}}
-  {{- if eq $.Kind "page" "section" "home" -}}
+  {{- if and (eq $.Kind "page" "section" "home") (ne .BaseFileName "_content") -}}
     {{- $f := .Filename -}}
     {{- if not (strings.TrimSpace ($.Params.title | default "")) -}}
       {{- errorf "front matter: %s: missing title" $f -}}

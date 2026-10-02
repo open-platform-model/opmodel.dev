@@ -75,6 +75,7 @@ tasks:
       OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
       OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
       OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_SRC_ENHANCEMENTS: '{{.OPM_SRC_ENHANCEMENTS}}'
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       OPM_VERSIONS_MANIFEST: '{{.OPM_VERSIONS_MANIFEST}}'
     cmds:
@@ -96,7 +97,7 @@ tasks:
   # or a local branch and writes nothing in a worktree. It fails, naming the
   # root, when a local tag differs from origin's.
   versions:fetch:
-    desc: Fetch every tag and branch of the six source roots from origin (refs/remotes/origin/*), never moving or deleting a tag; run it before a local build after a release
+    desc: Fetch every tag and branch of the six source roots and enhancements from origin (refs/remotes/origin/*), never moving or deleting a tag; run it before a local build after a release
     env: *versions-env
     cmds:
       - sh site/scripts/resolve-versions.sh --fetch
@@ -142,6 +143,7 @@ tasks:
       OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
       OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
       OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_SRC_ENHANCEMENTS: '{{.OPM_SRC_ENHANCEMENTS}}'
       OPM_REQUIRE_DATES: '{{.OPM_REQUIRE_DATES}}'
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       SITE_PORT: '{{.SITE_PORT}}'

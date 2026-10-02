@@ -1,0 +1,23 @@
+id: "0001"
+slug: fixture-live-entry
+title: Fixture Live Entry
+summary: >-
+  A live draft entry of the fixture workspace.
+status: draft
+category: schema
+affects:
+  - core
+  - cli
+core_schema: false
+created: "2026-09-01"
+updated: "2026-09-20"
+authors:
+  - fixture
+history:
+  - date: "2026-09-01"
+    event: Drafted
+depends_on: ["0002"]
+amends: []
+supersedes: []
+revives: []
+superseded_by: null

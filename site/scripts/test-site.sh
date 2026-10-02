@@ -11,6 +11,10 @@
 # /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
+#   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
+#                                              entry, an archived one and the 0000
+#                                              template), read in place as explicit mode
+#                                              reads /src/enhancements
 #   site/tests/subpath/env                     the base URL the fixture workspace also
 #                                              builds under (a two-segment path)
 #   site/tests/lint/<case>/                    lint cases
@@ -19,6 +23,7 @@
 #
 # A case directory holds any of:
 #   <repo>/docs/site/...  pages laid over the copy of the fixture workspace
+#   enhancements/...      files laid over the copy of its enhancements tree
 #   site/...              files laid over the copy of the site (site-owned pages, config)
 #   setup.sh              run after the copies, with SITE and WS set to them
 #   env                   KEY=VALUE lines exported for the build (checks only)
@@ -50,7 +55,7 @@ bad() { echo "FAIL $1: $2"; fail=$((fail + 1)); [ -z "${3:-}" ] || tail -n 15 "$
 copy_site() {
   d=$OUT/$1/site
   mkdir -p "$d"
-  for e in config content layouts assets static data i18n archetypes themes scripts; do
+  for e in config content enhancements layouts assets static data i18n archetypes themes scripts; do
     [ -d "$SITE/$e" ] && cp -R "$SITE/$e" "$d/"
   done
   for e in "$SITE"/* "$SITE"/.[!.]*; do
@@ -69,7 +74,7 @@ copy_ws() {
 # overlay CASE DIR: lay DIR's repo trees over the workspace copy and its site/
 # tree over the site copy, then run its setup.sh.
 overlay() {
-  for r in $REPOS; do
+  for r in $REPOS enhancements; do
     [ -d "$2/$r" ] && cp -R "$2/$r" "$OUT/$1/ws/"
   done
   if [ -d "$2/site" ]; then cp -R "$2/site/." "$OUT/$1/site/"; fi
@@ -244,6 +249,80 @@ $mdbad"; fi
 fi
 
 # ---------------------------------------------------------------------------
+# The Enhancements section, from the fixture's enhancements tree: unversioned
+# pages at /enhancements/, the tab, repository links mapped, the exclusions.
+if [ $rc -eq 0 ]; then
+  E=$OUT/$name/site/public/enhancements
+  log=$OUT/$name/log
+  if [ -f "$E/index.html" ] && [ -f "$E/graph/index.html" ] && [ -f "$E/0001/decisions/index.html" ] &&
+     [ -f "$E/0002/questions/index.html" ] && [ ! -e "$E/0000" ] && [ ! -e "$P/enhancements" ] &&
+     grep -qF 'enhancements: 18 pages expected, 18 built' "$log"; then
+    ok "enhancements/pages" "the section page, the graph, two entries with seven documents each, keyed by id (archive/0002 at /enhancements/0002/); no 0000 template, nothing under /v1.0/"
+  else bad "enhancements/pages" "the section's page set is wrong" "$log"; fi
+
+  why=""
+  for f in "$P/docs/start/quickstart/index.html" "$E/0001/index.html"; do
+    dq "$f" | grep -qE '<a title href=/enhancements/ class=' || why="${why:+$why; }no Enhancements tab in ${f#"$OUT"/}"
+  done
+  dq "$E/0001/index.html" | grep -qE '<a title href=/enhancements/ class=[^>]*font-medium' || why="${why:+$why; }the tab is not current on an entry"
+  ! grep -q 'opm-version-label' "$E/0001/index.html" || why="${why:+$why; }an entry shows the version label"
+  if [ -z "$why" ]; then ok "enhancements/tab" "every page has the Enhancements tab, current on the section; no version label there"
+  else bad "enhancements/tab" "$why"; fi
+
+  r=$(dq "$E/0001/index.html")
+  why=""
+  for want in 'href=/enhancements/0001/design/>the design document' 'href=/enhancements/0001/decisions/#d1>D1' \
+    'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>the index' 'href=/enhancements/graph/>the relationship graph' \
+    'href=/enhancements/0001/decisions/>Decisions' \
+    'href=https://github.com/open-platform-model/enhancements/blob/main/0001/schemas/target.cue' \
+    'href=https://github.com/open-platform-model/enhancements/tree/main/0001/schemas' \
+    'href=/v1.0/docs/start/>the start section'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  dq "$E/0002/index.html" | grep -qF 'href=/enhancements/0001/decisions/#d1>D1' || why="${why:+$why; }the archived entry's link to 0001's D1"
+  dq "$E/index.html" | grep -qF 'href=/enhancements/0002/>0002' || why="${why:+$why; }the INDEX link to archive/0002"
+  if [ -z "$why" ]; then ok "enhancements/links" "repository links map to section pages by id, other paths to GitHub (blob, tree), /docs/ into v1.0; a file-name label reads as its page"
+  else bad "enhancements/links" "$why"; fi
+
+  d=$E/0001/decisions/index.html
+  if grep -qE 'id="?d1"?' "$d" && grep -qE 'id="?d2"?' "$d" && grep -qE 'id="?d1-a-first-decision"?' "$d"; then
+    ok "enhancements/anchors" "a decision heading keeps its automatic id and gains d1, d2"
+  else bad "enhancements/anchors" "no d1/d2 anchors on 0001's decisions" "$d"; fi
+
+  why=""
+  dq "$E/0001/index.html" | grep -qF 'name=robots content=noindex>' || why="the draft entry has no noindex"
+  ! dq "$E/0002/index.html" | grep -qF 'content=noindex>' || why="${why:+$why; }the delivered entry has noindex"
+  grep -q 'enhancements' "$P/llms.txt" "$P/sitemap.xml" && why="${why:+$why; }the section is in llms.txt or the sitemap"
+  [ ! -e "$OUT/$name/site/public/latest/enhancements" ] || why="${why:+$why; }/latest/enhancements/ stubs"
+  [ -f "$E/pagefind/pagefind.js" ] || why="${why:+$why; }no section Pagefind bundle"
+  grep -qF 'enhancements/pagefind/' "$(find "$OUT/$name/site/public" -maxdepth 1 -name 'enhancements.*.pagefind.*js' | head -n 1)" 2>/dev/null || why="${why:+$why; }the section's search adapter does not load its bundle"
+  grep -q 'Edit this page' "$E/0001/index.html" && why="${why:+$why; }an entry has an edit link"
+  dq "$E/0001/index.html" | grep -qF 'class=opm-enh-status role=note data-pagefind-ignore=all data-status=draft' || why="${why:+$why; }no draft banner"
+  if [ -z "$why" ]; then ok "enhancements/exclusions" "draft noindex, delivered indexed; out of llms.txt, the sitemap and /latest/; own search bundle; a status banner, no edit link"
+  else bad "enhancements/exclusions" "$why"; fi
+
+  why=""
+  grep -rqF 'quokkabrief' "$E" && why="a planning comment reached the section"
+  grep -qF 'author --&gt; platform' "$d" || why="${why:+$why; }the ASCII arrow is missing from the code block"
+  grep -qE '<h1[^>]*>Enhancement 0001' "$E/0001/index.html" && why="${why:+$why; }the source title line was kept"
+  if [ -z "$why" ]; then ok "enhancements/content" "comments and the title line stripped; an escaped --> in a code block passes the comment check"
+  else bad "enhancements/content" "$why"; fi
+
+  # A mermaid fence in the section is drawn: in a focusable, labelled
+  # scroller, at its natural size, and only that page loads the vendored
+  # Mermaid, fingerprinted with SRI; no other page loads it.
+  why=""
+  r=$(dq "$E/0001/index.html")
+  printf '%s' "$r" | grep -qF '<div class=opm-enh-diagram tabindex=0 role=region aria-label=Diagram><pre class=mermaid>' || why="no focusable diagram scroller"
+  printf '%s' "$r" | grep -qF '%%{init: {&#34;flowchart&#34;: {&#34;useMaxWidth&#34;: false}' || why="${why:+$why; }no useMaxWidth false directive"
+  printf '%s' "$r" | grep -qE '<script defer src=/lib/mermaid/mermaid\.min\.581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8\.js integrity=sha256-[^ ]+ crossorigin=anonymous>' || why="${why:+$why; }the page does not load the pinned Mermaid with SRI"
+  others=$(find "$OUT/$name/site/public" -name '*.html' -exec grep -lF 'lib/mermaid/' {} + | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html")
+  [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
+  if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
+  else bad "enhancements/diagrams" "$why"; fi
+fi
+
+# ---------------------------------------------------------------------------
 # The fixture workspace under a two-segment base path (tests/subpath/env): the
 # build is green with the crawl's base-path rules, and every URL a reader, a
 # crawler or the search palette meets carries /opm/docs/.
@@ -271,7 +350,7 @@ if [ $rc -eq 0 ]; then
     ok "$name/404" "the root 404.html leads to /opm/docs/v1.0/docs/"
   else bad "$name/404" "the root 404.html's Go to the docs link is not /opm/docs/v1.0/docs/"; fi
 
-  adapter=$(find "$R" -maxdepth 1 -name '*.pagefind.*js' | head -n 1)
+  adapter=$(find "$R" -maxdepth 1 -name 'v1.0.*.pagefind.*js' | head -n 1)
   if [ -n "$adapter" ] && grep -qF '/opm/docs/v1.0/pagefind/' "$adapter" && dq "$adapter" | grep -qF 'baseUrl:/opm/docs/v1.0/'; then
     ok "$name/search" "the Pagefind adapter loads /opm/docs/v1.0/pagefind/ and passes baseUrl /opm/docs/v1.0/"
   else bad "$name/search" "the Pagefind adapter (${adapter:-not found}) misses the bundle path or baseUrl under /opm/docs/"; fi
@@ -330,6 +409,23 @@ else
   if grep -q '\[!' "$f"; then why="${why:+$why; }a literal [! is left"; fi
   if [ -z "$why" ]; then ok "$name/alerts" "NOTE, TIP, IMPORTANT, WARNING and CAUTION render as Hextra alerts with their bold title"
   else bad "$name/alerts" "$why"; fi
+  # A NOTE whose bold title line is Direction is a direction note: labelled
+  # Direction, its title line not repeated, in the opm-direction box; the
+  # other note on the page stays a Note. Its /enhancements/ links resolve to
+  # the unversioned section, in the page and as absolute URLs in its .md.
+  g=$OUT/$name/site/public/v1.0/docs/start/direction/index.html
+  why=""
+  r=$(dq "$g" | tr '\n' ' ')
+  [ "$(printf '%s' "$r" | grep -o 'class=opm-direction' | wc -l | tr -d ' ')" = 1 ] || why="not exactly one opm-direction box"
+  printf '%s' "$r" | grep -qE 'class=opm-direction> *<div data-alert=note class=hextra-alert> *<p class=hextra-alert-title>.*<span class=hextra-alert-title-text>Direction</span></p> *<div class=hextra-alert-content> *<p>Enhancement 0001' || why="${why:+$why; }the direction note is not labelled Direction with its body first"
+  printf '%s' "$r" | grep -qF '<strong>Direction</strong>' && why="${why:+$why; }the Direction title line is repeated"
+  printf '%s' "$r" | grep -qE 'hextra-alert-title-text>Note</span></p> *<div class=hextra-alert-content> *<p><strong>Not a direction</strong>' || why="${why:+$why; }the ordinary note changed"
+  for want in 'href=/enhancements/0001/>Fixture Live Entry' 'href=/enhancements/0001/decisions/#d1>first decision' 'href=/enhancements/>all enhancements'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  grep -qF '](https://opmodel.dev/enhancements/0001/decisions/#d1)' "${g%/index.html}.md" || why="${why:+$why; }the .md output does not link https://opmodel.dev/enhancements/0001/decisions/#d1"
+  if [ -z "$why" ]; then ok "$name/direction" "a Direction note is labelled Direction in its own box, the plain note stays Note; /enhancements/ links resolve, absolute in the .md"
+  else bad "$name/direction" "$why" "$g"; fi
   # Chroma marks a Name with class n: the field after each "" must be one.
   cue=$(tr -d '\n' < "$f")
   after='&#34;&#34;</span></span></span><span class="\{0,1\}line"\{0,1\}><span class="\{0,1\}cl"\{0,1\}>	<span class="\{0,1\}n"\{0,1\}>'
@@ -337,6 +433,25 @@ else
      ! grep -q OPMEMPTYSTRING "$f"; then
     ok "$name/cue" "the line after a CUE \"\" is tokenised as a name; no placeholder is left"
   else bad "$name/cue" "the CUE \"\" swallowed the lines after it"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# The dialect tree as two versions: the Enhancements section lives in the
+# default version's page tree only, and a source link into it resolves to the
+# same unversioned URL from the other version too.
+name=dialect-two-versions
+copy_site "$name"; copy_ws "$name"; overlay "$name" "$TESTS/dialect"
+(SITE_DIR=$OUT/$name/site OPM_VERSIONS="v1.0=$OUT/$name/ws v0.9=$OUT/$name/ws" sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+if [ $rc -ne 0 ]; then bad "$name" "the two-version dialect build failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  for v in v1.0 v0.9; do
+    g=$OUT/$name/site/public/$v/docs/start/direction/index.html
+    dq "$g" | grep -qF 'href=/enhancements/0001/decisions/#d1>first decision' || why="${why:+$why; }$v does not link /enhancements/0001/decisions/#d1"
+  done
+  [ ! -e "$OUT/$name/site/public/v0.9/enhancements" ] || why="${why:+$why; }the section published under v0.9"
+  if [ -z "$why" ]; then ok "$name/enhancement-links" "a source link into the section resolves to /enhancements/... from the default and the other version"
+  else bad "$name/enhancement-links" "$why"; fi
 fi
 
 # ---------------------------------------------------------------------------

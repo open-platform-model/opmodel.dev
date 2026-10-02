@@ -12,8 +12,8 @@
 #   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only, mounts no source root
 #   run-in-image.sh qa-image build opmodel-dev-qa:<first 12 hex of sha256(site/tests/browser/Dockerfile)> if missing (network)
 #   run-in-image.sh qa-tag   print that tag
-#   run-in-image.sh shots    site/tests/browser/shots.py over the built site/public/, --network none -> site/.shots/
-#   run-in-image.sh qa       shots.py, then a11y.py and search.py, --network none, no published port
+#   run-in-image.sh shots    site/tests/browser/shots.py and diagrams.py over the built site/public/, --network none -> site/.shots/
+#   run-in-image.sh qa       shots.py and diagrams.py, then a11y.py and search.py, --network none, no published port
 #
 # Environment. Each is read from the environment first; an empty value counts as unset.
 #   OPM_WS             workspace root. Default: the parent of the opmodel.dev main checkout, from
@@ -23,6 +23,12 @@
 #                      $OPM_WS/<repo>/.claude/worktrees/$OPM_SRC_WORKTREE when OPM_SRC_WORKTREE is set,
 #                      else $OPM_WS/<repo>.
 #   OPM_SRC_WORKTREE   worktree name used for every unset OPM_SRC_<REPO>.
+#   OPM_SRC_ENHANCEMENTS  the enhancements repository (the design record, built as the
+#                      unversioned /enhancements/ section). Default: $OPM_WS/enhancements;
+#                      OPM_SRC_WORKTREE does not apply. Optional here: a root without INDEX.md is
+#                      not mounted, and a build in explicit mode then has no such section;
+#                      resolve-versions.sh fails when the manifest names the section and the
+#                      root is missing.
 #   SITE_PORT          host port for serve (default 1313).
 #   OPM_REQUIRE_DATES  1 fails the build when a page has no git date (default 0).
 #   OPM_VERSIONS       name=root ... (roots are container paths). Passed into the container only
@@ -35,7 +41,8 @@
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
 # Containers: --rm --init --user <uid>:<gid>, no --name. The repo is mounted at /work/repo and
-# each source root read-only at /src/<repo>, never with :z.
+# each source root read-only at /src/<repo> (the enhancements root at /src/enhancements),
+# never with :z.
 set -eu
 REPOS="opm core catalog_opm cli library opm-operator"
 DOCKERFILE=site/Dockerfile
@@ -97,6 +104,19 @@ sources() {
   if [ -n "$missing" ]; then
     die "source roots missing (set OPM_WS, OPM_SRC_WORKTREE or OPM_SRC_<REPO>):$missing"
   fi
+  # The enhancements root: mounted only when it holds INDEX.md; its HEAD joins REFS.
+  enh=$(envval OPM_SRC_ENHANCEMENTS); enh=${enh:-$ws/enhancements}
+  if [ -f "$enh/INDEX.md" ]; then
+    abs=$(cd "$enh" && pwd -P)
+    case "$abs" in *[:,\ ]*) die "OPM_SRC_ENHANCEMENTS: $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+    MOUNTS="$MOUNTS -v $abs:/src/enhancements:ro"
+    top=$(git -C "$abs" rev-parse --show-toplevel 2>/dev/null || true)
+    if [ -n "$top" ] && [ "$(cd "$top" && pwd -P)" = "$abs" ]; then
+      REFS="$REFS enhancements=$(git -C "$abs" rev-parse HEAD)"
+    else
+      REFS="$REFS enhancements=none"
+    fi
+  fi
   REFS=${REFS# }
 }
 
@@ -152,7 +172,8 @@ case "$mode" in
     [ -f site/public/_redirects ] || die "site/public/ holds no build; run the build task first"
     qa_image >/dev/null
     b=/work/repo/site/tests/browser
-    if [ "$mode" = shots ]; then cmd="python3 $b/shots.py"; else cmd="python3 $b/shots.py && python3 $b/a11y.py && python3 $b/search.py"; fi
+    cmd="python3 $b/shots.py && python3 $b/diagrams.py"
+    if [ "$mode" = qa ]; then cmd="$cmd && python3 $b/a11y.py && python3 $b/search.py"; fi
     run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
   *) sed -n '2,15p' "$0" >&2; exit 2 ;;
 esac

@@ -98,12 +98,19 @@ defaultContentVersionInSubdir = true
   # from jsDelivr or unpkg when they are on: image zoom (medium-zoom) and
   # remote icons are switched off here. Math (KaTeX, MathJax) loads only
   # through a Goldmark extension this site leaves off (Hugo's default).
-  # Mermaid, asciinema and PhotoSwipe load only for a mermaid code fence or
-  # Hextra's asciinema and gallery shortcodes: the source lint rejects every
-  # shortcode but the opm/ figures, a mermaid fence fails the network-less
-  # build, and check 11 fails on any CDN URL in the output.
+  # Asciinema and PhotoSwipe load only for Hextra's asciinema and gallery
+  # shortcodes, which the source lint rejects (it allows only the opm/
+  # figures), and check 11 fails on any CDN URL in the output.
   [params.imageZoom]
     enable = false
+  # Mermaid is vendored (assets/lib/mermaid/, pinned in vendored.sha256), so
+  # Hextra's scripts/mermaid.html loads it with resources.Get, fingerprinted
+  # and with SRI, never from its CDN default; only a page whose content set
+  # hasMermaid loads it. Only the Enhancements section draws a diagram
+  # (layouts/enhancements/_markup/render-codeblock-mermaid.html); a mermaid
+  # fence anywhere else fails the build (layouts/_markup/).
+  [params.mermaid]
+    js = 'lib/mermaid/mermaid.min.js'
   [params.icons.remote]
     enable = false
   [params.opm]
@@ -117,6 +124,10 @@ defaultContentVersionInSubdir = true
     # params.opm.versions, an array of {name, label} (so no param key holds a
     # dot), is generated into config/<environment>/hugo.toml.
 
+# Weight 3 is the Enhancements tab, between Reference and Search:
+# scripts/gen-mounts.sh writes it into config/<environment>/hugo.toml only
+# for a build that has the enhancements section, so a build without it shows
+# no tab whose link names nothing.
 [menus]
   [[menus.main]]
     name = 'Docs'
@@ -128,17 +139,17 @@ defaultContentVersionInSubdir = true
     weight = 2
   [[menus.main]]
     name = 'Search'
-    weight = 3
+    weight = 4
     [menus.main.params]
       type = 'search'
   [[menus.main]]
     name = 'GitHub'
-    weight = 4
+    weight = 5
     url = 'https://github.com/open-platform-model'
     [menus.main.params]
       icon = 'github'
   [[menus.main]]
     name = 'Theme'
-    weight = 5
+    weight = 6
     [menus.main.params]
       type = 'theme-toggle'

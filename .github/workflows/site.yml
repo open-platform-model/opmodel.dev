@@ -1,5 +1,5 @@
 # Builds and tests the site exactly as the Taskfile does locally. The build
-# reads six source repositories, checked out beside opmodel.dev as they sit in
+# reads six source repositories and enhancements, checked out beside opmodel.dev as they sit in
 # the workspace, so OPM_WS (the parent of the opmodel.dev checkout) is
 # $GITHUB_WORKSPACE. README.md "CI" names the local equivalents.
 name: Site
@@ -118,6 +118,16 @@ jobs:
           path: opm-operator
           fetch-depth: 0
           persist-credentials: false
+      - name: Check out enhancements
+        # The design record, the unversioned Enhancements section: the
+        # resolver reads its origin/main (site/versions.conf).
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/enhancements
+          ref: main
+          path: enhancements
+          fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -159,6 +169,8 @@ jobs:
             echo '|---|---|---|---|---|---|'
             jq -r '.versions | to_entries[] | .key as $v | .value.refs | to_entries[]
               | "| \($v) | \(.key) | \(.value.ref) | \(.value.docs // "") | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
+            jq -r '.sections // {} | to_entries[]
+              | "| (unversioned) | \(.key) | \(.value.ref) | | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -219,7 +231,7 @@ jobs:
       run:
         working-directory: opmodel.dev
     # task qa builds site/public itself and that build reads all six source
-    # roots, so this job runs beside build with the same seven checkouts
+    # roots and enhancements, so this job runs beside build with the same eight checkouts
     # instead of downloading the site-public artifact.
     steps:
       - name: Check out opmodel.dev
@@ -274,6 +286,16 @@ jobs:
           repository: open-platform-model/opm-operator
           ref: main
           path: opm-operator
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out enhancements
+        # The design record, the unversioned Enhancements section: the
+        # resolver reads its origin/main (site/versions.conf).
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/enhancements
+          ref: main
+          path: enhancements
           fetch-depth: 0
           persist-credentials: false
 
@@ -359,6 +381,13 @@ jobs:
           repository: open-platform-model/opm-operator
           ref: main
           path: opm-operator
+          persist-credentials: false
+      - name: Check out enhancements
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: open-platform-model/enhancements
+          ref: main
+          path: enhancements
           persist-credentials: false
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0

@@ -1,0 +1,23 @@
+id: "0000"
+slug: template
+title: Template
+summary: >-
+  The scaffold template, never published.
+status: draft
+category: misc
+affects:
+  - core
+  - cli
+core_schema: false
+created: "2026-09-01"
+updated: "2026-09-01"
+authors:
+  - fixture
+history:
+  - date: "2026-09-01"
+    event: Drafted
+depends_on: []
+amends: []
+supersedes: []
+revives: []
+superseded_by: null

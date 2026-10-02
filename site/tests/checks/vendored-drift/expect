@@ -1,0 +1,3 @@
++ assets/lib/mermaid/mermaid.min.js: FAILED
++ check-vendored: FAILED
+- == source lint

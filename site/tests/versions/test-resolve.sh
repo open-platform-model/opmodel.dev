@@ -17,6 +17,9 @@
 #     stamp, the frozen round trip, the recovery to the frozen version block,
 #     and the fetch under prune config, under a configured branch mapping and
 #     against a conflicting upstream tag;
+#   - the enhancements section ([section "enhancements"]): origin/main, a tag,
+#     an override, the frozen block, and its grammar and root errors, on a
+#     small enhancements repository and its clone;
 #   - the pins at the real cli v1.0.0-alpha.25, a --check anchored there, a
 #     line version cli-line = v1.0, catalog-line = opm-v4 checked against
 #     git's own tag order, and its frozen version block resolved as an
@@ -121,6 +124,15 @@ gomod "$T/cli" v2.1.0; commit "$T/cli" restore > /dev/null
 # whose docs come from main's head still reads its pins at the tag.
 gomod "$T/cli" v2.3.0; commit "$T/cli" "main pins library v2.3.0" > /dev/null
 
+# enhancements: an upstream with two commits holding INDEX.md (the first
+# tagged), and a commit without it; enh/ is its clone, the root of the
+# section cases, so refs/remotes/origin/main exists as in CI.
+mkdir -p "$T/enh-up"; g "$T/enh-up" init -q -b main
+printf '# Index\n' > "$T/enh-up/INDEX.md"; ENH_OLD=$(commit "$T/enh-up" "index"); g "$T/enh-up" tag enh-v1
+printf '# Index\n\nMore.\n' > "$T/enh-up/INDEX.md"; ENH_SHA=$(commit "$T/enh-up" "more")
+g "$T/enh-up" switch -q -c bare; g "$T/enh-up" rm -q INDEX.md; printf 'x\n' > "$T/enh-up/README.md"; ENH_BARE=$(commit "$T/enh-up" "no index"); g "$T/enh-up" switch -q main
+gx clone -q "$T/enh-up" "$T/enh"
+
 # A docs/site tree inside another repository (this worktree), like A's
 # fixture workspace: not its own git top level.
 mkdir -p "$T/inside/opm"; page "$T/inside/opm" start
@@ -138,7 +150,7 @@ manifest() { { floors; printf '%s\n' "$2"; } > "$T/manifests/$1.conf"; echo "$T/
 # repositories themselves, or their clones under line/); output in $out,
 # status in $rc.
 R=$T
-fixture_env() { echo "OPM_SRC_OPM=$R/opm OPM_SRC_CORE=$R/core OPM_SRC_CATALOG_OPM=$R/catalog_opm OPM_SRC_CLI=$R/cli OPM_SRC_LIBRARY=$R/library OPM_SRC_OPM_OPERATOR=$R/opm-operator OPM_VERSIONS="; }
+fixture_env() { echo "OPM_SRC_OPM=$R/opm OPM_SRC_CORE=$R/core OPM_SRC_CATALOG_OPM=$R/catalog_opm OPM_SRC_CLI=$R/cli OPM_SRC_LIBRARY=$R/library OPM_SRC_OPM_OPERATOR=$R/opm-operator OPM_SRC_ENHANCEMENTS=$T/enh OPM_VERSIONS="; }
 run() { # MANIFEST [EXTRA ENV...] -- resolver args
   m=$1; shift; extra=""
   while [ $# -gt 0 ] && [ "$1" != -- ]; do extra="$extra $1"; shift; done
@@ -319,6 +331,39 @@ expect root-missing 1 "a missing root fails before any ref, naming OPM_SRC_CORE"
 run "$(manifest root-fixture "$good")" OPM_SRC_OPM="$T/inside/opm" -- --check
 expect root-fixture 1 "a root inside another repository fails, naming OPM_SRC_OPM and explicit mode" \
   "opm: root $T/inside/opm: not its own git top level" "set OPM_SRC_OPM" "OPM_VERSIONS=v1.0=/src"
+
+# --- The enhancements section -------------------------------------------------------
+sec() { printf '%s\n[section "%s"]\n\t%s\n' "$good" "${2:-enhancements}" "$1"; }
+run "$(manifest enh-main "$(sec 'ref = origin/main')")" -- --check
+expect enh-main 0 "ref = origin/main resolves the remote-tracking ref into the # section line" \
+  "# section${TAB}enhancements${TAB}origin/main${TAB}$ENH_SHA${TAB}ref origin/main"
+run "$(manifest enh-tag "$(sec 'ref = enh-v1')")" -- --check
+expect enh-tag 0 "ref = a tag resolves the tag" "# section${TAB}enhancements${TAB}enh-v1${TAB}$ENH_OLD${TAB}ref enh-v1"
+run "$(manifest enh-override "$(sec "ref = origin/main
+	override = $ENH_OLD the newest commit breaks the build")")" -- --check
+expect enh-override 0 "an override pins its SHA, naming its reason and the ref it replaces" \
+  "# section${TAB}enhancements${TAB}origin/main${TAB}$ENH_OLD${TAB}override:the newest commit breaks the build; replaces origin/main $(printf '%.7s' "$ENH_SHA")"
+run "$(manifest enh-freeze "$(sec 'ref = origin/main')")" -- --freeze
+expect enh-freeze 0 "the frozen manifest pins the section at its SHA" "[section \"enhancements\"]" "ref = $ENH_SHA"
+run "$(manifest enh-local "$(sec 'ref = main')")" -- --check
+expect enh-local 1 "a local branch is refused, naming the section and the ref" \
+  "section enhancements main: not origin/<branch>, a tag or a full SHA"
+run "$(manifest enh-no-index "$(sec "ref = $ENH_BARE")")" -- --check
+expect enh-no-index 1 "a commit without INDEX.md fails" "section enhancements $ENH_BARE ($(printf '%.7s' "$ENH_BARE")): no INDEX.md at this commit"
+run "$(manifest enh-no-reason "$(sec "ref = origin/main
+	override = $ENH_OLD")")" -- --check
+expect enh-no-reason 1 "an override without a reason fails" "section enhancements: override" "the reason is required"
+run "$(manifest enh-two-refs "$(sec "ref = origin/main
+	ref = enh-v1")")" -- --check
+expect enh-two-refs 1 "two refs fail" "section enhancements: exactly one ref is required (2 found)"
+run "$(manifest enh-unknown "$(sec 'ref = origin/main' docs)")" -- --check
+expect enh-unknown 1 "a section other than enhancements fails, naming the key" 'unknown key "section.docs.ref" (the only section is enhancements)'
+run "$(manifest enh-no-root "$(sec 'ref = origin/main')")" OPM_SRC_ENHANCEMENTS="$T/nope" -- --check
+expect enh-no-root 1 "a missing root fails, naming OPM_SRC_ENHANCEMENTS" "section enhancements: no enhancements root" "set OPM_SRC_ENHANCEMENTS"
+run "$(manifest enh-none "$good")" -- --check
+rc_none=$rc
+if [ "$rc_none" = 0 ] && ! printf '%s\n' "$out" | grep -q '^# section'; then ok enh-none "a manifest without the stanza has no section"
+else bad enh-none "exit $rc_none, or a # section line without the stanza"; fi
 
 # --- Line versions: the repositories above are the upstreams ----------------------
 # Their clones under line/ are the roots, so refs/remotes/origin/* and the tags

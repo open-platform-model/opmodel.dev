@@ -37,7 +37,8 @@ for dir in "$@"; do
       function dest(t) {
         if (t ~ /^(https?:|mailto:|#)/) return
         if (t ~ /^\/docs\//) { if (t !~ /^\/docs\/([a-z0-9-]+\/)*(#[^ ]*)?$/) err(NR, "internal link \"" t "\": write /docs/<section>/<page>/ with a trailing slash"); return }
-        err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ (no relative, .md or version-prefixed links)")
+        if (t ~ /^\/enhancements([\/#]|$)/) { if (t !~ /^\/enhancements\/([0-9][0-9][0-9][0-9]\/((problem|design|decisions|graduation|risks|operational|questions)\/)?)?(#[^ ]*)?$/) err(NR, "enhancement link \"" t "\": write /enhancements/, /enhancements/<NNNN>/ or /enhancements/<NNNN>/<document>/ with a trailing slash"); return }
+        err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ or /enhancements/<NNNN>/ (no relative, .md or version-prefixed links)")
       }
       NR == 1 { if ($0 != "---") { err(1, "front matter must open on line 1 with ---"); nofm = 1 } else { infm = 1; next } }
       infm {

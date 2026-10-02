@@ -99,6 +99,23 @@ why="_redirects or a /latest/ stub does not point at v1.0"
 check "_redirects and the /latest/ stubs point at v1.0" sh -c 'grep -qx "/latest/\* /v1.0/:splat 302" "$1/_redirects" &&
   grep -q "url=/v1.0/\"" "$1/latest/index.html" && grep -q "url=/v1.0/docs/\"" "$1/latest/docs/index.html"' - "$P"
 
+# The enhancements section belongs to no version: it publishes once, at
+# /enhancements/, and every version's pages carry the tab to it, the
+# non-default version's too, where its page does not exist (Hugo would warn,
+# and --panicOnWarning fail the build, if a template could not take that).
+why="no $P/enhancements/index.html, or a copy under a version"
+check "the enhancements section publishes once, outside every version" \
+  [ -f "$P/enhancements/index.html" -a ! -e "$P/v1.0/enhancements" -a ! -e "$P/v0.9/enhancements" ]
+tab_bad=""
+for v in v1.0 v0.9; do
+  f=$P/$v/docs/index.html
+  tr -d '"' < "$f" | grep -qE '<a title href=/enhancements/ class=' || tab_bad="$tab_bad $v(navbar)"
+  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/enhancements/>Enhancements' || tab_bad="$tab_bad $v(phone menu)"
+  ! tr -d '"' < "$f" | grep -qE 'href=( |>)' || tab_bad="$tab_bad $v(an empty href)"
+done
+why="missing or broken on:$tab_bad"
+check "both versions link the Enhancements tab to /enhancements/, in the navbar and the phone menu" [ -z "$tab_bad" ]
+
 # The test SHAs: v0.9's refs in the manifest (cli, catalog, opm, overrides).
 sha_of() {
   case "$1" in

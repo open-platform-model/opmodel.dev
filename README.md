@@ -9,7 +9,7 @@ This repository contains:
 - **`site/`** - the Hugo site: configuration, the site-owned pages (the landing and the section overviews), layouts and theme overrides, styles, the vendored theme, build scripts, the build image and the tests.
 - **`cmd/docgen/`** and **`internal/`** - the `docgen` tool: CUE schema extraction and cobra doc generation.
 
-Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them.
+Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them. The enhancements repository, OPM's design record, is built in the same run as one unversioned section at `/enhancements/` (see "The Enhancements section" under Site versions).
 
 ## Architecture
 
@@ -22,7 +22,7 @@ site/content/             (landing and section overviews)
         -> hugo build (Hextra, vendored) -> output checks -> Pagefind per version
         |
         v
-  site/public/   /v1.0/...   /latest/ -> /v1.0/   / -> /latest/
+  site/public/   /v1.0/...   /latest/ -> /v1.0/   / -> /latest/   /enhancements/...
 
 docgen: CUE schema -> site/data/schema/*.json; cobra -> CLI reference Markdown (planned)
 ```
@@ -39,7 +39,7 @@ See [RFC-0006](https://github.com/open-platform-model/cli/blob/main/docs/rfc/000
 - [Task](https://taskfile.dev/)
 - git
 - Go 1.25+ (see `go.mod`) and the OpenSpec CLI, for `task check`
-- The six source repositories checked out next to this one (the default), or pointed at with the variables below
+- The six source repositories and enhancements checked out next to this one (the default), or pointed at with the variables below
 
 ## Quick Start
 
@@ -61,6 +61,7 @@ The first run builds the image, which needs the network. The build finds the sou
 OPM_WS=/path/to/workspace task build                  # another workspace root
 OPM_SRC_WORKTREE=site-src task build                  # <repo>/.claude/worktrees/site-src in each repo
 OPM_SRC_CLI=/path/to/cli task build                   # one repo from elsewhere (OPM_SRC_<REPO>)
+OPM_SRC_ENHANCEMENTS=/path/to/enhancements task build # the enhancements repository (OPM_SRC_WORKTREE does not apply)
 SITE_PORT=1314 task serve                             # another port for serve and preview
 ```
 
@@ -81,11 +82,13 @@ opmodel.dev/
 │   ├── Dockerfile              # Build image: Hugo, Pagefind, git
 │   ├── NOTICE                  # Third-party licences
 │   ├── overrides.sha256        # Theme files behind every override copy (drift guard)
+│   ├── vendored.sha256         # Vendored third-party files (Mermaid), with version and source
 │   ├── config/_default/        # hugo.toml
 │   ├── content/                # Site-owned pages: _index.md landing, docs/**/_index.md overviews
 │   ├── layouts/                # Theme overrides, OPM partials, figure shortcodes
 │   ├── assets/css/opm/         # One CSS file per owner, concatenated in file-name order
 │   ├── assets/js/              # Pagefind adapter for Hextra's search palette
+│   ├── assets/lib/mermaid/     # Vendored Mermaid 11 and its licence, for the Enhancements diagrams
 │   ├── static/                 # Fonts, favicon, images
 │   ├── themes/hextra/          # Vendored Hextra v0.13.0 (runtime files only; hextra.COMMIT)
 │   ├── versions.conf           # The site versions (see Site versions)
@@ -105,7 +108,7 @@ task build OPM_BASE_URL=<url>  # The same, for another base URL (a path allowed)
 task preview           # Serve the built site/public/ on SITE_PORT
 task lint:sources      # Lint the six source repos' docs/site pages
 task test:site         # Prove every check fails when it should (fixtures), then task versions:test
-task shots             # Build, then screenshot every figure page and the extras into site/.shots/
+task shots             # Build, then screenshot every figure page and the extras, and check every Enhancements diagram, into site/.shots/
 task qa                # shots, the axe accessibility and the search smoke tests
 task ci                # check, image, build, test:site
 task check             # Go fmt, vet and test, and openspec validate
@@ -115,7 +118,7 @@ task brand:favicons    # Regenerate the favicon PNGs and favicon.ico from the dr
 task brand:og          # Regenerate the Open Graph card, site/static/images/og-default.png
 task versions:prepare  # Resolve site/versions.conf on the host, offline: refs, archives, git dates, frozen.conf (build and serve run it)
 task versions:check    # Print every version's resolved refs, SHAs and rules; writes nothing
-task versions:fetch    # Fetch every tag and branch of the six roots from origin; never moves or deletes a tag
+task versions:fetch    # Fetch every tag and branch of the six roots and enhancements from origin; never moves or deletes a tag
 task versions:test     # Resolver tests and a two-version build into site/.check/versions-test/
 task clean             # Remove generated files
 task build:docgen      # Build the docgen tool
@@ -135,10 +138,10 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 | Build for GitHub Pages (interim) | `OPM_BASE_URL=https://open-platform-model.github.io/opmodel.dev/ task build`, after the steps above (see GitHub Pages (interim) below) |
 
 - **Clean tree.** CI fails when `task ci` leaves the tree dirty, `.task/` excluded (Task's checksum files; one of them is tracked). Two examples: `go fmt` rewrote unformatted Go (`task check` formats but never fails), or a build step wrote a file that is not gitignored.
-- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories sit beside opmodel.dev as they do in the workspace. opmodel.dev is at the event's ref and the sources are at `main`, though a line version builds its trees from the tags and branches it resolves, not from the checkouts. Every checkout has full history, every tag and every branch as `refs/remotes/origin/*` (`fetch-depth: 0`, which the version resolver, the git dates and the resolver tests of `task versions:test` need; the resolver refuses a shallow checkout) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
+- **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories and enhancements sit beside opmodel.dev as they do in the workspace (the `sources-main` job checks enhancements out too, shallow, and builds its `main` in explicit mode). opmodel.dev is at the event's ref and the sources are at `main`, though a line version builds its trees from the tags and branches it resolves, not from the checkouts. Every checkout has full history, every tag and every branch as `refs/remotes/origin/*` (`fetch-depth: 0`, which the version resolver, the git dates and the resolver tests of `task versions:test` need; the resolver refuses a shallow checkout) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
 - **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
 - **Summary and artifacts.** The job summary lists every version's resolved refs from `site/public/build-stamp.json` (repository, ref, where its docs came from, the commit and the rule that chose it) and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days, and `build-manifest` holds `frozen.conf`, the build as an anchored manifest (Site versions), for 90 days. `build-manifest` is uploaded on every run but pull requests: a pull request run builds GitHub's temporary merge commit (`refs/pull/<n>/merge`), which would be the commit its header names and which goes away, so only runs of a real branch, `main` above all, can be rebuilt from their `frozen.conf`. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
-- **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same seven checkouts, since that build reads every source repository), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
+- **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same eight checkouts, since that build reads every source repository and enhancements), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
 - **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, Go comes from `go.mod`, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
 - **Concurrency.** It is set per job, one group per job (`<workflow>-<ref>-<job>`), and a newer run cancels the older run's job. It is never set at workflow level, which would cancel a deploy job with the rest of a run; and two jobs never share one cancelling group, because they would cancel each other. A deploy job uses its own group, without `cancel-in-progress`. The `opmodel.dev` working directory is a per-job `defaults` entry for the same reason, never workflow-level: a deploy job runs a step before its checkout.
 - **Source repositories.** A line version resolves its release lines on every build, so the nightly run of `main` publishes what moved upstream within about a day, and `gh workflow run Site --ref main` publishes it at once; no source repository dispatches a run. What reaches the published build: new releases (a cli release with the library, core and opm-operator releases it pins, and every `opm-v4.*` catalog tag), opm's `main`, and the `main` or release-branch head of cli, library, opm-operator, core and catalog_opm while their docs rule reads it. The `sources-main` job keeps the early warning for all six: it builds every repository's `main` in explicit mode (`OPM_VERSIONS=v1.0=/src task build`: the source lint, every build check and the link crawl), uploads nothing, and `pages-deploy` does not wait for it. A source page that breaks the lint or a link on a branch head the line reads (today `main` of all six) also fails `build`, turning every run red and holding the deploy until it is fixed upstream or the version is recovered (Site versions, "When the resolution fails"); `sources-main` alone catches a `main` the line does not read. A new release that fails resolution or the build turns every run red and holds the deploy until it is recovered (Site versions, "When the resolution fails"). GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
@@ -273,6 +276,12 @@ Every repository has a dialect floor in the manifest: the commit that moved its 
 
 The site-owned pages (`site/content/`) are built into every version, so every link on them must resolve in every version, older ones included; a link to a page that exists only in a newer version fails that version's build.
 
+### The Enhancements section
+
+The enhancements repository is an eighth input and belongs to no version: `[section "enhancements"]` in `site/versions.conf` names its `ref` (`origin/main`, the remote-tracking ref, never a local branch or `HEAD`; a tag or a full SHA also work), resolved on every build like a line version. When a push there breaks the build, `override = <full SHA> <reason>` pins a commit that built, until it is fixed there. The resolver records the SHA in `versions.tsv` (a `# section` line), `build-stamp.json` (`sections.enhancements`), the CI summary and `frozen.conf`; `materialise.sh` writes a `git archive` of only the published files (`INDEX.md`, `GRAPH.md`, and of every entry but the `0000` template its `config.yaml`, `README.md` and seven numbered documents) to `site/.versions/enhancements/tree/`, with every path of the repository in `paths.txt`. Explicit mode (`OPM_VERSIONS`) reads `<default root>/enhancements/` in place: `/src/enhancements`, the root `OPM_SRC_ENHANCEMENTS` names (default `$OPM_WS/enhancements`), or the fixture workspace's. A build without that tree, or with a manifest that names no section, has no section and no Enhancements tab.
+
+The content adapter `site/enhancements/_content.gotmpl` is mounted into the default version only and gives every page a `url`, so the section publishes once, at `/enhancements/`, outside `/<version>/`, and keeps its URLs when the default version changes. URLs are keyed by entry id, so archiving an entry keeps them: `/enhancements/` (the INDEX, generated by `gen-mounts.sh` as `.gen/enhancements/_index.md`, since an adapter cannot add a section page), `/enhancements/graph/`, `/enhancements/NNNN/` (the README, with a header from `config.yaml`) and `/enhancements/NNNN/{problem,design,decisions,graduation,risks,operational,questions}/`. A decision heading `D3: ...` also carries the anchor `#d3`. Every page carries a status banner; draft and accepted entries carry `noindex`; no section page is in `llms.txt`, a sitemap, the `/latest/` stubs or the docs search (the section has its own Pagefind bundle, `/enhancements/pagefind/`). Relative links are repository paths: an entry or one of its documents goes to its page, any other path that exists at the built SHA (a schema, an experiment, research, `config.yaml`) to GitHub at that SHA; a path that names nothing at that SHA, a link that climbs out of the repository, a broken `/docs/` link or a Hugo shortcode delimiter fails the build. A link whose text is the Markdown file name it targets reads as its page (`INDEX.md` as "the index", `GRAPH.md` as "the relationship graph", another as the page's title). A Mermaid fence in the section is drawn by Mermaid 11.17.2, vendored as `site/assets/lib/mermaid/mermaid.min.js` (its licence beside it, `site/NOTICE`) and pinned with its version, source and SHA-256 in `site/vendored.sha256`, which `site/scripts/check-vendored.sh` checks before every build; a re-vendor is a new download verified at its source, never a re-pin of what is on disk. Hextra loads it fingerprinted, with SRI, only on a page that holds a fence. The section's hook (`layouts/enhancements/_markup/render-codeblock-mermaid.html`) draws each diagram at its natural size (`useMaxWidth: false`) in a box that scrolls sideways and takes the keyboard focus, since fitted to the column most labels would shrink under 9 px; in the dark theme the edge labels get a darker box (`enhancements.css`), as Mermaid's own fails WCAG AA. `task shots` and `task qa` run `site/tests/browser/diagrams.py`, which draws every diagram of the section in the browser and fails on a Mermaid error, a label under 9 px or a label under AA contrast in either theme (and first proves it catches a broken and a squeezed diagram); its PNGs go to `site/.shots/diagrams/`.
+
 `OPM_VERSIONS_MANIFEST=<file>` selects another manifest. `task versions:test` (part of `task test:site`) runs the resolver tests on fixture repositories (the line cases clone them, so `origin` and its refs exist as in CI) and on the real roots, then builds `site/tests/versions/two-versions.conf`, `v1.0` in line mode plus an anchored test version, into `site/.check/versions-test/`, never `site/public/`. When `task versions:test` fails naming `(version v0.9)`, a source or site-owned page no longer builds at the test version's SHAs: bump them in `two-versions.conf` to buildable SHAs after each floor, never edit the checks. A fixture-workspace build sets the versions itself, because its roots sit inside this repository and are no git top levels: `OPM_VERSIONS=v1.0=/src OPM_WS=$PWD/site/tests/fixtures/ws task build`.
 
 ## Implementation Status
@@ -296,13 +305,26 @@ Run `OPM_VERSIONS=v1.0=/src task serve` and open http://127.0.0.1:1313/. In that
 
 ### Page dialect
 
-Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract: fix the page, never the lint.
+Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`, or, into the Enhancements section, `/enhancements/`, `/enhancements/<NNNN>/` and `/enhancements/<NNNN>/<document>/` (one of the seven document slugs), each with an optional `#fragment` (`/enhancements/0018/decisions/#d3`); nothing else under `/enhancements`. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract (the embedded copy in `openspec/changes/deploy-site/orchestration.md`, with its SHA-256): fix the page, never the lint, and change both together when the contract changes.
+
+The link hook (`site/layouts/_markup/render-link.html`) resolves a `/enhancements/` link to the one unversioned section from every version (the section's pages live only in the default version's page tree), and fails the build when the section has no such page or the build has no section.
+
+A direction note (0018:D3) is a NOTE alert whose bold title line is **Direction**:
+
+```markdown
+> [!NOTE]
+> **Direction**
+>
+> Enhancement 0009, [Operational Primitives](/enhancements/0009/), is a draft, and none of it is built.
+```
+
+It renders labelled Direction in place of Note, with its title line not repeated, in a violet box with a dashed start border (`site/layouts/_markup/render-blockquote-alert.html`, an override of Hextra's alert hook pinned in `site/overrides.sha256`, and `typography.css`), so it stands apart from an ordinary note. Every other alert renders as before. `task shots` shoots the first direction note of every page that holds one, in the six variants, into `site/.shots/direction/<page>/`, and `task qa` runs axe on the first such page in both themes.
 
 The site-owned pages in `site/content/` are not linted, but the build checks their front matter too.
 
 ### Adding a figure
 
-A figure is inline SVG drawn by hand in the site engine. It is two files:
+A figure is inline SVG drawn by hand in the site engine. Mermaid draws only in the Enhancements section: a mermaid fence anywhere else, a docs page or a site-owned page, fails the build (`layouts/_markup/render-codeblock-mermaid.html`). A figure is two files:
 
 1. The shortcode `site/layouts/_shortcodes/opm/<name>.html` renders the frame, `partial "opm/figure.html"`, with a dict of `id`, `title`, `claim`, `width`, `height` and `body`.
    - `id` is three letters, unique among the figures. The frame names the arrowhead marker `<id>-arrow` after it.

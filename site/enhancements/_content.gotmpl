@@ -1,0 +1,76 @@
+{{- /* The Enhancements section: the enhancements repository, OPM's design
+       record, as one unversioned section at /enhancements/. scripts/gen-mounts.sh
+       mounts the repository's published files at assets/enhancements and this
+       adapter into the default version only; every page sets url, so it
+       publishes at /enhancements/... outside the /<version>/ prefix and keeps
+       its URL when the default version changes. The section page itself
+       (INDEX.md) is written by gen-mounts.sh, because an adapter cannot add
+       the empty path.
+       Per entry, live (NNNN/) or archived (archive/NNNN/), keyed by id so
+       archiving keeps its URLs: the README as /enhancements/NNNN/, with the
+       header data from config.yaml, and the seven numbered documents as
+       /enhancements/NNNN/<slug>/. The 0000 template is not published, nor
+       are config.yaml's authors and history. Dates come from config.yaml.
+       Every page carries repoPath (its file in the repository), which the
+       section's link hook resolves relative links against, and is left out
+       of llms.txt and the sitemap. */ -}}
+{{- $docs := slice
+  (dict "n" "01" "slug" "problem" "title" "Problem statement" "desc" "What is wrong today, and for whom.")
+  (dict "n" "02" "slug" "design" "title" "Design" "desc" "How the proposal works.")
+  (dict "n" "03" "slug" "decisions" "title" "Decisions" "desc" "Each decision, numbered, with its rationale.")
+  (dict "n" "04" "slug" "graduation" "title" "Graduation criteria" "desc" "What has to be true before the design moves on.")
+  (dict "n" "05" "slug" "risks" "title" "Risks and alternatives" "desc" "What could go wrong, and what was weighed instead.")
+  (dict "n" "06" "slug" "operational" "title" "Operational concerns" "desc" "What it means for running and upgrading OPM.")
+  (dict "n" "07" "slug" "questions" "title" "Open questions" "desc" "What is still undecided.")
+-}}
+{{- $out := dict "llms" false -}}
+
+{{- with resources.Get "enhancements/GRAPH.md" -}}
+  {{- $.AddPage (dict
+    "path" "graph" "kind" "page" "url" "/enhancements/graph/" "weight" 1
+    "title" "Relationship graph" "description" "How the enhancements depend on and amend one another, by category."
+    "sitemap" (dict "disable" true)
+    "params" (merge $out (dict "repoPath" "GRAPH.md"))
+    "content" (dict "mediaType" "text/markdown" "value" (partial "opm/enh-clean.html" (dict "text" .Content "path" "GRAPH.md")))) -}}
+{{- end -}}
+
+{{- $cfgs := union (resources.Match "enhancements/[0-9][0-9][0-9][0-9]/config.yaml") (resources.Match "enhancements/archive/[0-9][0-9][0-9][0-9]/config.yaml") -}}
+{{- range $cfgs -}}
+  {{- $dir := index (index (findRESubmatch `((?:archive/)?[0-9]{4})/config\.yaml$` .Name 1) 0) 1 -}}
+  {{- $c := . | transform.Unmarshal -}}
+  {{- $id := printf "%v" $c.id -}}
+  {{- if eq $id "0000" -}}{{ continue }}{{- end -}}
+  {{- if ne $id (path.Base $dir) -}}
+    {{- errorf "enhancements: %s says id %q, its directory %s" .Name $id $dir -}}
+  {{- end -}}
+  {{- $readme := resources.Get (printf "enhancements/%s/README.md" $dir) -}}
+  {{- if not $readme -}}{{- errorf "enhancements: %s/README.md is missing" $dir -}}{{- end -}}
+  {{- $dates := dict "date" (time.AsTime $c.created) "lastmod" (time.AsTime $c.updated) -}}
+  {{- $rel := dict "dependsOn" ($c.depends_on | default slice) "amends" ($c.amends | default slice)
+      "supersedes" ($c.supersedes | default slice) "revives" ($c.revives | default slice)
+      "supersededBy" ($c.superseded_by | default "") -}}
+  {{- $entry := merge $out $rel (dict "enhId" $id "status" $c.status "category" $c.category
+      "affects" $c.affects "created" $c.created "updated" $c.updated
+      "archived" (hasPrefix $dir "archive/")) -}}
+  {{- $.AddPage (dict
+    "path" $id "kind" "section" "url" (printf "/enhancements/%s/" $id)
+    "title" (printf "%s: %s" $id $c.title) "description" (strings.TrimSpace $c.summary)
+    "weight" (add 1 (int (strings.TrimLeft "0" $id)))
+    "dates" $dates "sitemap" (dict "disable" true)
+    "params" (merge $entry (dict "repoPath" (printf "%s/README.md" $dir)))
+    "content" (dict "mediaType" "text/markdown" "value" (partial "opm/enh-clean.html" (dict "text" $readme.Content "path" (printf "%s/README.md" $dir))))) -}}
+  {{- range $i, $d := $docs -}}
+    {{- $files := resources.Match (printf "enhancements/%s/%s-*.md" $dir $d.n) -}}
+    {{- if ne (len $files) 1 -}}
+      {{- errorf "enhancements: %s holds %d files %s-*.md; an entry has exactly one" $dir (len $files) $d.n -}}
+    {{- end -}}
+    {{- $f := index $files 0 -}}
+    {{- $rp := printf "%s/%s" $dir (path.Base $f.Name) -}}
+    {{- $.AddPage (dict
+      "path" (printf "%s/%s" $id $d.slug) "kind" "page" "url" (printf "/enhancements/%s/%s/" $id $d.slug)
+      "title" (printf "%s: %s" $id $d.title) "linkTitle" $d.title "description" $d.desc
+      "weight" (add $i 1) "dates" $dates "sitemap" (dict "disable" true)
+      "params" (merge $entry (dict "repoPath" $rp "document" $d.title))
+      "content" (dict "mediaType" "text/markdown" "value" (partial "opm/enh-clean.html" (dict "text" $f.Content "path" $rp)))) -}}
+  {{- end -}}
+{{- end -}}

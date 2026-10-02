@@ -1,0 +1,46 @@
+{{- /* The status banner and the entry header of an Enhancements section page
+       (called from custom/content-begin.html). The banner's wording follows
+       the entry's status; the section page and the graph, which have none,
+       say what the section is. The header, on the entry's own page, lists the entry's status,
+       category, affected repositories, dates and its links to other
+       entries, each to that entry's page. */ -}}
+{{- $st := .Params.status | default "" -}}
+{{- $by := .Params.supersededBy | default "" -}}
+<div class="opm-enh-status" role="note" data-pagefind-ignore="all" data-status="{{ $st | default "record" }}">
+  {{- if eq $st "draft" -}}
+    <strong>Draft design.</strong> A proposal under discussion. Nothing here describes OPM as it works today.
+  {{- else if eq $st "accepted" -}}
+    <strong>Accepted design, not delivered.</strong> The design is agreed, but it has not shipped. Nothing here describes OPM as it works today.
+  {{- else if eq $st "delivered" -}}
+    <strong>Delivered, closed.</strong> This design shipped; the docs describe OPM as it works. This is the record of why it was built this way.
+  {{- else if eq $st "superseded" -}}
+    <strong>Superseded{{ with $by }} by {{ . }}{{ end }}, closed.</strong> Kept as a record; it does not describe OPM.
+  {{- else if eq $st "rejected" -}}
+    <strong>Rejected, closed.</strong> Kept as a record; it does not describe OPM.
+  {{- else if $st -}}
+    <strong>Status {{ $st }}.</strong> Nothing here describes OPM as it works today.
+  {{- else -}}
+    <strong>The design record.</strong> OPM's enhancement proposals, open and closed. A draft or accepted entry describes work that has not shipped; the docs describe OPM as it works today.
+  {{- end -}}
+</div>
+{{- if and .Params.enhId .IsSection -}}
+  {{- $p := . -}}
+  <dl class="opm-enh-meta" data-pagefind-ignore="all">
+    <dt>Status</dt><dd>{{ $p.Params.status }}</dd>
+    <dt>Category</dt><dd>{{ $p.Params.category }}</dd>
+    <dt>Affects</dt><dd>{{ delimit $p.Params.affects ", " }}</dd>
+    <dt>Created</dt><dd>{{ $p.Params.created }}</dd>
+    <dt>Updated</dt><dd>{{ $p.Params.updated }}</dd>
+    {{- range $r := slice (dict "k" "dependsOn" "label" "Depends on") (dict "k" "amends" "label" "Amends") (dict "k" "supersedes" "label" "Supersedes") (dict "k" "revives" "label" "Revives") (dict "k" "supersededBy" "label" "Superseded by") -}}
+      {{- $ids := index $p.Params $r.k -}}
+      {{- if reflect.IsSlice $ids -}}{{- else if $ids -}}{{- $ids = slice $ids -}}{{- else -}}{{- $ids = slice -}}{{- end -}}
+      {{- with $ids }}
+    <dt>{{ $r.label }}</dt><dd>
+      {{- range $i, $id := . -}}
+        {{- if $i }}, {{ end -}}
+        {{- with $p.GetPage (printf "/enhancements/%v" $id) -}}<a href="{{ .RelPermalink }}">{{ .Title }}</a>{{- else -}}{{ $id }}{{- end -}}
+      {{- end -}}</dd>
+      {{- end -}}
+    {{- end }}
+  </dl>
+{{- end -}}

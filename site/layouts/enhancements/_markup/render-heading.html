@@ -1,0 +1,16 @@
+{{- /* Hextra's heading markup (v0.13.0, render-heading.html), plus one more
+       anchor on a decision heading: "D3: ..." keeps its automatic id and
+       gains the short, stable id d3, so a decision can be cited as
+       /enhancements/NNNN/decisions/#d3. Both anchors sit on Hextra's offset
+       span, so a jump does not land under the sticky navbar. */ -}}
+<h{{ .Level }} data-hextra-search-id="{{ .Anchor | safeURL }}" {{- with .Attributes.class }} class="{{ . }}" {{- end }}>
+  {{- .Text | safeHTML -}}
+  {{- if gt .Level 1 -}}
+    <span class="hx:absolute hx:-mt-20" id="{{ .Anchor | safeURL }}"></span>
+    {{- with findRESubmatch `^D([0-9]+):` .PlainText 1 -}}
+      {{- $id := printf "d%s" (index (index . 0) 1) -}}
+      {{- if ne $id $.Anchor }}<span class="hx:absolute hx:-mt-20" id="{{ $id }}"></span>{{ end -}}
+    {{- end -}}
+    <a href="#{{ .Anchor | safeURL }}" class="subheading-anchor" aria-label="{{ (T "permalinkLabel") | default "Permalink for this section" }}"></a>
+  {{- end -}}
+</h{{ .Level }}>
