@@ -202,7 +202,7 @@ anchor() {
     commit_of "$root" "$2" || { echo "not a commit in $root"; return 1; }
   elif commit_of "$root" "refs/tags/$2" >/dev/null; then
     if [ "$1" = catalog_opm ]; then
-      case "$2" in opm-v*|k8s-v*) ;; *) echo "a catalog tag is opm-v* or k8s-v*"; return 1 ;; esac
+      case "$2" in opm-v*) ;; *) echo "a catalog tag is opm-v*"; return 1 ;; esac
     fi
     commit_of "$root" "refs/tags/$2"
   else
@@ -352,8 +352,8 @@ semver_max() {
     END { if (best != "") print best }'
 }
 # line_re PREFIX LINE: the ERE of a line's tags, never a glob, so v1.50.0 is not
-# in v1.5, opm-v40.0.0 not in opm-v4, and neither k8s-v* nor catalog_opm's
-# unprefixed legacy tags are in an opm-v line. LINE is X.Y (a minor) or X (a major).
+# in v1.5, opm-v40.0.0 not in opm-v4, and catalog_opm's unprefixed legacy tags
+# are not in an opm-v line. LINE is X.Y (a minor) or X (a major).
 line_re() {
   case "$2" in
     *.*) printf '^%sv%s\\.%s\\.[0-9]+(-[0-9A-Za-z.-]+)?$' "$1" "${2%%.*}" "${2#*.}" ;;
@@ -381,7 +381,7 @@ minor_of() {
 #   3. otherwise main is past the line and no branch was cut: REF's own commit,
 #      never a newer patch of the line, so the tree is always the named release.
 # Only the exact derived branch name is read: a stale or unrelated tracking ref
-# is never consulted, and release/k8s-v* never is.
+# is never consulted.
 docs_source() {
   ds_root=$(root_of "$1"); ds_b=release/$2v$3
   if ds_sha=$(commit_of "$ds_root" "refs/remotes/origin/$ds_b"); then
@@ -480,7 +480,6 @@ for v in $versions; do
       if printf '%s' "$gl" | grep -Eq '^opm-v[0-9]+$'; then :
       elif printf '%s' "$gl" | grep -Eq '^opm-v[0-9]+\.[0-9]+'; then
         gmaj=${gl#opm-v}; err "version $v: catalog-line \"$gl\": a minor; the catalog line is the opm catalog major (opm-v${gmaj%%.*}), which follows every minor"
-      elif printf '%s' "$gl" | grep -Eq '^k8s-v'; then err "version $v: catalog-line \"$gl\": only the opm catalog line opm-vN is followed; the k8s catalog pages follow its tree"
       else err "version $v: catalog-line \"$gl\": not an opm catalog major opm-vN (for example opm-v4)"; fi
     fi
   else
