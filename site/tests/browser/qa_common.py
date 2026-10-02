@@ -48,6 +48,14 @@ def versions():
     return listed or [(default_version(), True)]
 
 
+def direction_pages(version):
+    """The pages of the version, in path order, that hold a direction note (a
+    NOTE alert titled Direction, layouts/_markup/render-blockquote-alert.html)."""
+    return ["/" + html.parent.relative_to(PUBLIC).as_posix() + "/"
+            for html in sorted((PUBLIC / version).rglob("index.html"))
+            if "pagefind" not in html.parts and "opm-direction" in html.read_text(errors="ignore")]
+
+
 def enhancement_pages():
     """The Enhancements section's pages the checks open, when the build has
     the section (public/enhancements/): the section page, the graph, a draft

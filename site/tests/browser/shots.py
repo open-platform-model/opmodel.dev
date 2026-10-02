@@ -9,7 +9,10 @@ pages with their child cards, and the Enhancements section's page, graph, a
 draft entry, its decisions and an archived entry) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
-Each version's footer stamp (build-stamp.json lists the versions) is shot as
+On every page of the default version that holds a direction note, the
+first one is shot as an element, into
+site/.shots/direction/<page>/note-<variant>.png. Each version's footer stamp
+(build-stamp.json lists the versions) is shot as
 an element, into site/.shots/<version>_docs/stamp-<variant>.png. With two or
 more versions, two more extras: the open version switch (site/.shots/switch/)
 and a page of a version that is not the default, which carries the outdated
@@ -29,7 +32,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import PUBLIC, SITE, default_version, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
+from qa_common import PUBLIC, SITE, default_version, direction_pages, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
 
 OUT = SITE / ".shots"
 MIN_TEXT_PX = 9
@@ -115,6 +118,25 @@ def shoot_sized_extras(browser, base, version, errors):
             page.screenshot(path=str(folder / f"{name}-{theme}.png"))
             page.context.close()
         print(f"{url}: {name} {width}x{height} x 2 themes -> .shots/{slug(url)}/")
+
+
+def shoot_direction(browser, base, version, errors):
+    """Each page's first direction note in six variants, as an element, into
+    site/.shots/direction/<page>/note-<variant>.png."""
+    urls = direction_pages(version)
+    if not urls:
+        print("no direction note in this build")
+    for url in urls:
+        folder = OUT / "direction" / slug(url)
+        folder.mkdir(parents=True, exist_ok=True)
+        for variant, width, theme, scheme, phone in VARIANTS:
+            page = new_page(browser, width, theme, scheme, phone)
+            page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
+            page.goto(base + url, wait_until="networkidle")
+            page.evaluate(UNSTICK)
+            page.locator(".opm-direction").first.screenshot(path=str(folder / f"note-{variant}.png"))
+            page.context.close()
+        print(f"{url}: direction note x {len(VARIANTS)} variants -> .shots/direction/{slug(url)}/")
 
 
 def check_landing(browser, base, version):
@@ -220,6 +242,7 @@ def main():
                 page.context.close()
             print(f"{url}: footer stamp x {len(VARIANTS)} variants -> .shots/{name}/")
         shoot_sized_extras(browser, base, version, errors)
+        shoot_direction(browser, base, version, errors)
         landing = check_landing(browser, base, version)
         browser.close()
     for e in errors:

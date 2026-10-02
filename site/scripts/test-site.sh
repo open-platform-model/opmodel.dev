@@ -272,17 +272,16 @@ if [ $rc -eq 0 ]; then
   r=$(dq "$E/0001/index.html")
   why=""
   for want in 'href=/enhancements/0001/design/>the design document' 'href=/enhancements/0001/decisions/#d1>D1' \
-    'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>INDEX.md' 'href=/enhancements/graph/>GRAPH.md' \
+    'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>the index' 'href=/enhancements/graph/>the relationship graph' \
+    'href=/enhancements/0001/decisions/>Decisions' \
     'href=https://github.com/open-platform-model/enhancements/blob/main/0001/schemas/target.cue' \
     'href=https://github.com/open-platform-model/enhancements/tree/main/0001/schemas' \
-    'href=/v1.0/docs/start/>the start section' \
-    'data-opm-enh-unresolved=0001/README.md: notes/missing.md'; do
+    'href=/v1.0/docs/start/>the start section'; do
     printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
   done
   dq "$E/0002/index.html" | grep -qF 'href=/enhancements/0001/decisions/#d1>D1' || why="${why:+$why; }the archived entry's link to 0001's D1"
   dq "$E/index.html" | grep -qF 'href=/enhancements/0002/>0002' || why="${why:+$why; }the INDEX link to archive/0002"
-  grep -qF '0001/README.md: notes/missing.md' "$log" || why="${why:+$why; }the build log does not list the unresolved link"
-  if [ -z "$why" ]; then ok "enhancements/links" "repository links map to section pages by id, other paths to GitHub (blob, tree), /docs/ into v1.0; an unresolved link is marked and listed"
+  if [ -z "$why" ]; then ok "enhancements/links" "repository links map to section pages by id, other paths to GitHub (blob, tree), /docs/ into v1.0; a file-name label reads as its page"
   else bad "enhancements/links" "$why"; fi
 
   d=$E/0001/decisions/index.html
@@ -317,7 +316,7 @@ if [ $rc -eq 0 ]; then
   printf '%s' "$r" | grep -qF '<div class=opm-enh-diagram tabindex=0 role=region aria-label=Diagram><pre class=mermaid>' || why="no focusable diagram scroller"
   printf '%s' "$r" | grep -qF '%%{init: {&#34;flowchart&#34;: {&#34;useMaxWidth&#34;: false}' || why="${why:+$why; }no useMaxWidth false directive"
   printf '%s' "$r" | grep -qE '<script defer src=/lib/mermaid/mermaid\.min\.581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8\.js integrity=sha256-[^ ]+ crossorigin=anonymous>' || why="${why:+$why; }the page does not load the pinned Mermaid with SRI"
-  others=$(grep -rlF 'lib/mermaid/' "$OUT/$name/site/public" --include='*.html' | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html")
+  others=$(find "$OUT/$name/site/public" -name '*.html' -exec grep -lF 'lib/mermaid/' {} + | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html")
   [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
   if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
   else bad "enhancements/diagrams" "$why"; fi
@@ -410,6 +409,23 @@ else
   if grep -q '\[!' "$f"; then why="${why:+$why; }a literal [! is left"; fi
   if [ -z "$why" ]; then ok "$name/alerts" "NOTE, TIP, IMPORTANT, WARNING and CAUTION render as Hextra alerts with their bold title"
   else bad "$name/alerts" "$why"; fi
+  # A NOTE whose bold title line is Direction is a direction note: labelled
+  # Direction, its title line not repeated, in the opm-direction box; the
+  # other note on the page stays a Note. Its /enhancements/ links resolve to
+  # the unversioned section, in the page and as absolute URLs in its .md.
+  g=$OUT/$name/site/public/v1.0/docs/start/direction/index.html
+  why=""
+  r=$(dq "$g" | tr '\n' ' ')
+  [ "$(printf '%s' "$r" | grep -o 'class=opm-direction' | wc -l | tr -d ' ')" = 1 ] || why="not exactly one opm-direction box"
+  printf '%s' "$r" | grep -qE 'class=opm-direction> *<div data-alert=note class=hextra-alert> *<p class=hextra-alert-title>.*<span class=hextra-alert-title-text>Direction</span></p> *<div class=hextra-alert-content> *<p>Enhancement 0001' || why="${why:+$why; }the direction note is not labelled Direction with its body first"
+  printf '%s' "$r" | grep -qF '<strong>Direction</strong>' && why="${why:+$why; }the Direction title line is repeated"
+  printf '%s' "$r" | grep -qE 'hextra-alert-title-text>Note</span></p> *<div class=hextra-alert-content> *<p><strong>Not a direction</strong>' || why="${why:+$why; }the ordinary note changed"
+  for want in 'href=/enhancements/0001/>Fixture Live Entry' 'href=/enhancements/0001/decisions/#d1>first decision' 'href=/enhancements/>all enhancements'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  grep -qF '](https://opmodel.dev/enhancements/0001/decisions/#d1)' "${g%/index.html}.md" || why="${why:+$why; }the .md output does not link https://opmodel.dev/enhancements/0001/decisions/#d1"
+  if [ -z "$why" ]; then ok "$name/direction" "a Direction note is labelled Direction in its own box, the plain note stays Note; /enhancements/ links resolve, absolute in the .md"
+  else bad "$name/direction" "$why" "$g"; fi
   # Chroma marks a Name with class n: the field after each "" must be one.
   cue=$(tr -d '\n' < "$f")
   after='&#34;&#34;</span></span></span><span class="\{0,1\}line"\{0,1\}><span class="\{0,1\}cl"\{0,1\}>	<span class="\{0,1\}n"\{0,1\}>'
@@ -417,6 +433,25 @@ else
      ! grep -q OPMEMPTYSTRING "$f"; then
     ok "$name/cue" "the line after a CUE \"\" is tokenised as a name; no placeholder is left"
   else bad "$name/cue" "the CUE \"\" swallowed the lines after it"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# The dialect tree as two versions: the Enhancements section lives in the
+# default version's page tree only, and a source link into it resolves to the
+# same unversioned URL from the other version too.
+name=dialect-two-versions
+copy_site "$name"; copy_ws "$name"; overlay "$name" "$TESTS/dialect"
+(SITE_DIR=$OUT/$name/site OPM_VERSIONS="v1.0=$OUT/$name/ws v0.9=$OUT/$name/ws" sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+if [ $rc -ne 0 ]; then bad "$name" "the two-version dialect build failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  for v in v1.0 v0.9; do
+    g=$OUT/$name/site/public/$v/docs/start/direction/index.html
+    dq "$g" | grep -qF 'href=/enhancements/0001/decisions/#d1>first decision' || why="${why:+$why; }$v does not link /enhancements/0001/decisions/#d1"
+  done
+  [ ! -e "$OUT/$name/site/public/v0.9/enhancements" ] || why="${why:+$why; }the section published under v0.9"
+  if [ -z "$why" ]; then ok "$name/enhancement-links" "a source link into the section resolves to /enhancements/... from the default and the other version"
+  else bad "$name/enhancement-links" "$why"; fi
 fi
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,20 @@
+{{- /* OPM override of Hextra's render-blockquote-alert.html (v0.13.0, pinned
+       in overrides.sha256). A direction note, a NOTE alert whose first line
+       is the bold title Direction, names an enhancement that designs what
+       OPM does not do yet: it is labelled Direction in place of Note, its
+       title line is not repeated in the body, and it sits in a div of class
+       opm-direction (assets/css/opm/typography.css), so a reader tells it
+       from an ordinary note. Every other alert is upstream's, unchanged. */ -}}
+{{- if not (in (slice "note" "tip" "important" "warning" "caution") .AlertType) -}}
+  {{- warnf "Alert type %s is not supported" .AlertType -}}
+{{- end -}}
+
+{{- $direction := `\A\s*<p><strong>Direction</strong></p>\s*` -}}
+{{- if and (eq .AlertType "note") (not .AlertTitle) (findRE $direction .Text 1) -}}
+  {{- $body := replaceRE $direction "" .Text -}}
+  <div class="opm-direction">
+    {{- partial "components/github-style-alert.html" (dict "content" ($body | safeHTML) "alertType" .AlertType "alertTitle" "Direction" "alertSign" .AlertSign) -}}
+  </div>
+{{- else -}}
+  {{- partial "components/github-style-alert.html" (dict "content" .Text "alertType" .AlertType "alertTitle" .AlertTitle "alertSign" .AlertSign) -}}
+{{- end -}}

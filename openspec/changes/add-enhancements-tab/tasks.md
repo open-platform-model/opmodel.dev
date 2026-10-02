@@ -16,9 +16,9 @@
 
 ## 3. Direction notes link the section
 
-- [ ] 3.1 The page dialect accepts `/enhancements/<id>/` links with an optional fragment: `site/scripts/lint-sources.sh`, the contract in `openspec/changes/deploy-site/orchestration.md` (embedded lint and its sha256), a lint fixture, README.
-- [ ] 3.2 A NOTE alert whose bold title line is **Direction** renders with its own style and label (an override of Hextra's blockquote alert hook, pinned in `site/overrides.sha256`, or a CSS rule), with a fixture.
-- [ ] 3.3 Gates green, then commit `feat(site): let source pages link enhancements and mark direction notes`.
+- [x] 3.1 The page dialect accepts `/enhancements/<id>/` links with an optional fragment: `site/scripts/lint-sources.sh`, the contract in `openspec/changes/deploy-site/orchestration.md` (embedded lint and its sha256), a lint fixture, README.
+- [x] 3.2 A NOTE alert whose bold title line is **Direction** renders with its own style and label (an override of Hextra's blockquote alert hook, pinned in `site/overrides.sha256`, or a CSS rule), with a fixture.
+- [x] 3.3 Gates green, then commit `feat(site): let source pages link enhancements and mark direction notes`.
 
 ## 4. Verify and archive
 

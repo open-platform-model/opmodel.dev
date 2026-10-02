@@ -228,20 +228,6 @@ cdn=$(find "$PUBLIC" \( -name '*.html' -o -name '*.js' -o -name '*.css' \) -exec
 $(echo "$cdn" | sed 's/^/  /')"
 echo "supply: every loaded URL is relative or under $BASE_URL; no CDN reference"
 
-# The Enhancements section's links to a path its repository does not hold
-# (layouts/enhancements/_markup/render-link.html links them to GitHub at the
-# commit built and marks them): listed, not failed, since the repository owns
-# the fix.
-if [ -n "$ENH_TREE" ]; then
-  unres=$(find "$PUBLIC/enhancements" -name '*.html' ! -path '*/pagefind/*' -exec grep -ohE 'data-opm-enh-unresolved="[^"]*"' {} + | sed 's/^data-opm-enh-unresolved="//; s/"$//' | sort -u || true)
-  if [ -n "$unres" ]; then
-    echo "enhancements: $(printf '%s\n' "$unres" | grep -c .) link(s) name no path in the enhancements repository at ${ENH_SHA:-its worktree}; they link to GitHub (fix them there):"
-    printf '%s\n' "$unres" | sed 's/^/  /'
-  else
-    echo "enhancements: every repository link resolves"
-  fi
-fi
-
 step "summary"
 for pair in $VERSIONS; do
   v=${pair%%=*}
