@@ -2,7 +2,7 @@
 
 The site is one Hugo 0.167 build over Hextra v0.13.0, run in Docker with `--network none`. Docs come from six source repositories per site version; the Enhancements section (`add-enhancements-tab`, archived 2026-10-02) proved an unversioned section built in the same run: a content adapter mounted into the default version only, pages given `url` so they publish outside `/<version>/`, a generated section page, a menu entry written by `gen-mounts.sh` only when the section exists, and explicit exclusions (version label, `/latest/` stubs, `llms.txt`, sitemap, search).
 
-The Catalogs tab follows that pattern with three differences: its source is a set of pulled, signed bundles rather than a git tree; one section holds several version trees (one per opm minor, plus `edge`), each with its own sidebar, search and switcher; and it has aliases. The contracts it consumes are docs-kit's `build-opm-docs-phase-1` `design.md`: the bundle tree and `manifest.json` (C3), tags (C4), the pull config, unpack layout and lock (C7), URLs, links and aliases (C8), the signer (C9) and the page dialect (C11). They are cited as `docs-kit C7` and so on. Supervisor decisions recorded in that design's "Site decisions" (2026-10-02; the owner may override), binding here: there is no `catalog-k8s` bundle (only `catalog-opm`, at `/catalogs/opm/`); the sitemap lists only the newest minor of each major; `edge` gets its own Pagefind index but no alias stubs; version-history data (phase 1b, not this change) will be a data file written by `opm-docs pull`.
+The Catalogs tab follows that pattern with three differences: its source is a set of pulled, signed bundles rather than a git tree; one section holds several version trees (one per opm minor, plus `edge`), each with its own sidebar, search and switcher; and it has aliases. The contracts it consumes are docs-kit's `build-opm-docs-phase-1` `design.md`: the bundle tree and `manifest.json` (C3), tags (C4), the pull config, unpack layout and lock (C7), URLs, links and aliases (C8), the signer (C9), the page dialect (C11) and tool distribution (C12). They are cited as `docs-kit C7` and so on. Supervisor decisions recorded in that design's "Site decisions" (2026-10-02; the owner may override), binding here: there is no `catalog-k8s` bundle (only `catalog-opm`, at `/catalogs/opm/`); the sitemap lists only the newest minor of each major; `edge` gets its own Pagefind index but no alias stubs; version-history data (phase 1b, not this change) will be a data file written by `opm-docs pull` at `<out>/<project>/history.json`. Also decided there: `opm-docs` is pinned in the site's build image (C12, image pattern); the members leave Reference in the build that gains the tab; no redirects are served from the old Reference URLs; `publish.yml` is pinned by tag, so the signer check is the SAN `.../publish.yml@refs/tags/v*` (C9), with no SHA allowlist and no site commit per docs-kit release.
 
 Every file under `site/` this change touches is listed in proposal.md's Impact. The build gains one input (the bundles, by digest) and two pinned tools in the build image (`opm-docs`, `jq`); no upstream pin in `site/overrides.sha256` changes and no new theme file is overridden.
 
@@ -20,17 +20,17 @@ Every file under `site/` this change touches is listed in proposal.md's Impact. 
 - Version history badges and change lists (docs-kit phase 1b): the adapter only keeps the bundle's `data/` reachable.
 - A k8s catalog tab, third-party catalogs (`docs-kit DESIGN decision 11`), bundles placed in a site version's `/docs/` (docs-kit phase 2).
 - Replacing `lint-sources.sh` with `opm-docs lint`, or site versions from bundle tags (docs-kit phase 3).
-- Redirects from the removed Reference URLs (an owner decision, Open questions).
+- Redirects from the removed Reference URLs (decided against: the site is interim and `noindex`, so nothing depends on them).
 
 ## Decisions
 
 ### 1. `opm-docs` runs in the build image, and only the pull step has network
 
-`opm-docs` is pinned in `site/Dockerfile` like Hugo and Pagefind, with the SHA-256 committed in the repository:
+`opm-docs` is pinned in `site/Dockerfile` like Hugo and Pagefind, with the SHA-256 committed in the repository (`docs-kit C12`, the build-image pattern; no `.opm-docs-version`, no host install):
 
 ```dockerfile
 ARG OPM_DOCS_VERSION=0.1.0
-ARG OPM_DOCS_SHA256=<sha256 of opm-docs_0.1.0_linux_amd64.tar.gz, from the release's checksums.txt, checked by hand at the bump>
+ARG OPM_DOCS_SHA256=<the archive's line in v0.1.0's checksums.txt>
 RUN wget -q "https://github.com/open-platform-model/docs-kit/releases/download/v${OPM_DOCS_VERSION}/opm-docs_${OPM_DOCS_VERSION}_linux_amd64.tar.gz" -O opm-docs.tgz \
  && echo "${OPM_DOCS_SHA256}  opm-docs.tgz" | sha256sum -c - \
  && tar -xzf opm-docs.tgz opm-docs && ./opm-docs version
@@ -44,11 +44,11 @@ docker run --rm --init --user <uid>:<gid> --env HOME=/tmp --env XDG_CACHE_HOME=/
   --volume <repo>/site/bundles.cue:/in/bundles.cue:ro
   --volume <repo>/site/.bundles:/out
   --volume <repo>/site/.cache/opm-docs:/cache
-  [--volume <OPM_BUNDLES_LOCAL dir>:/local/<project>:ro]
+  [--volume <OPM_BUNDLES_LOCAL dir>:/local/<project>/<segment>:ro]...      (one per pair)
   [--volume <repo>/site/bundles.frozen.json:/in/frozen.json:ro]
   --entrypoint opm-docs <build image>
   pull --config /in/bundles.cue --out /out --lock /out/lock.json
-       [--local <project>=/local/<project>] [--frozen /in/frozen.json]
+       [--local <project>@<segment>=/local/<project>/<segment>]... [--frozen /in/frozen.json]
 ```
 
 Default network (bridge); no source root, no repo-wide write. Anonymous pull: the packages are public, so no token reaches the container. `task bundles:pull` runs it; `task versions:fetch` runs it after the git fetch, so "a local build after a release" stays `task versions:fetch build`. `task build` never pulls.
@@ -73,7 +73,7 @@ The bundles a build reads, resolved in `site/scripts/sections.sh` (Decision 3):
 | explicit mode (`OPM_VERSIONS` set) | `site/.bundles/` when it holds `lock.json` | no: without it the build has no Catalogs section | as above, when present |
 | `OPM_BUNDLES=<dir>` set (tests, an author's saved tree) | that directory (mounted read-only by `run-in-image.sh`) | yes | skipped; the stamp records `"from": "OPM_BUNDLES"` |
 
-A lock entry with `"local": true` (an author's `OPM_BUNDLES_LOCAL` preview) builds, and the stamp shows it. CI never sets `OPM_BUNDLES_LOCAL` or `OPM_BUNDLES` for a published build.
+`OPM_BUNDLES_LOCAL` takes one or more `<project>@<segment>=<host dir>` pairs (`docs-kit C7`, repeatable); `run-in-image.sh pull` mounts each directory read-only and passes `--local` per pair. A pull whose every tab is local runs with `--network none`. A lock entry with `"local": true` builds, and the stamp shows it. CI never sets `OPM_BUNDLES_LOCAL` or `OPM_BUNDLES` for a published build.
 
 **Recovery.** When a newly published bundle breaks the build (it fails `pull`'s lint or a site check), a committed `site/bundles.frozen.json` (a copy of the last good build's lock, from the `build-manifest` artifact) makes `bundles:pull` pass `--frozen`; deleting it returns to resolution. It plays the role `override` plays for a version, and README names it.
 
@@ -114,7 +114,7 @@ sections.sh  (sourced; needs SITE_DIR)
 }
 ```
 
-Rules `gen-catalogs.sh` enforces, each failing the build naming project, segment and digest: the lock's `schema` is `docs.opmodel.dev/lock/v1`; every entry's `dir` exists and holds `manifest.json`; the manifest's `project`, `version`, `revision` and `source.commit` equal the lock entry's; every segment of one project has the same `placement.kind: "tab"` and `placement.root`, which matches `^/catalogs/[a-z0-9]+(-[a-z0-9]+)*/$`; the segment is `<MAJOR>.<MINOR>` of `version` or `edge`. `root` is read from `manifest.json` because the lock carries none (Contract gaps, G2). Order: the lock's own (`docs-kit C7`: version newest first, `edge` last), re-checked numerically (`4.10` after `4.9`). `indexed` is true for exactly the newest minor of each major. `name` is the last segment of `root`.
+Rules `gen-catalogs.sh` enforces, each failing the build naming project, segment and digest (or `local`): the lock's `schema` is `docs.opmodel.dev/lock/v1`; every entry's `dir` exists and holds `manifest.json`; the manifest's `project`, `version`, `revision` and `source.commit` equal the lock entry's; every entry of one project has the same `root`, which matches `^/catalogs/[a-z0-9]+(-[a-z0-9]+)*/$` and equals the manifest's `placement.root` (`placement.kind: "tab"`); the segment is `<MAJOR>.<MINOR>` of `version` or `edge`. `root` comes from the lock (`docs-kit C7`, every entry carries it); the manifest check is a cross-check. Order: the lock's own (`docs-kit C7`: version newest first, `edge` last), re-checked numerically (`4.10` after `4.9`). `indexed` is true for exactly the newest minor of each major. `name` is the last segment of `root`.
 
 `gen-catalogs.sh` also writes `.gen/catalogs/_index.md` (the `/catalogs/` section page: title "Catalogs", a description, `url: /catalogs/`, `params.llms`, and one line per catalog linking its newest minor), since an adapter cannot add the empty path (as for `/enhancements/`).
 
@@ -126,7 +126,7 @@ Rules `gen-catalogs.sh` enforces, each failing the build naming project, segment
 [[mounts]]                      # the bundles, as assets; only the files a bundle may hold
   source = "<CAT_DIR>"
   target = "assets/bundles"
-  files  = ['*/*/manifest.json', '*/*/content/**.md', '*/*/data/*.json']
+  files  = ['*/*/manifest.json', '*/*/content/**.md', '*/*/data/*.json']   # phase 1b adds '*/history.json'
 [[mounts]]                      # the adapter, default version only
   source = "catalogs"
   target = "content/catalogs"
@@ -152,6 +152,8 @@ manifest pages[]      -> lastmod (when present); params.catalog = {project, name
                          edge, indexed, commit, repo, source, generated}
 segment row           -> sitemap.disable = not indexed; params.llms = indexed
 ```
+
+The landing needs nothing special: it is the authored contract page followed by the generated `## Catalog members` block (`docs-kit C8`; a generated landing holds only the block), so the members of each minor are one click from its landing, and `#catalog-members` is a stable anchor on every landing.
 
 The adapter fails the build, naming project, segment, digest and page, on: a page `manifest.json` lists that is not mounted, a front-matter key outside the dialect, a missing `title` or `description`, and a Hugo shortcode delimiter (`{{<`, `{{%`) other than an `opm/<figure>` call the dialect allows. `pull` already lints in bundle mode; the adapter's refusals are the site's own guard, and the only one fixture bundles get.
 
@@ -214,18 +216,20 @@ The non-production-host `noindex, nofollow` (`head-end.html:79-80`) still wins. 
 ### 10. Links
 
 - **On catalog pages**, `layouts/catalogs/_markup/render-link.html` (a section hook, as Enhancements has): a link to the page's own root and segment (`/catalogs/opm/4.4/resources/volumes/`) MUST resolve to a page of the same segment; a link to its own root at another segment or at a major fails (the renderer rewrites own-root links to its segment, `docs-kit C8`); `/docs/...` resolves in the default version; `/enhancements/...` as the global hook does; another catalog's major alias resolves as on docs pages. A miss fails the build naming project, segment and page.
-- **On docs pages**, `layouts/_markup/render-link.html` gains a `/catalogs/` branch beside the `/enhancements/` one: `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/<rel>` resolve through `catalogs.json` to the newest minor of that major, then through `hugo.Sites` to the page, and the link is written to that page's URL (not the alias: no redirect hop, and the crawl checks a real page). A missing catalog, major or page, or a build without the section, fails the build with a message naming `task bundles:pull`. Fragments are kept.
-- **Legacy map (transition, Decision 12).** While the build has the `catalog-opm` tab, the global hook also maps two old targets: `/docs/reference/catalog-contract/` (with its fragment) and `/docs/reference/catalog-members/` to the newest `4` minor's landing. `build-all.sh` lists every page still writing one, without failing.
+- **On docs pages**, `layouts/_markup/render-link.html` gains a `/catalogs/` branch beside the `/enhancements/` one: `/catalogs/<name>/` (the bare tab root) resolves to the newest minor's landing, and `/catalogs/<name>/<MAJOR>/<rel>` through `catalogs.json` to the newest minor of that major, then through `hugo.Sites` to the page, and the link is written to that page's URL (not the alias: no redirect hop, and the crawl checks a real page). A missing catalog, major or page, or a build without the section, fails the build with a message naming `task bundles:pull`. Fragments are kept.
+- **Legacy map (transition, Decision 12).** While the build has the `catalog-opm` tab, the global hook also maps two old targets, resolved like their alias forms: `/docs/reference/catalog-contract/` (with its fragment) as `/catalogs/opm/4/`, and `/docs/reference/catalog-members/` as `/catalogs/opm/4/#catalog-members` (the landing's generated block). `build-all.sh` lists every page still writing one, without failing.
 
 ### 11. The page dialect
 
-`site/scripts/lint-sources.sh` accepts, on docs pages, exactly `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/(<seg>/)*`, each with an optional `#fragment` (`docs-kit C11`, docs mode), and rejects every other `/catalogs` form with a message naming the major-alias form: a minor (`/catalogs/opm/4.4/`), `edge`, a missing trailing slash, a version prefix. `site/tests/lint/link-catalogs/` holds the rejected forms, `lint/clean/` the accepted ones. The byte-identical copy and its SHA-256 in `openspec/changes/deploy-site/orchestration.md` change with it, and the cases are compared with docs-kit's `internal/dialect/testdata` docs-mode cases (Contract gaps, G5).
+`site/scripts/lint-sources.sh` accepts, on docs pages, exactly the bare tab root `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/(<seg>/)*`, each with an optional `#fragment` (`docs-kit C11`, docs mode), and rejects every other `/catalogs` form with a message naming the major-alias form: a minor (`/catalogs/opm/4.4/`), `edge`, a missing trailing slash, a version prefix, and `/catalogs/` alone (C11 does not list it). `site/tests/lint/link-catalogs/` holds the rejected forms, `lint/clean/` the accepted ones. The byte-identical copy and its SHA-256 in `openspec/changes/deploy-site/orchestration.md` change with it.
+
+`site/tests/lint/` is the source of the dialect conformance fixture set (`docs-kit C11`): docs-kit copies it into `internal/dialect/testdata/conformance/` with the expected `<file>:<line>` output and the source commit, and both linters must pass it until phase 3 retires the shell lint. The `/catalogs/` rule is docs-kit's first (C11 in `build-opm-docs-phase-1`), so this change follows it: the new fixtures must produce exactly the lines `opm-docs lint` reports, and their commit is named to docs-kit for the copy. Any later rule change lands in docs-kit first, then here with the same fixture; README ("Page dialect") states it.
 
 ### 12. Transition: the members leave Reference in the same build that gains the tab
 
 When `catalogs.json` holds `catalog-opm`, `gen-mounts.sh` excludes `reference/catalog-members/**` and `reference/catalog-contract.md` from catalog_opm's `docs/site` mount in every version (a `files` exclusion, as the placeholder yield does), and the legacy map (Decision 10) resolves the two old link targets sources still write. Without the tab (an explicit build without bundles, most fixtures) nothing changes. `content/docs/reference/_index.md`'s description stops naming catalog members and its body points to the Catalogs tab.
 
-So: from the merge, each member is published once; no source link breaks before cli and catalog_opm follow up; the follow-ups may merge in any order. Once catalog_opm section 2 has deleted the pages and no page writes either old target (the listing in Decision 10 is empty on a `main` build), a follow-up deletes the exclusion and the map (`TODO.md`).
+So: from the merge, each member is published once; no source link breaks before cli and catalog_opm follow up; the follow-ups may merge in any order. Once catalog_opm section 2 has deleted the pages and no page writes either old target (the listing in Decision 10 is empty on a `main` build), a follow-up deletes the exclusion and the map (`TODO.md`). No redirects are served from the old `/<version>/docs/reference/catalog-*` URLs (supervisor decision, 2026-10-02: the site is interim and `noindex`, so no reader or index depends on them); their `/latest/` stubs go with the pages.
 
 ### 13. Build stamp and CI
 
@@ -244,7 +248,9 @@ So: from the merge, each member is published once; no source link breaks before 
 
 ### 14. Fixtures and checks
 
-`site/tests/fixtures/bundles/` is a tree in the unpack layout, not pulled: `lock.json` (fake digests, the real field set) and `catalog-opm/{4.4,4.5,edge}/` each with `manifest.json`, `content/` (a landing, the three kind indexes, two or three members, one older apiVersion page in 4.4 only, one member in 4.5 only) and `data/catalog.json`; plus `site/tests/fixtures/bundles.cue`, whose digest the fixture lock records. `test-site.sh` copies both into its site copy (`.bundles/`, `bundles.cue`), so fixture builds take the manifest-mode code path; `versions:test` passes `OPM_BUNDLES` to the fixture tree. The fixture workspace's `catalog_opm/docs/site/reference/` gains a `catalog-contract.md` and a `catalog-members/` stub (to prove the exclusion and the legacy map), and a fixture docs page links `/catalogs/opm/4/` and a member through the alias.
+`site/tests/fixtures/bundles/` holds three bundle trees, `catalog-opm/{4.4,4.5,edge}/`, each with `manifest.json`, `content/` (a landing ending in the `## Catalog members` block, the three kind indexes, two or three members, one older apiVersion page in 4.4 only, one member in 4.5 only) and `data/catalog.json`, and `lock.json`: exactly what an all-local pull writes over them (`--local catalog-opm@4.4=... --local catalog-opm@4.5=... --local catalog-opm@edge=...`, `docs-kit C7`), so three entries with `"local": true` and `root`, and `config` the digest of `site/tests/fixtures/bundles.cue`. Because a bundle tree and its unpacked copy are the same files, the fixture directory is at once the `--local` input and a ready unpack layout.
+
+The tests use it in two ways (decided: pull in the tests, but only once the tool exists). In sections 2 to 4, before docs-kit is released, `test-site.sh` copies the tree and `bundles.cue` into its site copy (`.bundles/`, `bundles.cue`), so fixture builds take the manifest-mode code path without `opm-docs`; `versions:test` passes `OPM_BUNDLES` to the tree. In section 5, once `opm-docs` is in the image, `test-site.sh` first runs that all-local `opm-docs pull` with `--network none` into `.check/tests/bundles/` and fails unless its output tree and `lock.json` are byte-identical to the fixture. That proves the fixtures are what the real tool writes (manifest validation, unpack guards, bundle-mode lint, the lock's fields), and every later fixture build uses the pulled copy. A fixture edit regenerates `lock.json` the same way. The fixture workspace's `catalog_opm/docs/site/reference/` gains a `catalog-contract.md` and a `catalog-members/` stub (to prove the exclusion and the legacy map), and a fixture docs page links `/catalogs/opm/4/` and a member through the alias.
 
 New check cases under `site/tests/checks/`, each failing on its fixture: `cat-q2` (a page the manifest lists is missing from output), `cat-stray-file`, `cat-link-miss` (a docs link to a member the newest `4` minor lacks), `cat-own-root-other-segment` (a catalog page linking its own root at another segment), `cat-docs-link-without-section`, `cat-without-bundles` (manifest mode, `bundles.cue`, no lock), `cat-lock-mismatch` (lock `config` differs), `cat-manifest-mismatch` (lock and `manifest.json` disagree on version), `cat-front-matter` (an unknown key), `cat-shortcode`, `cat-redirects` (a missing catalog `_redirects` line or stub). Assertions in `test-site.sh` beside `:262-332`: the pages of every segment, the tab present and current, the switcher's targets (same page, parent fallback, landing), indexed vs `noindex` per segment, `llms.txt` and sitemap content, the alias stubs and `_redirects` lines, no edge stub, the excluded Reference pages absent and the legacy links resolved, `nav-order-catalogs-<segment>.txt`. `check-two-versions.sh`: the section is published once, outside both versions, and the tab is in every version.
 
@@ -283,27 +289,31 @@ Browser: `qa_common.catalog_pages()`; `shots.py` adds a catalog landing, a membe
 **Decision**: exclude and map (Decision 12).
 **Rationale**: only two link targets are written outside the excluded pages (grep over all six `docs/site` trees, 2026-10-02: cli `registry-namespaces.md:19,38`, catalog_opm `kubernetes-resources.md:8,51`; every other hit is a planning comment). Two map entries and one mount exclusion remove both the duplicate and the merge-order coupling, and are deleted by one follow-up.
 
+### Pre-unpacked fixtures or `pull --local` in the tests?
+
+**Context**: `docs-kit C7` now takes `--local <project>@<segment>=<dir>`, repeatable, with no network for an all-local pull, so the tests can run the real pull.
+**Explored**: pre-unpacked trees only (no tool needed, but never proves the fixtures match the tool); `pull --local` only (gates sections 2 to 4 on docs-kit's release); both.
+**Decision**: both, in order (Decision 14): the bulk is built on the tree, and section 5 makes the all-local pull the tests' path and checks it reproduces the tree byte for byte.
+**Rationale**: the sections that need no registry also need no tool, and the gated section turns the fixtures into a conformance check of the real `pull`.
+
 ### Section 1 is not a spike
 
 The Hugo mechanisms are the ones the Enhancements section proved on 0.167 (adapter `url`, default-only mounts, `.Publish` stubs, a section-scoped Pagefind bundle, section markup hooks). The unverified assumption is the real bundles' shape, which no spike here can check before docs-kit exists; it is held by the fixtures following `docs-kit C3`/`C8` and verified by section 5 against the real bundles.
 
-## Contract gaps (with docs-kit `build-opm-docs-phase-1`, read at `origin/plan/phase-1` b968ec6)
+## Contract gaps (with docs-kit `build-opm-docs-phase-1`, read at `origin/plan/phase-1` 8e1eafa)
 
-- **G1. Tool source (deviation).** Orchestration item 1 asks for a host download (`.opm-docs-version`, `task tools:opm-docs`, `site/.bin/`); this change pins `opm-docs` in the build image instead (Research & Decisions). docs-kit needs only to keep shipping `opm-docs_<v>_linux_amd64.tar.gz` and `checksums.txt`.
-- **G2. Transition (deviation).** Orchestration step 5 and item 12 accept the double-publish window and remove the Reference copies only when catalog_opm section 2 lands; this change removes them from the site in the build that gains the tab and maps the old links (Decision 12). Steps 6 and 7 then have no ordering constraint against each other; both still follow this merge. Phase 1's done criterion ("the Catalogs tab and no catalog pages under Reference") holds from this merge.
-- **G3. `--local` gives one segment per project.** Orchestration item 13 says the tests use `--local`; with one directory per project, a fixture with 4.4, 4.5 and edge cannot go through it, so the fixtures are pre-unpacked trees and the site's tests never run `pull` (Decision 14). Unstated in C7: whether `pull` with every tab `--local` needs the network (the trusted root).
-- **G4. The cli link fix names one link; there are two** (`registry-namespaces.md:19` and `:38`).
-- **G5. The lock has no `root`.** The site reads each project's root from every `manifest.json` and refuses disagreement. A `root` field per lock entry would make the lock self-describing.
-- **G6. Dialect fixture agreement.** Item 11 asks the site's lint fixtures and `internal/dialect/testdata` to agree but names no mechanism; here it is a manual comparison in task 4.1. C11 accepts `/catalogs/<name>/` but not `/catalogs/` itself; this change follows C11.
-- **G7. Lock check placement.** Item 3 puts the lock/config check in `versions:prepare` on the host; here it runs in the image (`sections.sh`) for build and serve, so the host needs no `sha256sum` and serve is covered too.
-- **G8. Signer pinning is open.** C5 records an unresolved conflict: if review picks SHA-pinned `publish.yml`, `site/bundles.cue` gains a `signer.refs` allowlist of docs-kit release SHAs, one site commit per docs-kit release. Decision 2's file is the tag form; section 5 follows whichever form docs-kit merges.
-- **G9. Phase 1b.** C7 now reserves `<out>/<project>/history.json`; the mount filter in Decision 5 leaves it out until phase 1b widens it. Resolved, noted for that change.
-- **Resolved by the amendment:** the k8s bundle is gone from C1, C6, C7 and C8; the orchestration's catalog_opm section 2 now waits for the k8s catalog's removal, which takes `kubernetes-resources.md` (and its two links into `catalog-members/`) with it.
+Accepted into the contract on 2026-10-02 (supervisor): the image pin (C12), the no-double-publish transition (orchestration item 12), repeatable `--local <project>@<segment>=<dir>` with no network for an all-local pull (C7), `root` in every lock entry (C7), the shared conformance fixture set and the bare `/catalogs/<name>/` link (C11), the generated `## Catalog members` block on every landing (C8), no redirects from the old Reference URLs, and `publish.yml` pinned by tag, so the signer is the SAN `.../publish.yml@refs/tags/v*` (C9) with no SHA allowlist and no site commit per docs-kit release. The k8s bundle is gone, and catalog_opm section 2 waits for the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `catalog-members/` links with it. The cli fix now names both links.
+
+Left in the docs-kit text, for docs-kit to tidy (none blocks this change):
+
+- **G1. Lock check placement.** Orchestration item 3 still puts the lock/config check in `versions:prepare` on the host; here it runs in the image (`sections.sh`) for build and serve, so the host needs no `sha256sum` and serve is covered too.
+- **G2. Mounts.** Item 5 still says one mount per lock entry at `assets/catalogs/<project>/<segment>`; here it is one filtered `assets/bundles` mount (Research & Decisions).
+- **G3. Item 12's first sentence** ("Reference loses them when catalog_opm section 2 lands") contradicts its next sentence, and step 5 still describes the "exist twice" window; with this change Reference loses them at this merge.
+- **G4. C5's "Known conflict" note** still reads as unresolved at 8e1eafa; the owner's tag decision is to land in a later commit there.
 
 ## Open questions
 
-- **Old Reference URLs** (orchestration item 12, owner): redirect `/<version>/docs/reference/catalog-contract/` and `/<version>/docs/reference/catalog-members/**` to the alias forms? If yes, a small follow-up adds stubs and `_redirects` lines; this change removes the pages without redirects.
-- **Release cascade**: whether a docs-kit release opens the `OPM_DOCS_VERSION` bump here (workspace `RELEASING.md`); until then it is bumped by hand.
+- **Release cascade**: whether a docs-kit release opens the `OPM_DOCS_VERSION` bump here (workspace `RELEASING.md`); until then it is bumped by hand, version and SHA-256 in one Dockerfile edit.
 
 ## Risks / Trade-offs
 
@@ -316,8 +326,10 @@ The Hugo mechanisms are the ones the Enhancements section proved on 0.167 (adapt
 ## Durable decisions
 
 - **The Catalogs tab is an unversioned section at `/catalogs/<name>/<MAJOR.MINOR>/` (and `edge`), built only from signed docs bundles that `opm-docs pull` resolves from the tabs in `site/bundles.cue`; a new minor appears with no site commit; the lock is not committed and the stamp records it.** Lands in README ("The Catalogs section", "Sources") and AGENTS.md ("Site versions" bullet beside the Enhancements one, Repository Layout).
-- **`opm-docs` is pinned by version and SHA-256 in `site/Dockerfile`; `task bundles:pull` is the only step besides the image builds and `versions:fetch` that reaches the network; recovery is `site/bundles.frozen.json`.** Lands in AGENTS.md (Repository Rules, Build And Dev Commands) and README.
+- **`opm-docs` is pinned by version and SHA-256 in `site/Dockerfile` (`docs-kit C12`, image pattern); `task bundles:pull` is the only step besides the image builds and `versions:fetch` that reaches the network, and an all-local pull runs without it; recovery is `site/bundles.frozen.json`. A bundle is accepted only when signed by docs-kit's `publish.yml` at a `refs/tags/v*` ref for catalog_opm's `main` (`docs-kit C9`).** Lands in AGENTS.md (Repository Rules, Build And Dev Commands) and README ("Sources").
 - **Only the newest minor of each major is indexed and listed in `llms.txt` and the sitemap; older minors and `edge` are `noindex`; each segment has its own Pagefind index.** Lands in README and AGENTS.md (Durable decisions, Indexing).
-- **Aliases: `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/...` go to the newest minor (of that major), as `_redirects` lines and stubs; `edge` has none. Docs pages link catalogs only through the major alias, and the site writes the resolved minor's URL.** Lands in README ("Page dialect", "URL layout"), the dialect contract, and workspace `STYLE.md` (follow-up).
+- **Aliases: `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/...` go to the newest minor (of that major), as `_redirects` lines and stubs; `edge` has none. Docs pages link catalogs only through the bare tab root or the major alias, and the site writes the resolved minor's URL.** Lands in README ("Page dialect", "URL layout"), the dialect contract, and workspace `STYLE.md` (follow-up).
 - **Catalog members are no longer committed reference: Principle III's "the catalog's members ... committed there" becomes "or published as signed docs bundles by docs-kit".** Lands in `openspec/config.yaml` context and AGENTS.md ("Generated reference" pattern).
-- **The transition exclusion and legacy link map are temporary, removed once catalog_opm has deleted the pages and no source writes the old links.** Lands in `TODO.md` and README ("The Catalogs section").
+- **The transition exclusion and legacy link map are temporary, removed once catalog_opm has deleted the pages and no source writes the old links; the old Reference URLs get no redirects.** Lands in `TODO.md` and README ("The Catalogs section").
+- **`site/tests/lint/` is the source of the dialect conformance set docs-kit copies; a dialect rule change lands in docs-kit first, then here with the same fixture, until phase 3 retires the shell lint.** Lands in README ("Page dialect") and AGENTS.md (Repository Rules, the source-lint bullet).
+- **The fixtures in `site/tests/fixtures/bundles/` are bundle trees plus the lock an all-local pull writes over them; `task test:site` re-pulls them offline and fails on any difference.** Lands in README ("Tests").
