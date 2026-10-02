@@ -2,7 +2,7 @@
 
 The site is one Hugo 0.167 build over Hextra v0.13.0, run in Docker with `--network none`. Docs come from six source repositories per site version; the Enhancements section (`add-enhancements-tab`, archived 2026-10-02) proved an unversioned section built in the same run: a content adapter mounted into the default version only, pages given `url` so they publish outside `/<version>/`, a generated section page, a menu entry written by `gen-mounts.sh` only when the section exists, and explicit exclusions (version label, `/latest/` stubs, `llms.txt`, sitemap, search).
 
-The Catalogs tab follows that pattern with three differences: its source is a set of pulled, signed bundles rather than a git tree; one section holds several version trees (one per opm minor, plus `edge`), each with its own sidebar, search and switcher; and it has aliases. The contracts it consumes are docs-kit's `build-opm-docs-phase-1` `design.md`: the bundle tree and `manifest.json` (C3), tags (C4), the pull config, unpack layout and lock (C7), URLs, links and aliases (C8), the signer (C9) and the page dialect (C11). They are cited as `docs-kit C7` and so on. Owner decisions taken after that change was written, and binding here: there is no `catalog-k8s` bundle (only `catalog-opm`, at `/catalogs/opm/`); the sitemap lists only the newest minor of each major; `edge` gets its own Pagefind index but no alias stubs; version-history data (phase 1b, not this change) will be a data file written by `opm-docs pull`.
+The Catalogs tab follows that pattern with three differences: its source is a set of pulled, signed bundles rather than a git tree; one section holds several version trees (one per opm minor, plus `edge`), each with its own sidebar, search and switcher; and it has aliases. The contracts it consumes are docs-kit's `build-opm-docs-phase-1` `design.md`: the bundle tree and `manifest.json` (C3), tags (C4), the pull config, unpack layout and lock (C7), URLs, links and aliases (C8), the signer (C9) and the page dialect (C11). They are cited as `docs-kit C7` and so on. Supervisor decisions recorded in that design's "Site decisions" (2026-10-02; the owner may override), binding here: there is no `catalog-k8s` bundle (only `catalog-opm`, at `/catalogs/opm/`); the sitemap lists only the newest minor of each major; `edge` gets its own Pagefind index but no alias stubs; version-history data (phase 1b, not this change) will be a data file written by `opm-docs pull`.
 
 Every file under `site/` this change touches is listed in proposal.md's Impact. The build gains one input (the bundles, by digest) and two pinned tools in the build image (`opm-docs`, `jq`); no upstream pin in `site/overrides.sha256` changes and no new theme file is overridden.
 
@@ -57,7 +57,7 @@ The release's own `checksums.txt` is read once, by the person bumping the pin, a
 
 ### 2. The pull config, and when bundles are required
 
-`site/bundles.cue`, `docs-kit C7` without the k8s tab:
+`site/bundles.cue`, exactly as `docs-kit C7` shows it:
 
 ```cue
 tabs: {
@@ -287,16 +287,18 @@ Browser: `qa_common.catalog_pages()`; `shots.py` adds a catalog landing, a membe
 
 The Hugo mechanisms are the ones the Enhancements section proved on 0.167 (adapter `url`, default-only mounts, `.Publish` stubs, a section-scoped Pagefind bundle, section markup hooks). The unverified assumption is the real bundles' shape, which no spike here can check before docs-kit exists; it is held by the fixtures following `docs-kit C3`/`C8` and verified by section 5 against the real bundles.
 
-## Contract gaps (with docs-kit `build-opm-docs-phase-1`)
+## Contract gaps (with docs-kit `build-opm-docs-phase-1`, read at `origin/plan/phase-1` b968ec6)
 
-- **G1. k8s still in the contract.** C1, C6, C7's example `bundles.cue`, C8's cross-catalog example (`/catalogs/k8s/1/`), orchestration steps 3–4 and catalog_opm section 1 item 3 still carry `catalog-k8s`. This change has no k8s tab, so a bundle page linking `/catalogs/k8s/...` fails the site build.
-- **G2. The lock has no `root`.** The site needs each project's URL root; it reads it from every `manifest.json` and refuses disagreement. Adding `root` to each lock entry would make the lock self-describing.
-- **G3. `--local` gives one segment per project.** Fixture builds cannot go through `pull --local` with three segments, so the fixtures are pre-unpacked trees (Decision 14), against the orchestration's "the tests use `--local`". Also unstated: whether `pull` with every tab `--local` needs the network (the trusted root).
+- **G1. Tool source (deviation).** Orchestration item 1 asks for a host download (`.opm-docs-version`, `task tools:opm-docs`, `site/.bin/`); this change pins `opm-docs` in the build image instead (Research & Decisions). docs-kit needs only to keep shipping `opm-docs_<v>_linux_amd64.tar.gz` and `checksums.txt`.
+- **G2. Transition (deviation).** Orchestration step 5 and item 12 accept the double-publish window and remove the Reference copies only when catalog_opm section 2 lands; this change removes them from the site in the build that gains the tab and maps the old links (Decision 12). Steps 6 and 7 then have no ordering constraint against each other; both still follow this merge. Phase 1's done criterion ("the Catalogs tab and no catalog pages under Reference") holds from this merge.
+- **G3. `--local` gives one segment per project.** Orchestration item 13 says the tests use `--local`; with one directory per project, a fixture with 4.4, 4.5 and edge cannot go through it, so the fixtures are pre-unpacked trees and the site's tests never run `pull` (Decision 14). Unstated in C7: whether `pull` with every tab `--local` needs the network (the trusted root).
 - **G4. The cli link fix names one link; there are two** (`registry-namespaces.md:19` and `:38`).
-- **G5. Dialect fixture agreement.** The orchestration asks the site's lint fixtures and docs-kit's `internal/dialect/testdata` to agree but names no mechanism. Also: C11 accepts `/catalogs/<name>/` but not `/catalogs/` itself; this change follows C11.
-- **G6. Where the tool comes from.** The orchestration's host download (`.opm-docs-version`, `task tools:opm-docs`) is replaced by the image pin (Research & Decisions); docs-kit needs only to keep shipping `opm-docs_<v>_linux_amd64.tar.gz` and `checksums.txt`.
-- **G7. Lock check placement.** The orchestration puts the lock/config check in `versions:prepare` on the host; here it runs in the image (`sections.sh`) for build and serve, so the host needs no `sha256sum`.
-- **G8. History file (phase 1b).** If `pull` writes it inside `--out`, it must not sit at a path `pull` deletes as "not written this run", and the site's mount filter must be widened for it.
+- **G5. The lock has no `root`.** The site reads each project's root from every `manifest.json` and refuses disagreement. A `root` field per lock entry would make the lock self-describing.
+- **G6. Dialect fixture agreement.** Item 11 asks the site's lint fixtures and `internal/dialect/testdata` to agree but names no mechanism; here it is a manual comparison in task 4.1. C11 accepts `/catalogs/<name>/` but not `/catalogs/` itself; this change follows C11.
+- **G7. Lock check placement.** Item 3 puts the lock/config check in `versions:prepare` on the host; here it runs in the image (`sections.sh`) for build and serve, so the host needs no `sha256sum` and serve is covered too.
+- **G8. Signer pinning is open.** C5 records an unresolved conflict: if review picks SHA-pinned `publish.yml`, `site/bundles.cue` gains a `signer.refs` allowlist of docs-kit release SHAs, one site commit per docs-kit release. Decision 2's file is the tag form; section 5 follows whichever form docs-kit merges.
+- **G9. Phase 1b.** C7 now reserves `<out>/<project>/history.json`; the mount filter in Decision 5 leaves it out until phase 1b widens it. Resolved, noted for that change.
+- **Resolved by the amendment:** the k8s bundle is gone from C1, C6, C7 and C8; the orchestration's catalog_opm section 2 now waits for the k8s catalog's removal, which takes `kubernetes-resources.md` (and its two links into `catalog-members/`) with it.
 
 ## Open questions
 
