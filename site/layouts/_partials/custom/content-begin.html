@@ -4,7 +4,9 @@
        - the page lead: the front-matter description, which is also the
          page's Pagefind description (the element form stores its text), so
          the lead and the search sub-line cannot drift apart;
-       - the page-type badge, with Hextra's own badge partial;
+       - the page-type badge, with Hextra's own badge partial (a Catalogs
+         section page keeps its dialect type as params.docType, since its
+         Hugo type is the section's);
        - Pagefind metadata: the breadcrumb, shown in the search palette. */ -}}
 {{- if not .IsHome }}{{ with .Description -}}
   <p class="opm-lead" data-pagefind-meta="description">{{ . }}</p>
@@ -15,7 +17,7 @@
   "explanation" (dict "label" "Explanation" "color" "purple" "icon" "light-bulb")
   "reference" (dict "label" "Reference" "color" "gray" "icon" "book-open")
 -}}
-{{- with index $types .Type -}}
+{{- with index $types (.Params.docType | default .Type) -}}
   {{- partial "shortcodes/badge" (dict "content" .label "color" .color "icon" .icon "border" true "class" "opm-type-badge") -}}
 {{- end -}}
 {{- /* The crumbs start below the docs root (the page's first section), so

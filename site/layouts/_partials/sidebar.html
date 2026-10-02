@@ -9,6 +9,9 @@
   - Reference is its own tab: on a page in docs/reference/ the tree is that
     section's, and every other docs page's tree leaves it out (its URLs stay
     under /docs/, so no link changes);
+  - on a Catalogs section page the tree is its segment's (the landing of
+    /catalogs/<name>/<segment>/), so no other minor shows; the /catalogs/
+    page shows only itself;
   - groups outside the current path start collapsed (params.opm.collapseInactive);
   - the current page's h2 headings sit under its entry on mobile only;
   - a CamelCase title (a generated reference page, TransformerRegistration)
@@ -27,6 +30,14 @@
 {{- if or $context.IsHome (not $navRoot) -}}{{ $navRoot = site.GetPage "/docs" }}{{- end -}}
 {{- $ref := site.GetPage "/docs/reference" -}}
 {{- if and $ref (or (eq $context $ref) ($ref.IsAncestor $context)) -}}{{ $navRoot = $ref }}{{- end -}}
+{{- $leafOnly := false -}}
+{{- if eq $context.Section "catalogs" -}}
+  {{- with $context.Params.catalog -}}
+    {{- with site.GetPage (printf "/catalogs/%s/%s" .name .segment) -}}{{ $navRoot = . }}{{- end -}}
+  {{- else -}}
+    {{- $navRoot = $context -}}{{- $leafOnly = true -}}
+  {{- end -}}
+{{- end -}}
 {{- if .context.Params.sidebar.hide -}}
   {{- $disableSidebar = true -}}{{- $displayPlaceholder = false -}}
 {{- end -}}
@@ -60,7 +71,7 @@
     <ul class="opm-sb-list{{ if $disableSidebar }} hx:md:hidden{{ end }}">
       {{- with $navRoot -}}
         <li>{{ template "opm-sb-link" dict "title" (partial "utils/title" .) "link" .RelPermalink "active" (eq . $context) "strong" true }}</li>
-        {{- template "opm-sb-tree" dict "section" . "page" $context "level" 0 "skip" $ref -}}
+        {{- if not $leafOnly -}}{{- template "opm-sb-tree" dict "section" . "page" $context "level" 0 "skip" $ref -}}{{- end -}}
       {{- end -}}
     </ul>
     {{- if and $disableSidebar $displayPlaceholder }}<div class="hx:max-xl:hidden hx:h-0 hx:w-64 hx:shrink-0"></div>{{ end -}}

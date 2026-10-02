@@ -11,6 +11,10 @@
 # /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
+#   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge) and
+#                                              the lock an all-local opm-docs pull writes over
+#                                              them; every site copy holds them as .bundles/,
+#                                              with tests/fixtures/bundles.cue as bundles.cue
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), read in place as explicit mode
@@ -26,7 +30,8 @@
 #   enhancements/...      files laid over the copy of its enhancements tree
 #   site/...              files laid over the copy of the site (site-owned pages, config)
 #   setup.sh              run after the copies, with SITE and WS set to them
-#   env                   KEY=VALUE lines exported for the build (checks only)
+#   env                   KEY=VALUE lines exported for the build (checks only);
+#                         CASE_MANIFEST=1 builds without OPM_VERSIONS (manifest mode)
 #   expect                lint: one "<path>:<line>: <message>" line per violation,
 #                         none for a clean tree; checks: "+ text" lines the failed
 #                         build must print and "- text" lines it must not
@@ -55,13 +60,19 @@ bad() { echo "FAIL $1: $2"; fail=$((fail + 1)); [ -z "${3:-}" ] || tail -n 15 "$
 copy_site() {
   d=$OUT/$1/site
   mkdir -p "$d"
-  for e in config content enhancements layouts assets static data i18n archetypes themes scripts; do
+  for e in config content enhancements catalogs layouts assets static data i18n archetypes themes scripts; do
     [ -d "$SITE/$e" ] && cp -R "$SITE/$e" "$d/"
   done
   for e in "$SITE"/* "$SITE"/.[!.]*; do
     [ -f "$e" ] && cp "$e" "$d/"
   done
-  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock"
+  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles"
+  # The fixture docs bundles as an unpacked pull (tests/fixtures/bundles/:
+  # the bundle trees and the lock an all-local opm-docs pull writes over
+  # them), with the bundles.cue they were pulled for, so every build has the
+  # Catalogs section: explicit mode reads .bundles/ when it holds lock.json.
+  cp -R "$TESTS/fixtures/bundles" "$d/.bundles"
+  cp "$TESTS/fixtures/bundles.cue" "$d/bundles.cue"
   return 0
 }
 
@@ -89,7 +100,10 @@ build() {
   (
     # shellcheck disable=SC1090 # the case's own env file
     if [ -n "${3:-}" ] && [ -f "$3" ]; then set -a; . "$3"; set +a; fi
-    SITE_DIR=$OUT/$1/site OPM_VERSIONS=v1.0=$2 sh "$SCRIPTS/build-all.sh"
+    # CASE_MANIFEST=1 (a case's env file) builds in manifest mode, without
+    # OPM_VERSIONS; its setup.sh writes the site copy's .versions/.
+    v=v1.0=$2; [ -z "${CASE_MANIFEST:-}" ] || v=""
+    SITE_DIR=$OUT/$1/site OPM_VERSIONS=$v sh "$SCRIPTS/build-all.sh"
   ) > "$OUT/$1/log" 2>&1
 }
 
@@ -330,6 +344,62 @@ if [ $rc -eq 0 ]; then
   [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
   if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
   else bad "enhancements/diagrams" "$why"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# The Catalogs section, from the fixture bundles: unversioned pages at
+# /catalogs/<name>/<segment>/, one tree per segment, the tab, the stamp.
+if [ $rc -eq 0 ]; then
+  K=$OUT/$name/site/public/catalogs
+  log=$OUT/$name/log
+  why=""
+  for f in index.html opm/4.4/index.html opm/4.4/traits/backup-v1alpha1/index.html opm/4.4/resources/volumes/index.html \
+    opm/4.5/index.html opm/4.5/traits/expose/index.html opm/edge/index.html opm/edge/policies/retention/index.html; do
+    [ -f "$K/$f" ] || why="${why:+$why; }no $f"
+  done
+  [ ! -e "$K/opm/4.5/traits/backup-v1alpha1" ] || why="${why:+$why; }4.5 has 4.4's older apiVersion page"
+  [ ! -e "$P/catalogs" ] || why="${why:+$why; }the section published under /v1.0/"
+  grep -qF 'catalogs: 27 pages expected, 27 built' "$log" || why="${why:+$why; }check-pages did not count 27 catalog pages"
+  if [ -z "$why" ]; then ok "catalogs/pages" "/catalogs/ and every page of 4.4, 4.5 and edge, each segment its own tree; nothing under /v1.0/"
+  else bad "catalogs/pages" "$why" "$log"; fi
+
+  why=""
+  m=$K/opm/4.4/traits/backup/index.html
+  for f in "$P/docs/start/quickstart/index.html" "$m" "$OUT/$name/site/public/enhancements/0001/index.html"; do
+    nav=$(dq "$f" | grep -oE '<a title href=/(v1.0/docs/|v1.0/docs/reference/|catalogs/|enhancements/) ' | sed -E 's#.*href=([^ ]*) #\1#' | tr '\n' ' ')
+    [ "$nav" = "/v1.0/docs/ /v1.0/docs/reference/ /catalogs/ /enhancements/ " ] || why="${why:+$why; }${f#"$OUT"/} navbar: $nav"
+  done
+  dq "$m" | grep -qE '<a title href=/catalogs/ class=[^>]*font-medium' || why="${why:+$why; }the tab is not current on a member"
+  dq "$K/index.html" | grep -qE '<a title href=/catalogs/ class=[^>]*font-medium' || why="${why:+$why; }the tab is not current on /catalogs/"
+  ! dq "$m" | grep -qE '<a title href=/v1.0/docs/ class=[^>]*font-medium' || why="${why:+$why; }Docs is current on a member"
+  ! grep -q 'opm-version-label' "$m" || why="${why:+$why; }a member shows the site version label"
+  [ ! -e "$OUT/$name/site/public/latest/catalogs" ] || why="${why:+$why; }/latest/catalogs/ stubs"
+  if [ -z "$why" ]; then ok "catalogs/tab" "Docs, Reference, Catalogs, Enhancements in that order; Catalogs current on every catalog page; no version label, no /latest/ stub"
+  else bad "catalogs/tab" "$why"; fi
+
+  why=""
+  r=$(dq "$m")
+  for want in 'href=/catalogs/opm/4.4/resources/volumes/>Volumes' 'href=/catalogs/opm/4.4/#contract-levels>contract levels' \
+    'href=/v1.0/docs/concepts/>what enforces a rule' \
+    'href=https://github.com/open-platform-model/catalog_opm/blob/dbefd8645e236dd07060772eaa5857c926b0b44f/opm/traits/v1alpha2/backup.cue' \
+    'class=hextra-badge opm-type-badge' '<span>opm catalog 4.4</span>'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  ! grep -q 'Edit this page' "$m" || why="${why:+$why; }a member has an edit link"
+  nav=$OUT/$name/site/.check/catalogs/nav-order-catalogs-4.4.txt
+  [ "$(grep -c '^/catalogs/opm/' "$nav")" -gt 0 ] && ! grep -qE '^/catalogs/opm/(4\.5|edge)/' "$nav" || why="${why:+$why; }4.4's sidebar holds another segment: $nav"
+  [ "$(line_of /catalogs/opm/4.4/blueprints/ "$nav")" -lt "$(line_of /catalogs/opm/4.4/resources/ "$nav")" ] &&
+    [ "$(line_of /catalogs/opm/4.4/resources/ "$nav")" -lt "$(line_of /catalogs/opm/4.4/traits/ "$nav")" ] || why="${why:+$why; }4.4's kinds are not in weight order"
+  grep -qF '](https://opmodel.dev/catalogs/opm/4.4/resources/volumes/)' "$K/opm/4.4/traits/backup/index.md" || why="${why:+$why; }the .md output does not link absolute"
+  if [ -z "$why" ]; then ok "catalogs/content" "own-segment and /docs/ links resolve; View source at the bundle commit, no edit link; type badge; footer names catalog and segment; the sidebar is the segment's, kinds in weight order"
+  else bad "catalogs/content" "$why"; fi
+
+  st=$OUT/$name/site/public/build-stamp.json
+  got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
+  if [ "$got" = "explicit true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
+     [ "$(jq -r '.sections.enhancements.ref' "$st")" = worktree ]; then
+    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, the lock digest and every bundle (local); sections.enhancements kept"
+  else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi
 
 # ---------------------------------------------------------------------------

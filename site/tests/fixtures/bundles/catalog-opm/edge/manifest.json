@@ -1,0 +1,77 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "catalog-opm",
+  "version": "edge",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/catalog_opm",
+    "commit": "940725124ea69c7d01e346b936854f27f0ad330f",
+    "ref": "main"
+  },
+  "tool": "0.1.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "tab",
+    "root": "/catalogs/opm/"
+  },
+  "pages": [
+    {
+      "path": "_index.md",
+      "source": "docs/catalogs/opm/_index.md",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": false
+    },
+    {
+      "path": "blueprints/_index.md",
+      "generated": true
+    },
+    {
+      "path": "blueprints/stateless-workload.md",
+      "source": "opm/blueprints/v1/stateless_workload.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    },
+    {
+      "path": "policies/_index.md",
+      "generated": true
+    },
+    {
+      "path": "policies/retention.md",
+      "source": "opm/policies/v1alpha1/retention.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    },
+    {
+      "path": "resources/_index.md",
+      "generated": true
+    },
+    {
+      "path": "resources/volumes.md",
+      "source": "opm/resources/v1beta1/volumes.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    },
+    {
+      "path": "traits/_index.md",
+      "generated": true
+    },
+    {
+      "path": "traits/backup.md",
+      "source": "opm/traits/v1alpha2/backup.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    },
+    {
+      "path": "traits/expose.md",
+      "source": "opm/traits/v1alpha1/expose.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    }
+  ],
+  "data": [
+    {
+      "path": "catalog.json",
+      "schema": "docs.opmodel.dev/data/cue-catalog/v1"
+    }
+  ]
+}

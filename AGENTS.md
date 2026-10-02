@@ -144,6 +144,7 @@ Read these on entry:
 │   ├── versions.conf      # The site versions (git-config syntax; see ## Site versions)
 │   ├── config/_default/   # hugo.toml
 │   ├── enhancements/      # Content adapter for the unversioned Enhancements section
+│   ├── catalogs/          # Content adapter for the unversioned Catalogs section (docs bundles)
 │   ├── content/           # Site-owned pages
 │   │   ├── _index.md      # Landing (hextra-home)
 │   │   └── docs/**/_index.md   # Section overviews (weight, description, no type)

@@ -5,6 +5,7 @@
 #
 #   VERSIONS DEFAULT                       the versions, in weight order, and the default one
 #   ENH_TREE ENH_PATHS ENH_REF ENH_SHA ENH_HOW   the enhancements section (empty ENH_TREE: none)
+#   CAT_DIR CAT_FROM                       the Catalogs section's docs bundles (empty CAT_DIR: none)
 #
 # The versions: an explicit OPM_VERSIONS (the first is the default), else the
 # resolved .versions/versions.tsv (a source = main version reads /src in
@@ -51,3 +52,37 @@ else
   fi
 fi
 export ENH_TREE ENH_PATHS ENH_REF ENH_SHA ENH_HOW
+
+# The Catalogs section (site/catalogs/): the docs bundles opm-docs pull
+# unpacked, with their lock.json (docs-kit C7). Which directory, and whether
+# the build requires one (openspec add-catalogs-tab, design Decision 2):
+#   OPM_BUNDLES set (tests, an author's saved tree; run-in-image.sh mounts
+#     it read-only)              -> that directory; required; the config
+#                                   check is skipped; CAT_FROM=OPM_BUNDLES
+#   manifest mode with bundles.cue -> .bundles/; required; CAT_FROM=manifest
+#   explicit mode                -> .bundles/ when it holds lock.json, else
+#                                   no section; CAT_FROM=explicit
+#   manifest mode, no bundles.cue -> no section
+# A required directory without lock.json, and a lock whose config is not the
+# sha256 of bundles.cue's bytes, fail, naming task bundles:pull.
+CAT_DIR=""; CAT_FROM=""
+if [ -n "${OPM_BUNDLES:-}" ]; then
+  CAT_DIR=$OPM_BUNDLES; CAT_FROM=OPM_BUNDLES
+  [ -f "$CAT_DIR/lock.json" ] || sections_fail "OPM_BUNDLES=$CAT_DIR holds no lock.json; point it at a directory opm-docs pull wrote"
+else
+  if [ -z "${OPM_VERSIONS:-}" ] && [ -f .versions/versions.tsv ]; then
+    if [ -f bundles.cue ]; then
+      CAT_DIR=$SITE_DIR/.bundles; CAT_FROM=manifest
+      [ -f "$CAT_DIR/lock.json" ] || sections_fail "site/bundles.cue names the Catalogs tabs, but site/.bundles/ holds no lock.json; run task bundles:pull"
+    fi
+  elif [ -f .bundles/lock.json ]; then
+    CAT_DIR=$SITE_DIR/.bundles; CAT_FROM=explicit
+  fi
+  if [ -n "$CAT_DIR" ]; then
+    [ -f bundles.cue ] || sections_fail "site/.bundles/lock.json exists, but site/bundles.cue does not; run task bundles:pull, or remove site/.bundles/"
+    want=sha256:$(sha256sum bundles.cue | cut -c1-64)
+    have=$(jq -r '.config // ""' "$CAT_DIR/lock.json") || sections_fail "site/.bundles/lock.json is not JSON; run task bundles:pull"
+    [ "$have" = "$want" ] || sections_fail "site/.bundles/lock.json was pulled for another site/bundles.cue (lock config $have, bundles.cue $want); run task bundles:pull"
+  fi
+fi
+export CAT_DIR CAT_FROM

@@ -5,8 +5,10 @@ Every page of the default version that draws a figure (a <figure> holding an
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page, the open search palette and two section
-pages with their child cards, and the Enhancements section's page, graph, a
-draft entry, its decisions and an archived entry) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+pages with their child cards, the Enhancements section's page, graph, a
+draft entry, its decisions and an archived entry, and the Catalogs section's
+page, newest landing, a member with a spec block, a kind index and the edge
+landing) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 On every page of the default version that holds a direction note, the
@@ -32,7 +34,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import PUBLIC, SITE, default_version, direction_pages, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
+from qa_common import PUBLIC, SITE, catalog_pages, default_version, direction_pages, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
 
 OUT = SITE / ".shots"
 MIN_TEXT_PX = 9
@@ -178,6 +180,10 @@ def main():
     # The Enhancements section, outside every version: its page, the graph, a
     # draft entry with its decisions and an archived entry.
     extras += [(url, "enhancements page", None) for url in enhancement_pages()]
+    # The Catalogs section, outside every version: its page, the newest
+    # minor's landing, a member page with a spec block, a kind index and the
+    # edge landing (none without the section).
+    extras += [(url, "catalog page", None) for url in catalog_pages()]
     listed = versions()
     others = [name for name, is_default in listed if not is_default]
     if others:

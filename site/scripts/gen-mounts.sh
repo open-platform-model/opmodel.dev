@@ -44,6 +44,16 @@
 # menus.main replaces _default's whole: the entry is written together with a
 # copy of _default's [menus] block (the last table of config/_default/hugo.toml,
 # which stays the one place the other entries are written).
+#
+# The Catalogs section, when CAT_DIR names the docs bundles (sections.sh sets
+# it; gen-catalogs.sh has written data/opm/catalogs.json from their lock): the
+# bundles are mounted at assets/bundles, only manifest.json, content/**.md
+# and data/*.json of each <project>/<segment>/, where the content adapter
+# site/catalogs/_content.gotmpl reads them; the adapter and the section page
+# gen-catalogs.sh wrote (.gen/catalogs/_index.md) go to content/catalogs in
+# the default version only, as for the enhancements section. The hugo.toml
+# below gains the Catalogs menu entry (weight 3, before Enhancements at 4), so
+# the tab exists only in a build with the section.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 REPOS="opm core catalog_opm cli library opm-operator"
@@ -146,6 +156,17 @@ mkdir -p "$(dirname "$out")"
       printf '[[mounts]]\n  source = "%s"\n  target = "content/enhancements"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
     done
   fi
+  if [ -n "${CAT_DIR:-}" ]; then
+    [ -f data/opm/catalogs.json ] || { echo "gen-mounts: CAT_DIR is set, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
+    # The bundles as assets, only the files a bundle may hold, where the
+    # adapter site/catalogs/_content.gotmpl reads them; the adapter and the
+    # section page into the default version only.
+    printf '[[mounts]]\n  source = "%s"\n  target = "assets/bundles"\n  files = [%s]\n' "$CAT_DIR" \
+      "'*/*/manifest.json', '*/*/content/**.md', '*/*/data/*.json'"
+    for d in catalogs .gen/catalogs; do
+      printf '[[mounts]]\n  source = "%s"\n  target = "content/catalogs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
+    done
+  fi
   for pair in "$@"; do
     v=${pair%%=*}; root=${pair#*=}
     if [ -d ".gen/$v" ]; then
@@ -157,7 +178,7 @@ mkdir -p "$(dirname "$out")"
     done
   done
 } > "$out"
-echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_TREE:+, the enhancements section in $def})"
+echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_TREE:+, the enhancements section in $def}${CAT_DIR:+, the catalogs section in $def})"
 
 cfg=$(dirname "$out")/hugo.toml
 {
@@ -169,10 +190,11 @@ printf '%s\n' "$list" | awk -F'\t' -v Q="'" '
     for (i = 1; i <= n; i++) printf "  [versions." Q "%s" Q "]\n    weight = %s\n", name[i], weight[i]
     for (i = 1; i <= n; i++) printf "[[params.opm.versions]]\n  name = " Q "%s" Q "\n  label = " Q "%s" Q "\n", name[i], label[i]
   }'
-if [ -n "$ENH_TREE" ]; then
+if [ -n "$ENH_TREE" ] || [ -n "${CAT_DIR:-}" ]; then
   awk '/^\[menus\]/ { on = 1 } on && /^\[/ && !/^\[menus\]/ && !/^\[\[menus\./ { on = 0 } on' config/_default/hugo.toml | grep . ||
     { echo "gen-mounts: config/_default/hugo.toml has no [menus] table to copy" >&2; exit 1; }
-  printf "  [[menus.main]]\n    name = 'Enhancements'\n    pageRef = '/enhancements/'\n    weight = 3\n"
+  [ -z "${CAT_DIR:-}" ] || printf "  [[menus.main]]\n    name = 'Catalogs'\n    pageRef = '/catalogs/'\n    weight = 3\n"
+  [ -z "$ENH_TREE" ] || printf "  [[menus.main]]\n    name = 'Enhancements'\n    pageRef = '/enhancements/'\n    weight = 4\n"
 fi
 } > "$cfg"
-echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${ENH_TREE:+, the Enhancements tab})"
+echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${CAT_DIR:+, the Catalogs tab}${ENH_TREE:+, the Enhancements tab})"
