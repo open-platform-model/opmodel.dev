@@ -113,6 +113,12 @@ by `--check` of the frozen block resolves the same six SHAs (`test-resolve.sh`
 - [A cli docs head that fails a check (no `docs/site`, a branch that misses the release) now
   fails the line, where before only the tag was checked] -> Recovery is unchanged: anchor at the
   last good `frozen.conf` block. A docs fix on `main` repairs it without a release.
+- [A docs merge to cli, library or opm-operator `main` that breaks the lint, the page set or a
+  link now fails `build` and holds `pages-deploy`; before, only `sources-main` went red] -> Same
+  as core, catalog_opm and opm today: fix it upstream, or recover to the last good frozen block.
+- [A recovered version's stamp shows SHAs, not tags, for cli, library and opm-operator, because
+  a line row whose docs are not its tag freezes by SHA] -> The frozen block's comments still name
+  the releases; the version shows tags again once it is back in line mode.
 - [A frozen cli is a SHA, so a future generated reference built from a frozen version would see
   a docs SHA, not the tag] -> The comment line names the release; the generated-reference
   change must read it or freeze differently (open question).
