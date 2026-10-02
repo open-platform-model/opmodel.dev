@@ -82,6 +82,53 @@ def enhancement_pages():
     return pages
 
 
+def _minor_key(name):
+    major, minor = name.split(".")
+    return (int(major), int(minor))
+
+
+def catalog_segments():
+    """The Catalogs section's segments, [(catalog, [segment, ...])], each
+    catalog's minors newest first and edge last, read from public/catalogs/
+    (a segment is a directory holding index.html whose name is MAJOR.MINOR or
+    edge). [] without the section."""
+    root = PUBLIC / "catalogs"
+    if not (root / "index.html").is_file():
+        return []
+    out = []
+    for cat in sorted(p for p in root.iterdir() if p.is_dir()):
+        segs = [s.name for s in cat.iterdir() if s.is_dir() and (s / "index.html").is_file()]
+        minors = sorted((s for s in segs if re.fullmatch(r"[0-9]+\.[0-9]+", s)), key=_minor_key, reverse=True)
+        out.append((cat.name, minors + (["edge"] if "edge" in segs else [])))
+    return out
+
+
+def catalog_pages():
+    """The Catalogs section's pages the checks open, when the build has the
+    section (public/catalogs/): the /catalogs/ page, the first catalog's
+    newest minor landing, a member page with a spec block (a cue code block)
+    and a kind index there, and the edge landing. [] without the section."""
+    cats = catalog_segments()
+    if not cats:
+        return []
+    name, segs = cats[0]
+    pages = ["/catalogs/"]
+    minors = [s for s in segs if s != "edge"]
+    if minors:
+        seg = PUBLIC / "catalogs" / name / minors[0]
+        pages.append(f"/catalogs/{name}/{minors[0]}/")
+        members = sorted(h for h in seg.glob("*/*/index.html") if "pagefind" not in h.parts)
+        spec = next((h for h in members if "language-cue" in h.read_text(errors="ignore")), None)
+        if spec:
+            pages.append("/" + spec.parent.relative_to(PUBLIC).as_posix() + "/")
+        kinds = sorted(d for d in seg.iterdir() if d.is_dir() and d.name != "pagefind" and (d / "index.html").is_file())
+        if kinds:
+            pages.append("/" + kinds[-1].relative_to(PUBLIC).as_posix() + "/")
+    if "edge" in segs:
+        pages.append(f"/catalogs/{name}/edge/")
+    return pages
+
+
 def wait_for_diagrams(page, timeout=30000):
     """Waits until every Mermaid diagram on the page has rendered (Hextra's
     script draws them after DOMContentLoaded, so networkidle can come first);

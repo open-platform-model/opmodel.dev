@@ -13,6 +13,10 @@
     {{- /* A draft or accepted enhancement describes work that has not
            shipped: no search engine presents it as OPM's behaviour. */ -}}
     <meta name="robots" content="noindex">
+  {{- else if and (eq $.Section "catalogs") $.Params.catalog (not $.Params.catalog.indexed) -}}
+    {{- /* Only the newest minor of each major of a catalog is indexed; an
+           older minor and edge (main, unreleased) are not. */ -}}
+    <meta name="robots" content="noindex">
   {{- end -}}
 {{- else -}}
   {{- errorf "params.opm.indexedHost is not set in hugo.toml" -}}
@@ -35,11 +39,28 @@
 {{- /* /latest/<path>/ stubs (a meta refresh, noindex) for every page of the
        default version, published at the root outside the version prefix, for
        hosts that ignore public/_redirects (scripts/build-all.sh writes it).
-       The Enhancements section publishes outside every version, so it has
-       none. */ -}}
-{{- if and .Site.Version.IsDefault .File (eq .Kind "page" "section" "home") (ne .Section "enhancements") -}}
+       The Enhancements and Catalogs sections publish outside every version,
+       so they have none. */ -}}
+{{- if and .Site.Version.IsDefault .File (eq .Kind "page" "section" "home") (not (in (slice "enhancements" "catalogs") .Section)) -}}
   {{- $rel := strings.TrimPrefix .Site.Home.RelPermalink .RelPermalink -}}
   {{- $to := .RelPermalink -}}
   {{- $html := printf `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s"><link rel="canonical" href="%s"><title>Redirecting</title><a href="%s">%s</a>` $to .Permalink $to .Permalink -}}
   {{- (resources.FromString (printf "latest/%sindex.html" $rel) $html).Publish -}}
+{{- end -}}
+{{- /* The Catalogs section's aliases, for hosts that ignore public/_redirects
+       (scripts/build-all.sh writes the same as its lines): a meta-refresh
+       stub (noindex, canonical to the target) at /catalogs/<name>/<MAJOR>/<rel>/
+       for every page of the newest minor of each major, and at
+       /catalogs/<name>/ for the newest minor's landing. edge has none. */ -}}
+{{- with and (eq .Section "catalogs") .Params.catalog -}}
+  {{- if .indexed -}}
+    {{- $c := . -}}
+    {{- $rel := strings.Trim (strings.TrimPrefix (printf "/catalogs/%s/%s" $c.name $c.segment) $.Path) "/" -}}
+    {{- $major := index (split $c.segment ".") 0 -}}
+    {{- $to := $.RelPermalink -}}
+    {{- $html := printf `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s"><link rel="canonical" href="%s"><title>Redirecting</title><a href="%s">%s</a>` $to $.Permalink $to $.Permalink -}}
+    {{- $stubs := slice (printf "catalogs/%s/%s/%sindex.html" $c.name $major (cond (eq $rel "") "" (printf "%s/" $rel))) -}}
+    {{- if and $c.newest (eq $rel "") -}}{{- $stubs = $stubs | append (printf "catalogs/%s/index.html" $c.name) -}}{{- end -}}
+    {{- range $stubs -}}{{- (resources.FromString . $html).Publish -}}{{- end -}}
+  {{- end -}}
 {{- end -}}

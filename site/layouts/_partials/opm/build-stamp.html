@@ -14,9 +14,27 @@
        of each repo the build read, resolved on the host ("none" for a root
        that is not its own git checkout). A page of the Enhancements section,
        which belongs to no version, names instead the enhancements commit it
-       was built from (data/opm/build.json's sections.enhancements). Called
-       from the Hextra hook custom/footer.html with the page. */ -}}
-{{- if eq .Section "enhancements" -}}
+       was built from (data/opm/build.json's sections.enhancements). A page
+       of the Catalogs section names its catalog and segment and the commit
+       its bundle was built from, with the bundle's digest (or "local") as
+       the link title. Called from the Hextra hook custom/footer.html with
+       the page. */ -}}
+{{- if and (eq .Section "catalogs") .Params.catalog -}}
+  {{- $c := .Params.catalog -}}
+  {{- $digest := "local" -}}
+  {{- with hugo.Data.opm.catalogs -}}{{- range .catalogs -}}{{- if eq .project $c.project -}}{{- range .segments -}}{{- if eq .segment $c.segment -}}
+    {{- $digest = cond .local "local" .digest -}}
+  {{- end -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
+<div class="opm-build-stamp" data-pagefind-ignore="all">
+  <span>{{ $c.name }} catalog {{ $c.label }}</span>
+  <span class="opm-build-refs">documents <span class="opm-build-ref">{{ cond $c.edge "main" (printf "version %s" $c.version) }}{{ if gt (int $c.revision) 0 }} (docs revision {{ $c.revision }}){{ end }}, built from {{ path.Base $c.repo }} <a href="{{ printf "https://github.com/%s/commit/%s" $c.repo $c.commit }}" title="bundle {{ $digest }}"><code>{{ substr $c.commit 0 7 }}</code></a></span></span>
+</div>
+{{- else if eq .Section "catalogs" -}}
+<div class="opm-build-stamp" data-pagefind-ignore="all">
+  <span>Catalogs</span>
+  <span class="opm-build-refs">from the docs bundles of lock <code>{{ with hugo.Data.opm.catalogs }}{{ substr (strings.TrimPrefix "sha256:" .lock) 0 12 }}{{ end }}</code></span>
+</div>
+{{- else if eq .Section "enhancements" -}}
   {{- $s := dict -}}
   {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .sections -}}{{- with .enhancements -}}{{- $s = . -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
 <div class="opm-build-stamp" data-pagefind-ignore="all">

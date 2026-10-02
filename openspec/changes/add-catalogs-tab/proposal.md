@@ -6,7 +6,7 @@ docs-kit (owner decisions of 2026-10-02, `docs-kit DESIGN decision 2`, `5`, `8`,
 
 ## Gate
 
-Sections 1 to 4 are built and tested against fixture bundles and need nothing from docs-kit or the registry. **Section 5, and so the merge of this change, starts only when all of these hold:**
+Sections 1 to 4 are built and tested against fixture bundles and need nothing from docs-kit or the registry. **Section 5, and so the merge of section 4 and the final PR, starts only when all of these hold** (sections 1 to 3 merge before it, see Delivery):
 
 - docs-kit `v0.1.0` is released (its binaries and `checksums.txt` are on the GitHub release).
 - catalog_opm `publish-docs-bundle` section 1 has merged and its section 2 (owner go-live) is done: the owner has made `ghcr.io/open-platform-model/docs/catalog-opm` public, and the backfill has published `4.4.5` (full tag `4.4.5.0`, moving tags `4.4.5`, `4.4`, `4`) and `edge` has published from `main`.
@@ -66,7 +66,7 @@ stamp         + sections.catalogs {lock, bundles: [{project, segment, version, r
 
 ## Transition
 
-There is no window in which the members are published twice (accepted into docs-kit's orchestration, item 12): the build that gains the tab stops mounting catalog_opm's `docs/site/reference/catalog-members/` and `docs/site/reference/catalog-contract.md`, and resolves the only two links sources still write into them (`/docs/reference/catalog-contract/` from cli's `registry-namespaces.md`, twice, and `/docs/reference/catalog-members/` from catalog_opm's `kubernetes-resources.md`, twice) as their alias forms, `/catalogs/opm/4/` and `/catalogs/opm/4/#catalog-members` (the landing's generated members block). So nothing publishes twice and no link breaks, whatever order the follow-ups below merge in. The exclusion and the two-entry link map are removed by a follow-up once no source writes the old links and catalog_opm has deleted the pages (`TODO.md`).
+There is no window in which the members are published twice (accepted into docs-kit's orchestration, item 12): the build that gains the tab stops mounting catalog_opm's `docs/site/reference/catalog-members/` and `docs/site/reference/catalog-contract.md`, (and the single `catalog-members.md` an older tree holds at the same URL), and resolves the only two link targets sources still write into them (`/docs/reference/catalog-contract/` from cli's `registry-namespaces.md`, twice, and `/docs/reference/catalog-members/` from catalog_opm's `kubernetes-resources.md`, twice, and opm's `reference/glossary.md`, once) as their alias forms, `/catalogs/opm/4/` and `/catalogs/opm/4/#catalog-members` (the landing's generated members block). So nothing publishes twice and no link breaks, whatever order the follow-ups below merge in. The exclusion and the two-entry link map are removed by a follow-up once no source writes the old links and catalog_opm has deleted the pages (`TODO.md`).
 
 ## Impact
 
@@ -75,10 +75,11 @@ There is no window in which the members are published twice (accepted into docs-
 - **Published URLs.** Added: `/catalogs/`, `/catalogs/opm/<MAJOR.MINOR>/` and below for every minor from 4.4, `/catalogs/opm/edge/` and below, and the alias stubs. Removed (in every site version, from the first build with the tab): `/<version>/docs/reference/catalog-members/**`, `/<version>/docs/reference/catalog-contract/` and their `/latest/` stubs. They get no redirects (supervisor decision, 2026-10-02: the site is interim and `noindex`). The version set is unchanged; the catalog minors are not site versions, and 0021:OQ15 is not touched.
 - **Source repos (follow-ups, never edited from here).**
   - catalog_opm `publish-docs-bundle` section 1 (before section 5 here): `docs/catalogs/opm/_index.md` with the contract page's body; it must not link `/catalogs/k8s/` (no k8s tab).
+  - opm (after this merges): `docs/site/reference/glossary.md:97`, the link to `/docs/reference/catalog-members/` becomes `/catalogs/opm/4/#catalog-members` (found 2026-10-02 after planning; the legacy map resolves it until then).
   - cli (after this merges): `docs/site/reference/registry-namespaces.md`, **both** links to `/docs/reference/catalog-contract/` (lines 19 and 38) become `/catalogs/opm/4/`.
   - catalog_opm `publish-docs-bundle` section 3 (retire refgen; after this merges, and after the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `/docs/reference/catalog-members/` links with it): delete `docs/site/reference/catalog-members/` and `catalog-contract.md`. The site already stopped publishing them at this merge, so the order of this and the cli fix does not matter.
   - workspace `STYLE.md` ("Site Pages"): name the `/catalogs/<name>/<MAJOR>/` link form.
-- **Delivery.** One PR. Sections 1 to 4 may be committed before the Gate holds; the PR merges after section 5.
+- **Delivery.** Two PRs (supervisor decision, 2026-10-02). Sections 1 to 3 merge first, as their own PR: without `site/bundles.cue` (section 5) a build has no section and publishes exactly what it did before. Section 4 waits on the branch `feat/catalogs-tab-s4`, stacked on them, and merges with section 5 in the final PR, after the Gate; the archive rides that final PR.
 
 ## Enhancement
 

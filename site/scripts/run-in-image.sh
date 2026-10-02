@@ -37,6 +37,11 @@
 #                      a path (https://example.org/docs/). Passed into the container in build
 #                      mode only, and only when set; unset, the build uses hugo.toml's baseURL.
 #                      serve, test, lint and the two-version test never see it.
+#   OPM_BUNDLES        a directory of unpacked docs bundles with their lock.json (what opm-docs
+#                      pull writes; the test fixtures site/tests/fixtures/bundles), relative to the
+#                      repo or absolute. Build and serve mount it read-only at /bundles and pass
+#                      OPM_BUNDLES=/bundles, so the Catalogs section comes from it instead of
+#                      site/.bundles/ (site/scripts/sections.sh).
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
@@ -71,7 +76,8 @@ build_image() {
 image() { build_image "$(tag)" "$DOCKERFILE"; }
 qa_image() { build_image "$(qa_tag)" "$QA_DOCKERFILE"; }
 
-# Resolves and checks every source root; sets MOUNTS (docker -v flags) and REFS.
+# Resolves and checks every source root; sets MOUNTS (docker -v flags) and REFS,
+# and CAT (the OPM_BUNDLES mount and variable, or nothing).
 sources() {
   ws=$(envval OPM_WS)
   if [ -z "$ws" ]; then
@@ -118,6 +124,15 @@ sources() {
     fi
   fi
   REFS=${REFS# }
+  # The docs bundles, when OPM_BUNDLES names them: CAT holds the docker flags.
+  CAT=""
+  b=$(envval OPM_BUNDLES)
+  if [ -n "$b" ]; then
+    [ -f "$b/lock.json" ] || die "OPM_BUNDLES: $b holds no lock.json"
+    abs=$(cd "$b" && pwd -P)
+    case "$abs" in *[:,\ ]*) die "OPM_BUNDLES: $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+    CAT="-v $abs:/bundles:ro --env OPM_BUNDLES=/bundles"
+  fi
 }
 
 # Common docker run flags; the caller adds the network, mounts and command.
@@ -141,7 +156,7 @@ case "$mode" in
     base=$(envval OPM_BASE_URL)
     if [ -n "$base" ]; then set -- --env "OPM_BASE_URL=$base"; else set --; fi
     # shellcheck disable=SC2086 # MOUNTS is a list of -v flags without spaces inside paths
-    run --network none --env "OPM_BUILD_REFS=$REFS" "$@" $MOUNTS \
+    run --network none --env "OPM_BUILD_REFS=$REFS" "$@" $MOUNTS $CAT \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/build-all.sh ;;
   serve)
     sources; image >/dev/null
@@ -149,7 +164,7 @@ case "$mode" in
     echo "run-in-image: serving on http://127.0.0.1:$port/ (Ctrl+C stops it)"
     # shellcheck disable=SC2086
     run --env TINI_KILL_PROCESS_GROUP=1 --env "SITE_PORT=$port" --env "OPM_BUILD_REFS=$REFS" \
-      --publish "127.0.0.1:$port:1313" $MOUNTS \
+      --publish "127.0.0.1:$port:1313" $MOUNTS $CAT \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/serve.sh </dev/null ;;
   preview)
     [ -f site/public/index.html ] || die "site/public/ holds no build; run the build task first"

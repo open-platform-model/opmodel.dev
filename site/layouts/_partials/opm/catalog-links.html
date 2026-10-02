@@ -1,0 +1,36 @@
+{{- /* A Catalogs section page in every segment of its catalog: newest minor
+       first, edge last (data/opm/catalogs.json's order). For each segment,
+       the page at the same path below the segment's landing when it exists
+       there, else the nearest parent that does, else that segment's landing;
+       an older apiVersion page (<name>-<apiVersion>) is an ordinary path.
+       Returns a slice of dicts {name, segment, href, exact, isLatest,
+       isCurrent}, the shape opm/version-links.html returns (name is the
+       segment's label), cached per page in .Store. A page without
+       params.catalog (the /catalogs/ page) gets an empty slice. */ -}}
+{{- $page := . -}}
+{{- with $page.Store.Get "opmCatalogLinks" -}}{{ return . }}{{- end -}}
+{{- $out := slice -}}
+{{- with $page.Params.catalog -}}
+  {{- $c := . -}}
+  {{- $cat := dict -}}
+  {{- with hugo.Data.opm.catalogs -}}{{- range .catalogs -}}{{- if eq .project $c.project -}}{{- $cat = . -}}{{- end -}}{{- end -}}{{- end -}}
+  {{- $base := printf "/catalogs/%s/%s" $c.name $c.segment -}}
+  {{- $rel := strings.Trim (strings.TrimPrefix $base $page.Path) "/" -}}
+  {{- range $cat.segments -}}
+    {{- $landing := printf "/catalogs/%s/%s" $c.name .segment -}}
+    {{- $r := $rel -}}
+    {{- $p := false -}}
+    {{- range seq 12 -}}
+      {{- with site.GetPage (cond (eq $r "") $landing (printf "%s/%s" $landing $r)) -}}{{- $p = . -}}{{- end -}}
+      {{- if or $p (eq $r "") -}}{{ break }}{{- end -}}
+      {{- $r = path.Dir $r -}}
+      {{- if eq $r "." -}}{{- $r = "" -}}{{- end -}}
+    {{- end -}}
+    {{- if $p -}}
+      {{- $out = $out | append (dict "name" .label "segment" .segment "href" $p.RelPermalink "exact" (eq $r $rel)
+          "isLatest" (eq .segment $cat.newest) "isCurrent" (eq .segment $c.segment)) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $page.Store.Set "opmCatalogLinks" $out -}}
+{{- return $out -}}

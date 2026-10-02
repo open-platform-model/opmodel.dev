@@ -55,48 +55,16 @@ BASE_PATH=/${BASE_URL#*://*/}; BASE_PATH=${BASE_PATH%/}
 export BASE_URL BASE_PATH
 echo "build-all: base URL $BASE_URL${BASE_PATH:+ (base path $BASE_PATH)}"
 # The versions, in weight order, and the default one (/latest/ and / point at
-# it): an explicit OPM_VERSIONS (the first is the default), else the resolved
-# .versions/versions.tsv (a source = main version reads /src, an anchored or a
-# line one its archive in .versions/<v>/), else v1.0=/src.
-if [ -n "${OPM_VERSIONS:-}" ]; then
-  VERSIONS=$OPM_VERSIONS; DEFAULT=${VERSIONS%%=*}
-elif [ -f .versions/versions.tsv ]; then
-  VERSIONS=$(awk -F'\t' -v S="$SITE_DIR" '/^#/ { next } !($1 in seen) { seen[$1]; printf "%s%s=%s", (n++ ? " " : ""), $1, ($5 == "main" ? "/src" : S "/.versions/" $1) }' .versions/versions.tsv)
-  DEFAULT=$(awk -F'\t' '!/^#/ && $4 == "true" { print $1; exit }' .versions/versions.tsv)
-else
-  VERSIONS=v1.0=/src; DEFAULT=v1.0
-fi
+# it), and the unversioned sections: scripts/sections.sh, shared with serve.sh.
+CALLER=build-all
+# shellcheck source=sections.sh
+. "$SCRIPTS/sections.sh"
 [ -n "$VERSIONS" ] && [ -n "$DEFAULT" ] || fail "build-all: no versions to build"
 echo "build-all: versions $VERSIONS (default $DEFAULT)"
-# The enhancements section (site/enhancements/), unversioned: in manifest mode
-# the archive materialise.sh wrote for versions.tsv's "# section enhancements"
-# line, at the SHA it names; in explicit mode the enhancements/ beside the
-# default version's repositories (/src/enhancements, which run-in-image.sh
-# mounts; a fixture workspace's own), read in place, when it holds INDEX.md,
-# at the commit OPM_BUILD_REFS names for it. Otherwise there is no section.
-# gen-stamp.sh, gen-mounts.sh and check-pages.sh read the ENH_* values;
-# ENH_PATHS is materialise.sh's list of every path at that SHA.
-ENH_TREE=""; ENH_PATHS=""; ENH_REF=""; ENH_SHA=""; ENH_HOW=""
-if [ -n "${OPM_VERSIONS:-}" ] || [ ! -f .versions/versions.tsv ]; then
-  r=${VERSIONS%% *}; r=${r#*=}
-  if [ -f "$r/enhancements/INDEX.md" ]; then
-    ENH_TREE=$r/enhancements; ENH_REF=worktree; ENH_HOW=explicit
-    if [ "$r" = /src ]; then
-      for p in ${OPM_BUILD_REFS:-}; do case "$p" in enhancements=*) ENH_SHA=${p#*=} ;; esac; done
-      [ "$ENH_SHA" != none ] || ENH_SHA=""
-    fi
-  fi
-else
-  line=$(awk -F'\t' '$1 == "# section" && $2 == "enhancements"' .versions/versions.tsv)
-  if [ -n "$line" ]; then
-    ENH_TREE=$SITE_DIR/.versions/enhancements/tree; ENH_PATHS=$SITE_DIR/.versions/enhancements/paths.txt
-    ENH_REF=$(printf '%s' "$line" | cut -f3); ENH_SHA=$(printf '%s' "$line" | cut -f4); ENH_HOW=$(printf '%s' "$line" | cut -f5)
-    [ -f "$ENH_TREE/INDEX.md" ] || fail "build-all: versions.tsv names the enhancements section at $ENH_SHA, but $ENH_TREE holds no INDEX.md; run task versions:prepare"
-  fi
-fi
-export ENH_TREE ENH_PATHS ENH_REF ENH_SHA ENH_HOW
 if [ -n "$ENH_TREE" ]; then echo "build-all: enhancements section from $ENH_TREE (${ENH_SHA:-no commit}, $ENH_HOW)"
 else echo "build-all: no enhancements section"; fi
+if [ -n "$CAT_DIR" ]; then echo "build-all: catalogs section from $CAT_DIR ($CAT_FROM)"
+else echo "build-all: no catalogs section"; fi
 
 step "drift guard: overridden theme files unchanged upstream"
 sh "$SCRIPTS/check-overrides.sh"
@@ -116,6 +84,7 @@ sh "$SCRIPTS/lint-sources.sh" $dirs
 step "dates, stamp, mounts, collisions"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
+sh "$SCRIPTS/gen-catalogs.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
@@ -132,6 +101,15 @@ step "root files and search, per version"
 # _redirects is Cloudflare's; a host that ignores it (GitHub Pages) routes
 # through the root index.html and the /latest/ stubs, which carry the base path.
 printf '/ /latest/ 302\n/latest/* /%s/:splat 302\n' "$DEFAULT" > "$PUBLIC/_redirects"
+# The Catalogs section's aliases (custom/head-end.html publishes the same as
+# stubs): /catalogs/<name>/ to the newest minor, /catalogs/<name>/<MAJOR>/
+# and below to the newest minor of that major; none to edge, and none
+# starting with /latest/.
+if [ -n "$CAT_DIR" ]; then
+  jq -r '.catalogs[] | .root as $r | (if .newest != "" then "\($r) \($r)\(.newest)/ 302" else empty end),
+    (.majors | to_entries[] | "\($r)\(.key)/ \($r)\(.value)/ 302", "\($r)\(.key)/* \($r)\(.value)/:splat 302")' \
+    data/opm/catalogs.json >> "$PUBLIC/_redirects"
+fi
 printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s/latest/"><title>Open Platform Model</title><a href="%s/latest/">%s/latest/</a>\n' "$BASE_PATH" "$BASE_PATH" "$BASE_PATH" > "$PUBLIC/index.html"
 cp "$PUBLIC/$DEFAULT/404.html" "$PUBLIC/404.html"
 cp data/opm/build.json "$PUBLIC/build-stamp.json"
@@ -152,6 +130,19 @@ if [ -n "$ENH_TREE" ]; then
   printf 'enhancements: pagefind %s pages, %s\n' "$(find "$PUBLIC/enhancements/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC/enhancements/pagefind" | cut -f1)"
 fi
 
+# Each catalog segment (every minor and edge) has its own bundle, so a search
+# stays in the minor being read (layouts/_partials/scripts/search.html).
+if [ -n "$CAT_DIR" ]; then
+  [ -f "$PUBLIC/catalogs/index.html" ] || fail "CATALOGS FAIL: $PUBLIC/catalogs/index.html was not built"
+  for d in $(jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\(.segment)"' data/opm/catalogs.json); do
+    [ -f "$PUBLIC$d/index.html" ] || fail "CATALOGS FAIL: $PUBLIC$d/index.html was not built"
+    pagefind --site "$PUBLIC$d" --root-selector 'main#content > .content' \
+      --exclude-selectors '.hextra-page-context-menu, .opm-type-badge, .hextra-code-copy-btn' \
+      --quiet
+    printf '%s: pagefind %s pages, %s\n' "${d#/}" "$(find "$PUBLIC$d/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC$d/pagefind" | cut -f1)"
+  done
+fi
+
 step "page set, stray files, sidebar order, links"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/check-pages.sh" post $VERSIONS
@@ -162,6 +153,24 @@ for f in _redirects index.html 404.html robots.txt latest/index.html build-stamp
   [ -s "$PUBLIC/$f" ] || fail "REDIRECT FAIL: $PUBLIC/$f is missing"
 done
 grep -qxF '/ /latest/ 302' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send / to /latest/"
+# The catalog aliases: their _redirects lines and stubs exist exactly when
+# the build has the section, and neither names edge.
+if [ -n "$CAT_DIR" ]; then
+  for c in $(jq -r '.catalogs[] | "\(.name):\(.newest):\(.majors | keys | join(","))"' data/opm/catalogs.json); do
+    n=${c%%:*}; newest=${c#*:}; newest=${newest%%:*}; majors=${c##*:}
+    if [ -n "$newest" ]; then
+      grep -qxF "/catalogs/$n/ /catalogs/$n/$newest/ 302" "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send /catalogs/$n/ to /catalogs/$n/$newest/"
+      [ -s "$PUBLIC/catalogs/$n/index.html" ] || fail "REDIRECT FAIL: the alias stub $PUBLIC/catalogs/$n/index.html is missing"
+    fi
+    for m in $(printf '%s' "$majors" | tr ',' ' '); do
+      grep -q "^/catalogs/$n/$m/\* /catalogs/$n/[0-9.]*/:splat 302\$" "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects has no /catalogs/$n/$m/* line"
+      [ -s "$PUBLIC/catalogs/$n/$m/index.html" ] || fail "REDIRECT FAIL: the alias stub $PUBLIC/catalogs/$n/$m/index.html is missing"
+    done
+  done
+  ! grep -q '/edge/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects sends an alias to edge"
+else
+  ! grep -q '^/catalogs/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects holds /catalogs/ lines, but the build has no catalogs section"
+fi
 echo "redirects: _redirects, root index.html, 404.html, robots.txt and the /latest/ stubs present"
 # Check 9: a Starlight aside that reached the output as text.
 raw=$(find "$PUBLIC" -name '*.html' -exec grep -l -e '<p>:::' -e '^:::' {} + || true)
@@ -234,4 +243,5 @@ for pair in $VERSIONS; do
   echo "$v: $(find "$PUBLIC/$v" -name index.html ! -path "$PUBLIC/$v/pagefind/*" | wc -l | tr -d ' ') pages"
 done
 [ -z "$ENH_TREE" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
+[ -z "$CAT_DIR" ] || echo "catalogs: $(find "$PUBLIC/catalogs" -name index.html ! -path '*/pagefind/*' | wc -l | tr -d ' ') pages"
 echo "build-all: OK in $(( $(date +%s) - t0 )) s -> $SITE_DIR/$PUBLIC ($(find "$PUBLIC" -type f | wc -l | tr -d ' ') files, $(du -sh "$PUBLIC" | cut -f1))"

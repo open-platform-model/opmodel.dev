@@ -1,6 +1,7 @@
-# Build output and Hugo's own state.
+# Build output and Hugo's own state (anchored: a docs bundle fixture holds a
+# content/resources/ directory).
 public/
-resources/
+/resources/
 .hugo_build.lock
 # Inputs generated per build: git dates and the build stamp (data/opm/), the
 # content mounts (config/{production,development}/), the generated reference

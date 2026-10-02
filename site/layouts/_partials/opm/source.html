@@ -21,8 +21,21 @@
        built from (data/opm/build.json's sections.enhancements), when the
        build names one, and no editURL, since an entry changes through its
        own review, not a page edit. Its key is empty: its date is the entry's
-       updated date, not a git date. */ -}}
+       updated date, not a git date.
+       A page of the Catalogs section names the file its bundle says it came
+       from (params.catalog.source) in the catalog's repository, viewURL at
+       the commit the bundle was built from, and no editURL: an edit lands on
+       main and reaches a released minor only through a docs revision. A
+       page without a source gets no link. Its key is empty: its date is the
+       manifest's lastmod (the page's Lastmod). */ -}}
 {{- $out := dict -}}
+{{- if eq .Section "catalogs" -}}
+  {{- $c := .Params.catalog | default dict -}}
+  {{- $view := "" -}}
+  {{- if and $c.source $c.repo $c.commit -}}{{- $view = printf "https://github.com/%s/blob/%s/%s" $c.repo $c.commit $c.source -}}{{- end -}}
+  {{- return dict "key" "" "repo" ($c.repo | default "") "path" ($c.source | default "") "editURL" ""
+        "viewURL" $view "ref" ($c.commit | default "") "refText" (cond (ne $view "") (substr $c.commit 0 7) "") -}}
+{{- end -}}
 {{- if and (eq .Section "enhancements") .Params.repoPath -}}
   {{- $sha := "" -}}
   {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .sections -}}{{- with .enhancements -}}{{- $sha = .sha | default "" -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}

@@ -1,0 +1,44 @@
+{{- /* The segment switch of a Catalogs section page, next to the site title
+       where the site version shows on a docs page: its button names the
+       catalog and the segment being read ("opm 4.4", "opm main": the
+       short form keeps the phone navbar on one line; its accessible name
+       says "opm main (unreleased)"), and its menu lists every segment, newest minor first
+       and edge last (opm/catalog-links.html), marking the newest release
+       "latest" and a segment that lacks the page "parent page". The markup
+       and classes are opm/version-switch.html's (Hextra's navbar dropdown,
+       so Hextra's nav-menu.js opens it). A catalog with one segment shows a
+       plain label. */ -}}
+{{- with .Params.catalog -}}
+{{- $c := . -}}
+{{- $links := partial "opm/catalog-links.html" $ -}}
+{{- $label := printf "%s %s" $c.name $c.label -}}
+{{- $short := printf "%s %s" $c.name (cond $c.edge "main" $c.label) -}}
+{{- if le (len $links) 1 -}}
+<span class="opm-version-label" title="Catalog version: {{ $label }}">{{ $short }}</span>
+{{- else -}}
+<div class="opm-version hx:relative hx:inline-block">
+  <button type="button" data-state="closed" aria-haspopup="menu" aria-expanded="false"
+    aria-label="{{ printf "Catalog version: %s" $label }}"
+    class="hextra-nav-menu-toggle opm-version-toggle hx:cursor-pointer hx:flex hx:items-center hx:gap-1 hx:whitespace-nowrap">
+    <span>{{ $short }}</span>
+    {{- partial "utils/icon.html" (dict "name" "chevron-down" "attributes" "height=12 class=\"hx:transition-transform hx:duration-200 hx:ease-in-out\"") -}}
+  </button>
+  <ul role="menu" style="min-width: 13rem;"
+    class="hextra-nav-menu-items hx:hidden hx:z-20 hx:max-h-64 hx:overflow-auto hx:rounded-lg hx:border hx:border-gray-200 hx:bg-white hx:p-1 hx:text-sm hx:shadow-lg hx:dark:border-neutral-700 hx:dark:bg-neutral-900">
+    {{- range $links }}
+    <li role="none" class="hextra-nav-menu-item hx:flex hx:flex-col">
+      <a role="menuitem" href="{{ .href }}"{{ if .isCurrent }} aria-current="true"{{ end }}{{ if not .exact }} title="Not in {{ .name }}: opens the nearest parent page"{{ end }} data-segment="{{ .segment }}"
+        class="opm-version-item hx:text-gray-600 hx:hover:text-gray-800 hx:dark:text-gray-400 hx:dark:hover:text-gray-200 hx:relative hx:cursor-pointer hx:whitespace-nowrap hx:rounded-sm hx:py-1.5 hx:transition-colors hx:ltr:pl-3 hx:ltr:pr-9 hx:rtl:pr-3 hx:rtl:pl-9 hx:flex hx:items-center hx:gap-1 hx:hover:bg-gray-100 hx:dark:hover:bg-neutral-800">
+        <span>{{ .name }}</span>
+        {{- if .isLatest }}<span class="opm-version-tag">latest</span>{{ end -}}
+        {{- if not .exact }}<span class="opm-version-hint">parent page</span>{{ end -}}
+        {{- if .isCurrent -}}
+          <span class="hx:absolute hx:inset-y-0 hx:flex hx:items-center hx:ltr:right-3 hx:rtl:left-3">{{ partial "utils/icon" (dict "name" "check" "attributes" "height=1em width=1em") }}</span>
+        {{- end -}}
+      </a>
+    </li>
+    {{- end }}
+  </ul>
+</div>
+{{- end -}}
+{{- end -}}

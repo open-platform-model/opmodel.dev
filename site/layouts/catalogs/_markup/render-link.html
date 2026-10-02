@@ -1,0 +1,67 @@
+{{- /* Links on the Catalogs section's pages (docs-kit C8). Every internal
+       link is root-absolute, and a miss fails the build naming project,
+       segment and page:
+       - a link into the page's own catalog names the page's own segment
+         (/catalogs/opm/4.4/resources/volumes/ on a 4.4 page) and must
+         resolve to a page of that segment; the renderer rewrites own-root
+         links to its segment, so one at another segment, or at a major,
+         fails;
+       - another catalog resolves as on docs pages (opm/catalog-resolve.html),
+         through its bare tab root or a major alias only (docs-kit C8, C11);
+         the generated /catalogs/ page may also name a segment (edge, for a
+         tab with no release yet);
+       - /docs/... resolves in the default version, which holds the section;
+       - /enhancements/... resolves as the global hook does.
+       External, #fragment and mailto: links pass through. The anchor
+       markup is upstream's. */ -}}
+{{- $dest := .Destination -}}
+{{- $u := urls.Parse $dest -}}
+{{- if and $dest (not $u.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
+  {{- $c := .PageInner.Params.catalog -}}
+  {{- $at := "the Catalogs section page" -}}
+  {{- with $c -}}{{- $at = printf "%s %s page %s" .project .segment (strings.TrimPrefix (printf "%s%s/" .root .segment) $.PageInner.RelPermalink) -}}{{- end -}}
+  {{- $frag := cond (ne $u.Fragment "") (printf "#%s" $u.Fragment) "" -}}
+  {{- $path := $u.Path -}}
+  {{- $p := false -}}
+  {{- if not (hasPrefix $path "/") -}}
+    {{- errorf "catalogs: %s: link %q is relative; a bundle page links root-absolute" $at $dest -}}
+  {{- else if or (eq $path "/catalogs") (hasPrefix $path "/catalogs/") -}}
+    {{- if and $c (hasPrefix (printf "%s/" (strings.TrimSuffix "/" $path)) $c.root) -}}
+      {{- $rest := split (strings.Trim (strings.TrimPrefix $c.root (printf "%s/" (strings.TrimSuffix "/" $path))) "/") "/" -}}
+      {{- $s := index $rest 0 -}}
+      {{- if ne $s $c.segment -}}
+        {{- errorf "catalogs: %s: link %q names its own catalog at %q, not at its own segment %s" $at $dest (cond (eq $s "") "the tab root" $s) $c.segment -}}
+      {{- end -}}
+      {{- with $.PageInner.GetPage (path.Clean $path) -}}{{- $p = . -}}{{- end -}}
+      {{- if not $p -}}{{- errorf "catalogs: %s: link %q names no page of segment %s" $at $dest $c.segment -}}{{- end -}}
+    {{- else -}}
+      {{- $r := partial "opm/catalog-resolve.html" (dict "path" $path) -}}
+      {{- if not $r.page -}}{{- errorf "catalogs: %s: link %q: %s" $at $dest $r.err -}}{{- end -}}
+      {{- if and $c (eq $r.form "segment") -}}
+        {{- errorf "catalogs: %s: link %q names another catalog at a minor or edge; a bundle page links another catalog through /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/ (docs-kit C8)" $at $dest -}}
+      {{- end -}}
+      {{- $p = $r.page -}}
+    {{- end -}}
+  {{- else if or (eq $path "/enhancements") (hasPrefix $path "/enhancements/") -}}
+    {{- range hugo.Sites -}}
+      {{- with .GetPage (path.Clean $path) -}}{{- $p = . -}}{{- break -}}{{- end -}}
+    {{- end -}}
+    {{- if not $p -}}{{- errorf "catalogs: %s: broken enhancement link %q: the Enhancements section has no such page" $at $dest -}}{{- end -}}
+  {{- else if hasPrefix $path "/docs/" -}}
+    {{- with $.PageInner.GetPage (path.Clean $path) -}}{{- $p = . -}}{{- end -}}
+    {{- if not $p -}}{{- errorf "catalogs: %s: broken docs link %q (version %s)" $at $dest $.PageInner.Site.Version.Name -}}{{- end -}}
+  {{- else -}}
+    {{- errorf "catalogs: %s: link %q: a bundle page links /catalogs/, /docs/ or /enhancements/" $at $dest -}}
+  {{- end -}}
+  {{- $dest = printf "%s%s" $p.RelPermalink $frag -}}
+{{- end -}}
+
+{{- with . -}}
+  {{- $isExternal := strings.HasPrefix $dest "http" -}}
+  <a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>
+    {{- .Text | safeHTML -}}
+    {{- if and .Page.Site.Params.externalLinkDecoration $isExternal -}}
+      {{- partial "utils/icon.html" (dict "name" "arrow-up-right" "attributes" `class="hx:inline hx:rtl:rotate-270 hx:align-baseline" height="1em" aria-hidden="true"`) -}}
+    {{- end -}}
+  </a>
+{{- end -}}

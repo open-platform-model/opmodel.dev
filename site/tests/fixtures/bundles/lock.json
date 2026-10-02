@@ -1,0 +1,43 @@
+{
+  "schema": "docs.opmodel.dev/lock/v1",
+  "tool": "0.1.0",
+  "config": "sha256:115f584e334701254f0afa0fe67daad309d3a412b50b783e77c98613ce12d877",
+  "bundles": [
+    {
+      "project": "catalog-opm",
+      "root": "/catalogs/opm/",
+      "segment": "4.4",
+      "local": true,
+      "version": "4.4.5",
+      "revision": 0,
+      "commit": "dbefd8645e236dd07060772eaa5857c926b0b44f",
+      "dialect": 1,
+      "builtBy": "0.1.0",
+      "dir": "catalog-opm/4.4"
+    },
+    {
+      "project": "catalog-opm",
+      "root": "/catalogs/opm/",
+      "segment": "4.5",
+      "local": true,
+      "version": "4.5.0",
+      "revision": 0,
+      "commit": "9273097c1ef77465627c8f32a981edfa2ae12904",
+      "dialect": 1,
+      "builtBy": "0.1.0",
+      "dir": "catalog-opm/4.5"
+    },
+    {
+      "project": "catalog-opm",
+      "root": "/catalogs/opm/",
+      "segment": "edge",
+      "local": true,
+      "version": "edge",
+      "revision": 0,
+      "commit": "940725124ea69c7d01e346b936854f27f0ad330f",
+      "dialect": 1,
+      "builtBy": "0.1.0",
+      "dir": "catalog-opm/edge"
+    }
+  ]
+}

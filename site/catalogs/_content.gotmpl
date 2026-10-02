@@ -1,0 +1,112 @@
+{{- /* The Catalogs section: each catalog's members, one tree per minor
+       release and one for main (edge), from the signed docs bundles that
+       opm-docs pull unpacked (docs-kit C3, C7). scripts/gen-catalogs.sh
+       derives data/opm/catalogs.json from the pull's lock, and
+       scripts/gen-mounts.sh mounts the bundles at assets/bundles and this
+       adapter into the default version only, as for the Enhancements
+       section. Every page sets url, so it publishes at
+       <root><segment>/<page>/ (docs-kit C8: content/x/_index.md is x/,
+       content/x/y.md is x/y/) outside the /<version>/ prefix. The /catalogs/
+       section page is written by gen-catalogs.sh (an adapter cannot add the
+       empty path); /catalogs/<name>/ is no page, only an alias.
+       Per page of manifest.json's pages[]: title, description and weight
+       from its front matter, the dialect's type kept as params.docType (the
+       page-type badge), lastmod from the manifest, and params.catalog
+       {project, name, root, segment, label, version, revision, edge,
+       indexed, newest, commit, repo, source, generated}. Only the newest minor of each major
+       is indexed: the others, and edge, stay out of the sitemap and
+       llms.txt (and carry noindex, custom/head-end.html).
+       The build fails, naming project, segment, digest (or local) and page,
+       on a page manifest.json lists that the bundle does not hold, a content
+       file it does not list, front matter that is not the dialect's (keys
+       title, description, type, weight; title and description required;
+       type, one of the four, on a leaf page only; weight a positive integer),
+       and
+       a Hugo shortcode delimiter other than an opm/<figure> call or a shown
+       (escaped) shortcode. opm-docs pull lints every bundle already; this
+       is the site's own guard, and the only one a fixture bundle gets. */ -}}
+{{- /* The figure names come from the one list the Markdown outputs use. */ -}}
+{{- $figures := slice -}}
+{{- range $k, $_ := partial "opm/figure-titles.html" . -}}{{- $figures = $figures | append $k -}}{{- end -}}
+{{- $types := slice "tutorial" "how-to" "explanation" "reference" -}}
+{{- $allowedKeys := slice "title" "description" "type" "weight" -}}
+{{- with hugo.Data.opm.catalogs -}}
+{{- range .catalogs -}}
+  {{- $cat := . -}}
+  {{- range .segments -}}
+    {{- $seg := . -}}
+    {{- $who := printf "catalogs: %s %s (%s)" $cat.project .segment (cond .local "local" .digest) -}}
+    {{- $mres := resources.Get (printf "bundles/%s/manifest.json" .dir) -}}
+    {{- if not $mres -}}{{- errorf "%s: %s/manifest.json is not mounted" $who .dir -}}{{- end -}}
+    {{- $m := $mres | transform.Unmarshal -}}
+    {{- $listed := dict -}}
+    {{- range $m.pages -}}{{- $listed = merge $listed (dict .path true) -}}{{- end -}}
+    {{- $prefix := printf "bundles/%s/content/" .dir -}}
+    {{- range resources.Match (printf "%s**" $prefix) -}}
+      {{- $rel := strings.TrimPrefix $prefix (strings.TrimPrefix "/" .Name) -}}
+      {{- if not (hasSuffix $rel ".md") -}}{{- errorf "%s: content/%s is not a page; a bundle's content/ holds only .md pages" $who $rel -}}{{- end -}}
+      {{- if not (index $listed $rel) -}}{{- errorf "%s: content/%s is not listed in manifest.json's pages" $who $rel -}}{{- end -}}
+    {{- end -}}
+    {{- range $m.pages -}}
+      {{- $pg := . -}}
+      {{- $at := printf "%s: page content/%s" $who .path -}}
+      {{- $f := resources.Get (printf "%s%s" $prefix .path) -}}
+      {{- if not $f -}}{{- errorf "%s: manifest.json lists it, but the bundle does not hold it" $at -}}{{- end -}}
+      {{- $parts := findRESubmatch `(?s)\A---\n(.*?)\n---[ \t]*(?:\n(.*))?\z` $f.Content 1 -}}
+      {{- if not $parts -}}{{- errorf "%s: front matter must open on line 1 with --- and close with ---" $at -}}{{- end -}}
+      {{- $fmText := index (index $parts 0) 1 -}}
+      {{- $body := index (index $parts 0) 2 -}}
+      {{- $fm := dict -}}
+      {{- with strings.TrimSpace $fmText -}}
+        {{- with try (resources.FromString (printf "catalogs-fm/%s/%s.yaml" $seg.dir $pg.path) . | transform.Unmarshal) -}}
+          {{- with .Err -}}{{- errorf "%s: front matter is not YAML: %s" $at . -}}{{- end -}}
+          {{- $fm = .Value -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if not (reflect.IsMap $fm) -}}{{- errorf "%s: front matter is not a map of keys" $at -}}{{- end -}}
+      {{- range $k, $_ := $fm -}}
+        {{- if not (in $allowedKeys $k) -}}{{- errorf "%s: front-matter key %q is not allowed (title, description, type, weight)" $at $k -}}{{- end -}}
+      {{- end -}}
+      {{- $title := strings.TrimSpace (printf "%v" ($fm.title | default "")) -}}
+      {{- $desc := strings.TrimSpace (printf "%v" ($fm.description | default "")) -}}
+      {{- if not $title -}}{{- errorf "%s: missing title" $at -}}{{- end -}}
+      {{- if not $desc -}}{{- errorf "%s: missing description" $at -}}{{- end -}}
+      {{- $delims := findRE `\{\{[<%]` $body -}}
+      {{- $ok := len (findRE `\{\{<[ \t]*/\*` $body) -}}
+      {{- range $figures -}}{{- $ok = add $ok (len (findRE (printf `\{\{<[ \t]*opm/%s[ \t]*>\}\}` .) $body)) -}}{{- end -}}
+      {{- if gt (len $delims) $ok -}}
+        {{- errorf "%s: holds a Hugo shortcode delimiter ({{< or {{%%) other than an {{< opm/<figure> >}} call" $at -}}
+      {{- end -}}
+      {{- $p := strings.TrimSuffix ".md" .path -}}
+      {{- $kind := "page" -}}
+      {{- if eq $p "_index" -}}{{- $p = "" -}}{{- $kind = "section" -}}
+      {{- else if hasSuffix $p "/_index" -}}{{- $p = strings.TrimSuffix "/_index" $p -}}{{- $kind = "section" -}}
+      {{- end -}}
+      {{- $type := printf "%v" ($fm.type | default "") -}}
+      {{- if eq $kind "page" -}}
+        {{- if not (in $types $type) -}}{{- errorf "%s: type must be tutorial, how-to, explanation or reference (got %q)" $at $type -}}{{- end -}}
+      {{- else if $type -}}
+        {{- errorf "%s: a section page (_index.md) declares no type (got %q)" $at $type -}}
+      {{- end -}}
+      {{- with $fm.weight -}}
+        {{- if not (findRE `^[1-9][0-9]*$` (printf "%v" .)) -}}{{- errorf "%s: weight must be a positive integer (got %v)" $at . -}}{{- end -}}
+      {{- end -}}
+      {{- $path := printf "%s/%s" $cat.name $seg.segment -}}
+      {{- $url := printf "%s%s/" $cat.root $seg.segment -}}
+      {{- with $p -}}{{- $path = printf "%s/%s" $path . -}}{{- $url = printf "%s%s/" $url . -}}{{- end -}}
+      {{- $page := dict
+        "path" $path "kind" $kind "url" $url
+        "title" $title "description" $desc
+        "sitemap" (dict "disable" (not $seg.indexed))
+        "params" (dict "llms" $seg.indexed "docType" $type
+          "catalog" (dict "project" $cat.project "name" $cat.name "root" $cat.root "segment" $seg.segment "label" $seg.label
+            "version" $seg.version "revision" $seg.revision "edge" $seg.edge "indexed" $seg.indexed "newest" (eq $seg.segment $cat.newest)
+            "commit" $seg.commit "repo" $cat.repo "source" ($pg.source | default "") "generated" $pg.generated))
+        "content" (dict "mediaType" "text/markdown" "value" $body) -}}
+      {{- with $fm.weight -}}{{- $page = merge $page (dict "weight" (int .)) -}}{{- end -}}
+      {{- with $pg.lastmod -}}{{- $page = merge $page (dict "dates" (dict "date" (time.AsTime .) "lastmod" (time.AsTime .))) -}}{{- end -}}
+      {{- $.AddPage $page -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}

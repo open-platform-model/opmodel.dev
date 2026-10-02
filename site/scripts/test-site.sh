@@ -11,6 +11,10 @@
 # /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
+#   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge) and
+#                                              the lock an all-local opm-docs pull writes over
+#                                              them; every site copy holds them as .bundles/,
+#                                              with tests/fixtures/bundles.cue as bundles.cue
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), read in place as explicit mode
@@ -26,7 +30,8 @@
 #   enhancements/...      files laid over the copy of its enhancements tree
 #   site/...              files laid over the copy of the site (site-owned pages, config)
 #   setup.sh              run after the copies, with SITE and WS set to them
-#   env                   KEY=VALUE lines exported for the build (checks only)
+#   env                   KEY=VALUE lines exported for the build (checks only);
+#                         CASE_MANIFEST=1 builds without OPM_VERSIONS (manifest mode)
 #   expect                lint: one "<path>:<line>: <message>" line per violation,
 #                         none for a clean tree; checks: "+ text" lines the failed
 #                         build must print and "- text" lines it must not
@@ -55,13 +60,19 @@ bad() { echo "FAIL $1: $2"; fail=$((fail + 1)); [ -z "${3:-}" ] || tail -n 15 "$
 copy_site() {
   d=$OUT/$1/site
   mkdir -p "$d"
-  for e in config content enhancements layouts assets static data i18n archetypes themes scripts; do
+  for e in config content enhancements catalogs layouts assets static data i18n archetypes themes scripts; do
     [ -d "$SITE/$e" ] && cp -R "$SITE/$e" "$d/"
   done
   for e in "$SITE"/* "$SITE"/.[!.]*; do
     [ -f "$e" ] && cp "$e" "$d/"
   done
-  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock"
+  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles"
+  # The fixture docs bundles as an unpacked pull (tests/fixtures/bundles/:
+  # the bundle trees and the lock an all-local opm-docs pull writes over
+  # them), with the bundles.cue they were pulled for, so every build has the
+  # Catalogs section: explicit mode reads .bundles/ when it holds lock.json.
+  cp -R "$TESTS/fixtures/bundles" "$d/.bundles"
+  cp "$TESTS/fixtures/bundles.cue" "$d/bundles.cue"
   return 0
 }
 
@@ -89,7 +100,10 @@ build() {
   (
     # shellcheck disable=SC1090 # the case's own env file
     if [ -n "${3:-}" ] && [ -f "$3" ]; then set -a; . "$3"; set +a; fi
-    SITE_DIR=$OUT/$1/site OPM_VERSIONS=v1.0=$2 sh "$SCRIPTS/build-all.sh"
+    # CASE_MANIFEST=1 (a case's env file) builds in manifest mode, without
+    # OPM_VERSIONS; its setup.sh writes the site copy's .versions/.
+    v=v1.0=$2; [ -z "${CASE_MANIFEST:-}" ] || v=""
+    SITE_DIR=$OUT/$1/site OPM_VERSIONS=$v sh "$SCRIPTS/build-all.sh"
   ) > "$OUT/$1/log" 2>&1
 }
 
@@ -331,6 +345,142 @@ if [ $rc -eq 0 ]; then
   if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
   else bad "enhancements/diagrams" "$why"; fi
 fi
+
+# ---------------------------------------------------------------------------
+# The Catalogs section, from the fixture bundles: unversioned pages at
+# /catalogs/<name>/<segment>/, one tree per segment, the tab, the stamp.
+if [ $rc -eq 0 ]; then
+  K=$OUT/$name/site/public/catalogs
+  log=$OUT/$name/log
+  why=""
+  for f in index.html opm/4.4/index.html opm/4.4/traits/backup-v1alpha1/index.html opm/4.4/resources/volumes/index.html \
+    opm/4.5/index.html opm/4.5/traits/expose/index.html opm/edge/index.html opm/edge/policies/retention/index.html; do
+    [ -f "$K/$f" ] || why="${why:+$why; }no $f"
+  done
+  [ ! -e "$K/opm/4.5/traits/backup-v1alpha1" ] || why="${why:+$why; }4.5 has 4.4's older apiVersion page"
+  [ ! -e "$P/catalogs" ] || why="${why:+$why; }the section published under /v1.0/"
+  grep -qF 'catalogs: 27 pages and 9 alias stubs expected, 36 built' "$log" || why="${why:+$why; }check-pages did not count 27 catalog pages and 9 stubs"
+  if [ -z "$why" ]; then ok "catalogs/pages" "/catalogs/ and every page of 4.4, 4.5 and edge, each segment its own tree; nothing under /v1.0/"
+  else bad "catalogs/pages" "$why" "$log"; fi
+
+  why=""
+  m=$K/opm/4.4/traits/backup/index.html
+  for f in "$P/docs/start/quickstart/index.html" "$m" "$OUT/$name/site/public/enhancements/0001/index.html"; do
+    nav=$(dq "$f" | grep -oE '<a title href=/(v1.0/docs/|v1.0/docs/reference/|catalogs/|enhancements/) ' | sed -E 's#.*href=([^ ]*) #\1#' | tr '\n' ' ')
+    [ "$nav" = "/v1.0/docs/ /v1.0/docs/reference/ /catalogs/ /enhancements/ " ] || why="${why:+$why; }${f#"$OUT"/} navbar: $nav"
+  done
+  dq "$m" | grep -qE '<a title href=/catalogs/ class=[^>]*font-medium' || why="${why:+$why; }the tab is not current on a member"
+  dq "$K/index.html" | grep -qE '<a title href=/catalogs/ class=[^>]*font-medium' || why="${why:+$why; }the tab is not current on /catalogs/"
+  ! dq "$m" | grep -qE '<a title href=/v1.0/docs/ class=[^>]*font-medium' || why="${why:+$why; }Docs is current on a member"
+  ! grep -q 'opm-version-label' "$m" || why="${why:+$why; }a member shows the site version label"
+  [ ! -e "$OUT/$name/site/public/latest/catalogs" ] || why="${why:+$why; }/latest/catalogs/ stubs"
+  if [ -z "$why" ]; then ok "catalogs/tab" "Docs, Reference, Catalogs, Enhancements in that order; Catalogs current on every catalog page; no version label, no /latest/ stub"
+  else bad "catalogs/tab" "$why"; fi
+
+  why=""
+  r=$(dq "$m")
+  for want in 'href=/catalogs/opm/4.4/resources/volumes/>Volumes' 'href=/catalogs/opm/4.4/#contract-levels>contract levels' \
+    'href=/v1.0/docs/concepts/>what enforces a rule' \
+    'href=https://github.com/open-platform-model/catalog_opm/blob/dbefd8645e236dd07060772eaa5857c926b0b44f/opm/traits/v1alpha2/backup.cue' \
+    'class=hextra-badge opm-type-badge' '<span>opm catalog 4.4</span>'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  ! grep -q 'Edit this page' "$m" || why="${why:+$why; }a member has an edit link"
+  nav=$OUT/$name/site/.check/catalogs/nav-order-catalogs-4.4.txt
+  [ "$(grep -c '^/catalogs/opm/' "$nav")" -gt 0 ] && ! grep -qE '^/catalogs/opm/(4\.5|edge)/' "$nav" || why="${why:+$why; }4.4's sidebar holds another segment: $nav"
+  [ "$(line_of /catalogs/opm/4.4/blueprints/ "$nav")" -lt "$(line_of /catalogs/opm/4.4/resources/ "$nav")" ] &&
+    [ "$(line_of /catalogs/opm/4.4/resources/ "$nav")" -lt "$(line_of /catalogs/opm/4.4/traits/ "$nav")" ] || why="${why:+$why; }4.4's kinds are not in weight order"
+  grep -qF '](https://opmodel.dev/catalogs/opm/4.4/resources/volumes/)' "$K/opm/4.4/traits/backup/index.md" || why="${why:+$why; }the .md output does not link absolute"
+  if [ -z "$why" ]; then ok "catalogs/content" "own-segment and /docs/ links resolve; View source at the bundle commit, no edit link; type badge; footer names catalog and segment; the sidebar is the segment's, kinds in weight order"
+  else bad "catalogs/content" "$why"; fi
+
+  # The switch: newest minor first, edge last; the same page where the
+  # segment has it, else the nearest parent, else the landing.
+  items() { dq "$1" | grep -oE 'role=menuitem href=[^ >]+[^>]*data-segment=[^ >]+' | sed -E 's#role=menuitem href=([^ >]+).*data-segment=([^ >]+)#\2=\1#' | tr '\n' ' '; }
+  why=""
+  got=$(items "$K/opm/4.4/traits/backup-v1alpha1/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/traits/ 4.4=/catalogs/opm/4.4/traits/backup-v1alpha1/ edge=/catalogs/opm/edge/traits/ " ] || why="4.4 backup-v1alpha1: $got"
+  got=$(items "$K/opm/4.5/traits/expose/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/traits/expose/ 4.4=/catalogs/opm/4.4/traits/ edge=/catalogs/opm/edge/traits/expose/ " ] || why="${why:+$why; }4.5 expose: $got"
+  got=$(items "$K/opm/edge/policies/retention/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/ 4.4=/catalogs/opm/4.4/ edge=/catalogs/opm/edge/policies/retention/ " ] || why="${why:+$why; }edge retention: $got"
+  r=$(dq "$K/opm/4.4/traits/backup-v1alpha1/index.html")
+  printf '%s' "$r" | grep -qF 'aria-label=Catalog version: opm 4.4' || why="${why:+$why; }the button does not name opm 4.4"
+  printf '%s' "$r" | grep -qE 'data-segment=4.5 class=opm-version-item[^>]*><span>4.5</span><span class=opm-version-tag>latest</span><span class=opm-version-hint>parent page</span>' || why="${why:+$why; }4.5 is not marked latest and parent page"
+  dq "$K/opm/edge/index.html" | grep -qF '<span>main (unreleased)</span>' || why="${why:+$why; }edge is not labelled main (unreleased)"
+  if [ -z "$why" ]; then ok "catalogs/switch" "4.5, 4.4, main (unreleased) in that order; same page, else the nearest parent (traits/), else the landing; newest marked latest"
+  else bad "catalogs/switch" "$why"; fi
+
+  # Indexing: only the newest minor of each major is indexed, in llms.txt
+  # and in the sitemap (with the manifest's lastmod); 4.4 and edge are not.
+  why=""
+  for f in "$K/index.html" "$K/opm/4.5/index.html" "$K/opm/4.5/traits/backup/index.html"; do
+    ! dq "$f" | grep -qF 'name=robots content=noindex' || why="${why:+$why; }${f#"$K"/} has noindex"
+  done
+  for f in "$K/opm/4.4/index.html" "$K/opm/4.4/traits/backup/index.html" "$K/opm/edge/index.html" "$K/opm/edge/traits/expose/index.html"; do
+    dq "$f" | grep -qF 'name=robots content=noindex>' || why="${why:+$why; }${f#"$K"/} has no noindex"
+  done
+  grep -qF '](https://opmodel.dev/catalogs/opm/4.5/traits/backup/)' "$P/llms.txt" || why="${why:+$why; }llms.txt lacks 4.5 backup"
+  ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/llms.txt" || why="${why:+$why; }llms.txt lists 4.4 or edge"
+  tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/catalogs/opm/4.5/traits/backup/</loc><lastmod>2026-09-28T08:30:00' || why="${why:+$why; }the sitemap lacks 4.5 backup with its lastmod"
+  tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/catalogs/</loc><lastmod>2026-09-28T08:30:00' || why="${why:+$why; }the sitemap lacks /catalogs/ with 4.5's lastmod (not edge's)"
+  [ "$(grep -n '^## ' "$P/llms.txt" | sed 's/^[0-9]*:## //' | tr '\n' '|')" = "Documentation|Catalogs|" ] || why="${why:+$why; }llms.txt does not list Documentation, then Catalogs"
+  ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/sitemap.xml" || why="${why:+$why; }the sitemap lists 4.4 or edge"
+  if [ -z "$why" ]; then ok "catalogs/indexing" "/catalogs/ and 4.5 indexed, in llms.txt after the docs and in the sitemap (manifest lastmod, edge's never); 4.4 and edge noindex and in neither"
+  else bad "catalogs/indexing" "$why"; fi
+
+  # Aliases: _redirects lines and meta-refresh stubs to the newest minor;
+  # none to edge.
+  R=$OUT/$name/site/public
+  why=""
+  for l in '/catalogs/opm/ /catalogs/opm/4.5/ 302' '/catalogs/opm/4/ /catalogs/opm/4.5/ 302' '/catalogs/opm/4/* /catalogs/opm/4.5/:splat 302'; do
+    grep -qxF "$l" "$R/_redirects" || why="${why:+$why; }_redirects lacks: $l"
+  done
+  ! grep -q edge "$R/_redirects" || why="${why:+$why; }_redirects names edge"
+  [ "$(sed -n 2p "$R/_redirects")" = '/latest/* /v1.0/:splat 302' ] || why="${why:+$why; }the /latest/ line moved"
+  [ "$(refresh_of "$K/opm/index.html")" = /catalogs/opm/4.5/ ] || why="${why:+$why; }/catalogs/opm/ stub"
+  [ "$(refresh_of "$K/opm/4/index.html")" = /catalogs/opm/4.5/ ] || why="${why:+$why; }/catalogs/opm/4/ stub"
+  [ "$(refresh_of "$K/opm/4/traits/backup/index.html")" = /catalogs/opm/4.5/traits/backup/ ] || why="${why:+$why; }/catalogs/opm/4/traits/backup/ stub"
+  grep -qF 'content="noindex"' "$K/opm/4/traits/backup/index.html" || why="${why:+$why; }a stub without noindex"
+  [ ! -e "$K/opm/4/policies" ] && [ ! -e "$K/opm/4/traits/backup-v1alpha1" ] || why="${why:+$why; }a stub for a page the newest minor lacks"
+  if [ -z "$why" ]; then ok "catalogs/aliases" "/catalogs/opm/ and /catalogs/opm/4/... go to 4.5 as _redirects lines and noindex stubs; nothing goes to edge"
+  else bad "catalogs/aliases" "$why"; fi
+
+  # Search: each segment has its own Pagefind bundle, and a catalog page's
+  # adapter loads its segment's.
+  why=""
+  for sg in 4.4 4.5 edge; do
+    [ -f "$K/opm/$sg/pagefind/pagefind.js" ] || why="${why:+$why; }no Pagefind bundle in $sg"
+    a=$(find "$R" -maxdepth 1 -name "catalogs-opm-$sg.*.pagefind.*js" | head -n 1)
+    grep -qF "catalogs/opm/$sg/pagefind/" "$a" 2>/dev/null || why="${why:+$why; }$sg's search adapter does not load its bundle"
+  done
+  if [ -z "$why" ]; then ok "catalogs/search" "4.4, 4.5 and edge each have a Pagefind bundle, and their pages' search loads it"
+  else bad "catalogs/search" "$why"; fi
+
+  st=$OUT/$name/site/public/build-stamp.json
+  got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
+  if [ "$got" = "explicit true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
+     [ "$(jq -r '.sections.enhancements.ref' "$st")" = worktree ]; then
+    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, the lock digest and every bundle (local); sections.enhancements kept"
+  else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# Manifest mode (no OPM_VERSIONS, a resolved .versions/versions.tsv, as
+# task build runs) with bundles.cue and a lock pulled for it: the section is
+# required and read from site/.bundles/, CAT_FROM manifest.
+name=catalogs/manifest
+copy_site "$name"
+mkdir -p "$OUT/$name/site/.versions/v1.0"
+cp -R "$WS/." "$OUT/$name/site/.versions/v1.0/"
+rm -rf "$OUT/$name/site/.versions/v1.0/enhancements"
+printf 'v1.0\tv1.0 (manifest)\t1\ttrue\tanchored\n' > "$OUT/$name/site/.versions/versions.tsv"
+(SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+st=$OUT/$name/site/public/build-stamp.json
+if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (manifest)" "$OUT/$name/log" &&
+   [ "$(jq -r '.sections.catalogs.from' "$st")" = manifest ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
+  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest)"
+else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------
 # The fixture workspace under a two-segment base path (tests/subpath/env): the
