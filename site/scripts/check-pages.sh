@@ -30,6 +30,10 @@
 #   catalogs  with CAT_DIR set (the build has the Catalogs section), Q2
 #          and stray for public/catalogs/, which belongs to no version: the
 #          /catalogs/ page and every page each segment's manifest.json lists;
+#          the alias stubs (custom/head-end.html: /catalogs/<name>/ and
+#          /catalogs/<name>/<MAJOR>/<page>/ for every page of the newest minor
+#          of that major), each refreshing to its target under BASE_PATH with
+#          a robots noindex tag, else REDIRECT FAIL;
 #          besides each page's index.html and index.md only the segments'
 #          Pagefind bundles; and nav-order-catalogs-<segment>.txt under
 #          CHECK_DIR/catalogs/. Without CAT_DIR, public/catalogs/ must not
@@ -197,15 +201,33 @@ if [ "$mode" = post ]; then
           jq -r '.pages[].path' "$CAT_DIR/$dir/manifest.json" | sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' | sed "s#^#$croot$seg/#"
         done
     } | sort > "$tmp/cat.want"
+    # The alias stubs (custom/head-end.html): "<stub>\t<target>", for every
+    # page of the newest minor of each major, and the tab root.
+    jq -r '.catalogs[] | .root as $r | .newest as $n | .segments[] | select(.indexed) | "\($r)\t\(.segment)\t\(.major)\t\(.dir)\t\(.segment == $n)"' data/opm/catalogs.json |
+      while IFS='	' read -r croot seg major dir newest; do
+        [ "$newest" != true ] || printf '%s\t%s\n' "$croot" "$croot$seg/"
+        jq -r '.pages[].path' "$CAT_DIR/$dir/manifest.json" | sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' |
+          awk -v R="$croot" -v S="$seg" -v M="$major" '{ printf "%s%s/%s\t%s%s/%s\n", R, M, $0, R, S, $0 }'
+      done | sort > "$tmp/cat.stubs"
+    cut -f1 "$tmp/cat.stubs" > "$tmp/cat.stubs.urls"
     if [ -d "$K" ]; then
       (cd "$PUBLIC" && find catalogs -type f -name index.html ! -path '*/pagefind/*') | sed 's|^|/|; s|index\.html$||' | sort > "$tmp/cat.have"
     else
       : > "$tmp/cat.have"
     fi
     missing=$(comm -23 "$tmp/cat.want" "$tmp/cat.have")
-    extra=$(comm -13 "$tmp/cat.want" "$tmp/cat.have")
+    sort -u "$tmp/cat.want" "$tmp/cat.stubs.urls" > "$tmp/cat.all"
+    extra=$(comm -13 "$tmp/cat.all" "$tmp/cat.have")
     if [ -n "$missing" ]; then rc=1; echo "Q2 FAIL catalogs: no page built for:"; echo "$missing" | sed 's/^/  /'; fi
     if [ -n "$extra" ]; then rc=1; echo "Q2 FAIL catalogs: unexpected pages:"; echo "$extra" | sed 's/^/  /'; fi
+    stubs=$(while IFS='	' read -r u to; do
+      f="$PUBLIC${u}index.html"
+      if [ ! -f "$f" ]; then echo "  $u: no stub"; continue; fi
+      got=$(grep -oE 'url=[^"> ]+' "$f" | head -n 1 | cut -c5-)
+      [ "$got" = "$BASE_PATH$to" ] || echo "  $u: refreshes to ${got:-nothing}, not $BASE_PATH$to"
+      grep -q 'content="\{0,1\}noindex' "$f" || echo "  $u: no robots noindex"
+    done < "$tmp/cat.stubs")
+    if [ -n "$stubs" ]; then rc=1; echo "REDIRECT FAIL catalogs: alias stubs:"; echo "$stubs"; fi
     stray=""
     [ ! -d "$K" ] || stray=$( (cd "$PUBLIC" && find catalogs -type f) | sort | while IFS= read -r f; do
       case "$f" in
@@ -229,7 +251,7 @@ if [ "$mode" = post ]; then
         : > "$navf"
       fi
     done
-    echo "catalogs: $(wc -l < "$tmp/cat.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/cat.have" | tr -d ' ') built, sidebar order in $CHECK_DIR/catalogs/"
+    echo "catalogs: $(wc -l < "$tmp/cat.want" | tr -d ' ') pages and $(wc -l < "$tmp/cat.stubs" | tr -d ' ') alias stubs expected, $(wc -l < "$tmp/cat.have" | tr -d ' ') built, sidebar order in $CHECK_DIR/catalogs/"
   elif [ -e "$K" ]; then
     rc=1; echo "Q2 FAIL catalogs: $K exists, but the build has no catalogs section"
   fi

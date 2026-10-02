@@ -5,15 +5,16 @@ Pagefind bundle). Then the same on every version that public/build-stamp.json
 lists (one in a normal build, two in the two-version build). check_sublines
 then checks what a result shows: the page's description as its page-level
 sub-line, excerpts on heading matches, and crumbs that start below the docs
-root. Last, with the Enhancements section built, its own search: on a section
+root. Then, with the Enhancements section built, its own search: on a section
 page every result is a section page (and the docs search above never returns
-one, since its results stay in the version)."""
+one, since its results stay in the version). Last, with the Catalogs section
+built, a search from an older minor and from edge stays in that segment."""
 
 import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import default_version, enhancement_pages, new_page, serve, versions
+from qa_common import catalog_segments, default_version, enhancement_pages, new_page, serve, versions
 
 QUERY = "quickstart"
 EXPECT = "/docs/start/quickstart/"
@@ -79,7 +80,48 @@ def main():
         print(f"search: FAILED in {failures} version(s)")
         return 1
     print(f"search: OK in every version ({', '.join(v for v, _ in versions())})")
-    return check_sublines(version, base) or check_enhancements(base)
+    return check_sublines(version, base) or check_enhancements(base) or check_catalogs(base)
+
+
+CAT_QUERY = "volumes"
+
+
+def check_catalogs(base):
+    """With the Catalogs section built: from the landing of an older minor
+    (the newest when there is only one) and from edge, CAT_QUERY finds
+    results, and every one is a page of that segment (each segment has its
+    own Pagefind bundle, /catalogs/<name>/<segment>/pagefind/)."""
+    cats = catalog_segments()
+    if not cats:
+        print("search catalogs: no section in this build, skipped")
+        return 0
+    name, segs = cats[0]
+    minors = [s for s in segs if s != "edge"]
+    chosen = ([minors[1] if len(minors) > 1 else minors[0]] if minors else []) + (["edge"] if "edge" in segs else [])
+    failures = 0
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for seg in chosen:
+            prefix = f"/catalogs/{name}/{seg}/"
+            page = new_page(browser, 1280, "light", "light")
+            page.goto(f"{base}{prefix}", wait_until="networkidle")
+            page.locator("[data-search-open]:visible").first.click()
+            page.locator("input.hextra-search-input").fill(CAT_QUERY)
+            page.wait_for_selector('#hextra-search-results a[role="option"]', timeout=10000)
+            page.wait_for_timeout(500)
+            hrefs = page.eval_on_selector_all(
+                "#hextra-search-results > li:not(.hextra-search-child) a",
+                "els => els.map(e => e.getAttribute('href'))",
+            )
+            page.context.close()
+            outside = [h for h in hrefs if not h.startswith(prefix)]
+            if not hrefs or outside:
+                failures += 1
+                print(f"search catalogs {seg}: FAILED, {len(hrefs)} result(s) for {CAT_QUERY!r}; outside {prefix}: {outside}")
+            else:
+                print(f"search catalogs {seg}: OK, {len(hrefs)} result(s) for {CAT_QUERY!r}, all under {prefix}")
+        browser.close()
+    return 1 if failures else 0
 
 
 ENH_QUERY = "decision"

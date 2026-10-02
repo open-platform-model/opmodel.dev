@@ -359,7 +359,7 @@ if [ $rc -eq 0 ]; then
   done
   [ ! -e "$K/opm/4.5/traits/backup-v1alpha1" ] || why="${why:+$why; }4.5 has 4.4's older apiVersion page"
   [ ! -e "$P/catalogs" ] || why="${why:+$why; }the section published under /v1.0/"
-  grep -qF 'catalogs: 27 pages expected, 27 built' "$log" || why="${why:+$why; }check-pages did not count 27 catalog pages"
+  grep -qF 'catalogs: 27 pages and 9 alias stubs expected, 36 built' "$log" || why="${why:+$why; }check-pages did not count 27 catalog pages and 9 stubs"
   if [ -z "$why" ]; then ok "catalogs/pages" "/catalogs/ and every page of 4.4, 4.5 and edge, each segment its own tree; nothing under /v1.0/"
   else bad "catalogs/pages" "$why" "$log"; fi
 
@@ -393,6 +393,68 @@ if [ $rc -eq 0 ]; then
   grep -qF '](https://opmodel.dev/catalogs/opm/4.4/resources/volumes/)' "$K/opm/4.4/traits/backup/index.md" || why="${why:+$why; }the .md output does not link absolute"
   if [ -z "$why" ]; then ok "catalogs/content" "own-segment and /docs/ links resolve; View source at the bundle commit, no edit link; type badge; footer names catalog and segment; the sidebar is the segment's, kinds in weight order"
   else bad "catalogs/content" "$why"; fi
+
+  # The switch: newest minor first, edge last; the same page where the
+  # segment has it, else the nearest parent, else the landing.
+  items() { dq "$1" | grep -oE 'role=menuitem href=[^ >]+[^>]*data-segment=[^ >]+' | sed -E 's#role=menuitem href=([^ >]+).*data-segment=([^ >]+)#\2=\1#' | tr '\n' ' '; }
+  why=""
+  got=$(items "$K/opm/4.4/traits/backup-v1alpha1/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/traits/ 4.4=/catalogs/opm/4.4/traits/backup-v1alpha1/ edge=/catalogs/opm/edge/traits/ " ] || why="4.4 backup-v1alpha1: $got"
+  got=$(items "$K/opm/4.5/traits/expose/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/traits/expose/ 4.4=/catalogs/opm/4.4/traits/ edge=/catalogs/opm/edge/traits/expose/ " ] || why="${why:+$why; }4.5 expose: $got"
+  got=$(items "$K/opm/edge/policies/retention/index.html")
+  [ "$got" = "4.5=/catalogs/opm/4.5/ 4.4=/catalogs/opm/4.4/ edge=/catalogs/opm/edge/policies/retention/ " ] || why="${why:+$why; }edge retention: $got"
+  r=$(dq "$K/opm/4.4/traits/backup-v1alpha1/index.html")
+  printf '%s' "$r" | grep -qF 'aria-label=Catalog version: opm 4.4' || why="${why:+$why; }the button does not name opm 4.4"
+  printf '%s' "$r" | grep -qE 'data-segment=4.5 class=opm-version-item[^>]*><span>4.5</span><span class=opm-version-tag>latest</span><span class=opm-version-hint>parent page</span>' || why="${why:+$why; }4.5 is not marked latest and parent page"
+  dq "$K/opm/edge/index.html" | grep -qF '<span>main (unreleased)</span>' || why="${why:+$why; }edge is not labelled main (unreleased)"
+  if [ -z "$why" ]; then ok "catalogs/switch" "4.5, 4.4, main (unreleased) in that order; same page, else the nearest parent (traits/), else the landing; newest marked latest"
+  else bad "catalogs/switch" "$why"; fi
+
+  # Indexing: only the newest minor of each major is indexed, in llms.txt
+  # and in the sitemap (with the manifest's lastmod); 4.4 and edge are not.
+  why=""
+  for f in "$K/index.html" "$K/opm/4.5/index.html" "$K/opm/4.5/traits/backup/index.html"; do
+    ! dq "$f" | grep -qF 'name=robots content=noindex' || why="${why:+$why; }${f#"$K"/} has noindex"
+  done
+  for f in "$K/opm/4.4/index.html" "$K/opm/4.4/traits/backup/index.html" "$K/opm/edge/index.html" "$K/opm/edge/traits/expose/index.html"; do
+    dq "$f" | grep -qF 'name=robots content=noindex>' || why="${why:+$why; }${f#"$K"/} has no noindex"
+  done
+  grep -qF '](https://opmodel.dev/catalogs/opm/4.5/traits/backup/)' "$P/llms.txt" || why="${why:+$why; }llms.txt lacks 4.5 backup"
+  ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/llms.txt" || why="${why:+$why; }llms.txt lists 4.4 or edge"
+  tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/catalogs/opm/4.5/traits/backup/</loc><lastmod>2026-09-28T08:30:00' || why="${why:+$why; }the sitemap lacks 4.5 backup with its lastmod"
+  grep -qF '<loc>https://opmodel.dev/catalogs/</loc>' "$P/sitemap.xml" || why="${why:+$why; }the sitemap lacks /catalogs/"
+  ! grep -qE 'catalogs/opm/(4\.4|edge)/' "$P/sitemap.xml" || why="${why:+$why; }the sitemap lists 4.4 or edge"
+  if [ -z "$why" ]; then ok "catalogs/indexing" "/catalogs/ and 4.5 indexed, in llms.txt and the sitemap (manifest lastmod); 4.4 and edge noindex and in neither"
+  else bad "catalogs/indexing" "$why"; fi
+
+  # Aliases: _redirects lines and meta-refresh stubs to the newest minor;
+  # none to edge.
+  R=$OUT/$name/site/public
+  why=""
+  for l in '/catalogs/opm/ /catalogs/opm/4.5/ 302' '/catalogs/opm/4/ /catalogs/opm/4.5/ 302' '/catalogs/opm/4/* /catalogs/opm/4.5/:splat 302'; do
+    grep -qxF "$l" "$R/_redirects" || why="${why:+$why; }_redirects lacks: $l"
+  done
+  ! grep -q edge "$R/_redirects" || why="${why:+$why; }_redirects names edge"
+  [ "$(sed -n 2p "$R/_redirects")" = '/latest/* /v1.0/:splat 302' ] || why="${why:+$why; }the /latest/ line moved"
+  [ "$(refresh_of "$K/opm/index.html")" = /catalogs/opm/4.5/ ] || why="${why:+$why; }/catalogs/opm/ stub"
+  [ "$(refresh_of "$K/opm/4/index.html")" = /catalogs/opm/4.5/ ] || why="${why:+$why; }/catalogs/opm/4/ stub"
+  [ "$(refresh_of "$K/opm/4/traits/backup/index.html")" = /catalogs/opm/4.5/traits/backup/ ] || why="${why:+$why; }/catalogs/opm/4/traits/backup/ stub"
+  grep -qF 'content="noindex"' "$K/opm/4/traits/backup/index.html" || why="${why:+$why; }a stub without noindex"
+  [ ! -e "$K/opm/4/policies" ] && [ ! -e "$K/opm/4/traits/backup-v1alpha1" ] || why="${why:+$why; }a stub for a page the newest minor lacks"
+  if [ -z "$why" ]; then ok "catalogs/aliases" "/catalogs/opm/ and /catalogs/opm/4/... go to 4.5 as _redirects lines and noindex stubs; nothing goes to edge"
+  else bad "catalogs/aliases" "$why"; fi
+
+  # Search: each segment has its own Pagefind bundle, and a catalog page's
+  # adapter loads its segment's.
+  why=""
+  for sg in 4.4 4.5 edge; do
+    [ -f "$K/opm/$sg/pagefind/pagefind.js" ] || why="${why:+$why; }no Pagefind bundle in $sg"
+    a=$(find "$R" -maxdepth 1 -name "catalogs-opm-$sg.*.pagefind.*js" | head -n 1)
+    grep -qF "catalogs/opm/$sg/pagefind/" "$a" 2>/dev/null || why="${why:+$why; }$sg's search adapter does not load its bundle"
+  done
+  if [ -z "$why" ]; then ok "catalogs/search" "4.4, 4.5 and edge each have a Pagefind bundle, and their pages' search loads it"
+  else bad "catalogs/search" "$why"; fi
 
   st=$OUT/$name/site/public/build-stamp.json
   got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)

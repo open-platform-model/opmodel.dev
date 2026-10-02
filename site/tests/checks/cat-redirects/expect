@@ -1,0 +1,3 @@
++ REDIRECT FAIL catalogs: alias stubs:
++   /catalogs/opm/: no stub
++   /catalogs/opm/4/traits/backup/: no stub

@@ -8,7 +8,8 @@ landing, a docs page, the 404 page, the open search palette and two section
 pages with their child cards, the Enhancements section's page, graph, a
 draft entry, its decisions and an archived entry, and the Catalogs section's
 page, newest landing, a member with a spec block, a kind index and the edge
-landing) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+landing, and the open segment switch on the member, into site/.shots/catalog-switch/)
+get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 On every page of the default version that holds a direction note, the
@@ -183,7 +184,11 @@ def main():
     # The Catalogs section, outside every version: its page, the newest
     # minor's landing, a member page with a spec block, a kind index and the
     # edge landing (none without the section).
-    extras += [(url, "catalog page", None) for url in catalog_pages()]
+    cat_pages = catalog_pages()
+    extras += [(url, "catalog page", None) for url in cat_pages]
+    # The segment switch, open, on the member page (the third catalog page).
+    if len(cat_pages) > 2:
+        extras.append((cat_pages[2], "catalog switch, open", "catalog-switch"))
     listed = versions()
     others = [name for name, is_default in listed if not is_default]
     if others:
@@ -218,7 +223,7 @@ def main():
                 page.context.close()
             print(f"{url}: {count} figure(s) x {len(VARIANTS)} variants -> .shots/{name}/")
         for url, what, kind in extras:
-            name = kind if kind in ("search", "switch") else slug(url.replace("404.html", "404"))
+            name = kind if kind in ("search", "switch", "catalog-switch") else slug(url.replace("404.html", "404"))
             (OUT / name).mkdir(parents=True, exist_ok=True)
             for variant, width, theme, scheme, phone in VARIANTS:
                 page = new_page(browser, width, theme, scheme, phone)
@@ -230,7 +235,7 @@ def main():
                     page.locator("input.hextra-search-input").fill("module")
                     page.wait_for_selector('#hextra-search-results a[role="option"]', timeout=10000)
                     page.wait_for_timeout(300)
-                if kind == "switch":
+                if kind in ("switch", "catalog-switch"):
                     page.locator(".opm-version-toggle:visible").first.click()
                     page.wait_for_selector(".opm-version .hextra-nav-menu-items:visible", timeout=5000)
                     page.wait_for_timeout(300)
