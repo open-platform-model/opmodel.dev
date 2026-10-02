@@ -19,8 +19,9 @@
 # HEAD), "anchored" (fixed refs) or "line" (resolved from release lines on
 # every build), each repo's ref (the release the stamp names), the SHA of the
 # tree built, how it was found (head, anchor, explicit, pin:<repo> <file>,
-# line:<rule>, override:<reason>, with "; docs: <rule>" for core and
-# catalog_opm in a line version) and, from column 10, where that tree came
+# line:<rule>, override:<reason>, with "; docs: <rule>" for every released
+# repository (cli, library, opm-operator, core, catalog_opm) in a line
+# version) and, from column 10, where that tree came
 # from ("docs": tag, sha, main, release/<prefix>vX.Y, or worktree). "site" is
 # the opmodel.dev commit, from the "# site" line of versions.tsv; it is absent
 # when there is no versions.tsv. With OPM_VERSIONS set, or no versions.tsv,
