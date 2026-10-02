@@ -5,14 +5,22 @@
        assets/js/opm-pagefind.js, which reads this version's Pagefind bundle
        (/<version>/pagefind/, built after Hugo by scripts/build-all.sh), so
        results render in Hextra's own palette and never leave the version
-       being read. Nothing is loaded from a CDN. */ -}}
+       being read. A page of the Enhancements section reads the section's own
+       bundle (/enhancements/pagefind/) instead, so the docs search never
+       returns a design and the section's search returns nothing else.
+       Nothing is loaded from a CDN. */ -}}
 {{- if (site.Params.search.enable | default true) -}}
   {{- $type := site.Params.search.type | default "pagefind" -}}
   {{- if ne $type "pagefind" -}}
     {{- errorf `search type %q is not supported; this site uses "pagefind"` $type -}}
   {{- end -}}
   {{- $prefix := printf "%s.%s" .Site.Version.Name .Language.Lang -}}
-  {{- $data := resources.Get "js/opm-pagefind.js" | resources.ExecuteAsTemplate (printf "%s.pagefind.js" $prefix) . -}}
+  {{- $base := .Site.Home.RelPermalink -}}
+  {{- if eq .Section "enhancements" -}}
+    {{- $prefix = printf "enhancements.%s" .Language.Lang -}}
+    {{- $base = "enhancements/" | relURL -}}
+  {{- end -}}
+  {{- $data := resources.Get "js/opm-pagefind.js" | resources.ExecuteAsTemplate (printf "%s.pagefind.js" $prefix) (dict "base" $base) -}}
   {{- $dialog := resources.Get "js/search-dialog.js" | resources.ExecuteAsTemplate (printf "%s.search-dialog.js" $prefix) . -}}
   {{- if hugo.IsProduction -}}
     {{- $data = $data | minify | fingerprint -}}

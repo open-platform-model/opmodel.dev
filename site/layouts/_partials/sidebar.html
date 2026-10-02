@@ -39,6 +39,10 @@
         {{- $p := .Page -}}{{- with .PageRef -}}{{- with site.GetPage . -}}{{ $p = . }}{{- end -}}{{- end -}}
         {{- if and $p $navRoot (or (eq $p $navRoot) ($navRoot.IsAncestor $p)) -}}{{ continue }}{{- end -}}
         {{- $link := .URL -}}{{- with $p -}}{{ $link = .RelPermalink }}{{- end -}}
+        {{- /* A root pageRef (/enhancements/) names a page outside the
+               version, which GetPage misses in every other version: link it
+               as Hextra's navbar does. */ -}}
+        {{- if and (not $link) (hasPrefix .PageRef "/") -}}{{ $link = relLangURL (strings.TrimPrefix "/" .PageRef) }}{{- end -}}
         {{- $extra = $extra | append (dict "title" .Name "link" $link) -}}
       {{- end -}}
       {{- with $extra -}}

@@ -3,8 +3,10 @@
        a menu built from Hextra's own navbar dropdown markup
        (.hextra-nav-menu-toggle, .hextra-nav-menu-items), so Hextra's
        nav-menu.js opens it, handles the keyboard and closes it. Version names
-       are compared as strings. */ -}}
+       are compared as strings. A page of the Enhancements section belongs to
+       no version and shows neither. */ -}}
 {{- $page := . -}}
+{{- if ne .Section "enhancements" -}}
 {{- $labels := dict -}}
 {{- range site.Params.opm.versions -}}{{- $labels = merge $labels (dict .name (.label | default .name)) -}}{{- end -}}
 {{- $current := site.Version.Name -}}
@@ -37,4 +39,5 @@
     {{- end }}
   </ul>
 </div>
+{{- end -}}
 {{- end -}}

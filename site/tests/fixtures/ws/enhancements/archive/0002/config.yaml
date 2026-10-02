@@ -1,0 +1,23 @@
+id: "0002"
+slug: fixture-archived-entry
+title: Fixture Archived Entry
+summary: >-
+  An archived entry of the fixture workspace.
+status: delivered
+category: tooling
+affects:
+  - core
+  - cli
+core_schema: false
+created: "2026-09-01"
+updated: "2026-09-10"
+authors:
+  - fixture
+history:
+  - date: "2026-09-01"
+    event: Drafted
+depends_on: []
+amends: []
+supersedes: []
+revives: []
+superseded_by: null

@@ -207,6 +207,8 @@ Forbidden: `sidebar:` (write `weight: N`), and every other key (`slug`, `draft`,
 
 Never write `> [!NOTE] Title`, a foldable `> [!NOTE]-`, or a Starlight `:::note[...]` block.
 
+A NOTE whose bold title line is exactly **Direction** is a direction note (0018:D3): it names an enhancement, and A renders it labelled Direction, in a box of its own. Added 2026-10-02 by opmodel.dev's `add-enhancements-tab`.
+
 **Figures** are Hugo shortcodes. Write each on its own line, with a blank line before and after, no parameters and no closing tag. Exactly these seven names exist:
 
 | Shortcode | Figure |
@@ -223,8 +225,9 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 **Links.**
 - Internal links are root-absolute with a trailing slash: `[What OPM is](/docs/start/what-is-opm/)`. A `#fragment` is allowed.
+- A link into the Enhancements section, OPM's unversioned design record (a direction note's link to its enhancement), is root-absolute too, in one of three forms, each with an optional `#fragment`: `/enhancements/`, `/enhancements/<NNNN>/` (the entry, four digits) and `/enhancements/<NNNN>/<document>/` (`problem`, `design`, `decisions`, `graduation`, `risks`, `operational` or `questions`), so `[its third decision](/enhancements/0018/decisions/#d3)`. Nothing else under `/enhancements` is a link form (not the graph, not a deeper path, not without the trailing slash). Added 2026-10-02 by opmodel.dev's `add-enhancements-tab`.
 - Reference-style definitions (`[g]: /docs/start/`) follow the same rules. Footnotes (`[^1]: ...`) are not links.
-- A's link hook resolves them in the current version and fails the build on a missing page.
+- A's link hook resolves them in the current version and fails the build on a missing page; an `/enhancements/` link resolves to the one unversioned section from every version, and fails when the section has no such page or the build has no section.
 - External links are `https://...`; `mailto:` and `#fragment` links are fine.
 - Forbidden: relative links (`../x/`, `./x`), `.md` links, links with a version prefix (`/v1.0/docs/...`), `/docs/...` without the trailing slash, and raw HTML `href=` or `src=` attributes.
 
@@ -246,7 +249,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `dfde928f2f5923c145107753e56c8dca55d12a03129190f76a2b527cd803279c`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `25b023fb27518f466558930f1b5b7ceeea577d79dc379a843fe8f7b4694262d7`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -288,7 +291,8 @@ for dir in "$@"; do
       function dest(t) {
         if (t ~ /^(https?:|mailto:|#)/) return
         if (t ~ /^\/docs\//) { if (t !~ /^\/docs\/([a-z0-9-]+\/)*(#[^ ]*)?$/) err(NR, "internal link \"" t "\": write /docs/<section>/<page>/ with a trailing slash"); return }
-        err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ (no relative, .md or version-prefixed links)")
+        if (t ~ /^\/enhancements([\/#]|$)/) { if (t !~ /^\/enhancements\/([0-9][0-9][0-9][0-9]\/((problem|design|decisions|graduation|risks|operational|questions)\/)?)?(#[^ ]*)?$/) err(NR, "enhancement link \"" t "\": write /enhancements/, /enhancements/<NNNN>/ or /enhancements/<NNNN>/<document>/ with a trailing slash"); return }
+        err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ or /enhancements/<NNNN>/ (no relative, .md or version-prefixed links)")
       }
       NR == 1 { if ($0 != "---") { err(1, "front matter must open on line 1 with ---"); nofm = 1 } else { infm = 1; next } }
       infm {

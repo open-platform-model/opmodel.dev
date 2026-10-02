@@ -5,7 +5,9 @@
        single.html: no sidebar, breadcrumb or pager. The drift guard fails when
        upstream changes either file, so this copy is re-synced then. The one
        addition: a section page lists its children (opm/section-children.html),
-       so layouts/docs/list.html renders sections through this body too. */ -}}
+       so layouts/docs/list.html renders sections through this body too,
+       unless its front matter sets cards: false (the Enhancements section
+       page, whose INDEX table is the list). */ -}}
   <div class="hx:mx-auto hx:flex hextra-max-page-width">
     {{ partial "sidebar.html" (dict "context" .) }}
     {{ partial "toc.html" . }}
@@ -22,7 +24,7 @@
           {{ end }}
           {{ partial "custom/content-begin.html" . }}
           {{ .Content }}
-          {{- if .IsSection }}{{ partial "opm/section-children.html" . }}{{ end }}
+          {{- if and .IsSection (ne .Params.cards false) }}{{ partial "opm/section-children.html" . }}{{ end }}
           {{ partial "custom/content-end.html" . }}
         </div>
         {{ partial "components/last-updated.html" . }}

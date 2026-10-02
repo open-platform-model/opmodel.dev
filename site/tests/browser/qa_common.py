@@ -48,6 +48,50 @@ def versions():
     return listed or [(default_version(), True)]
 
 
+def direction_pages(version):
+    """The pages of the version, in path order, that hold a direction note (a
+    NOTE alert titled Direction, layouts/_markup/render-blockquote-alert.html)."""
+    return ["/" + html.parent.relative_to(PUBLIC).as_posix() + "/"
+            for html in sorted((PUBLIC / version).rglob("index.html"))
+            if "pagefind" not in html.parts and "opm-direction" in html.read_text(errors="ignore")]
+
+
+def enhancement_pages():
+    """The Enhancements section's pages the checks open, when the build has
+    the section (public/enhancements/): the section page, the graph, a draft
+    entry, its decisions document and an archived (delivered) entry, chosen
+    by the status banner each page carries. [] without the section."""
+    root = PUBLIC / "enhancements"
+    if not (root / "index.html").is_file():
+        return []
+    pages = ["/enhancements/"]
+    if (root / "graph" / "index.html").is_file():
+        pages.append("/enhancements/graph/")
+    entries = sorted(p for p in root.iterdir() if p.is_dir() and re.fullmatch(r"[0-9]{4}", p.name))
+
+    def status(entry):
+        m = re.search(r'data-status="?([a-z]+)', (entry / "index.html").read_text(errors="ignore"))
+        return m.group(1) if m else ""
+
+    draft = next((e for e in entries if status(e) == "draft"), None)
+    closed = next((e for e in entries if status(e) == "delivered"), None)
+    if draft:
+        pages += [f"/enhancements/{draft.name}/", f"/enhancements/{draft.name}/decisions/"]
+    if closed:
+        pages.append(f"/enhancements/{closed.name}/")
+    return pages
+
+
+def wait_for_diagrams(page, timeout=30000):
+    """Waits until every Mermaid diagram on the page has rendered (Hextra's
+    script draws them after DOMContentLoaded, so networkidle can come first);
+    returns at once on a page without one."""
+    page.wait_for_function(
+        "() => [...document.querySelectorAll('pre.mermaid')].every(e => e.dataset.processed && e.querySelector('svg'))",
+        timeout=timeout,
+    )
+
+
 def new_page(browser, width, site_theme, os_scheme, phone=False):
     """A page with the site's theme switch set (Hextra's 'color-theme' key) and
     the OS colour scheme set separately, so the two can disagree."""

@@ -81,3 +81,20 @@ html.dark .hextra-alert[data-alert] {
   background: color-mix(in oklab, var(--opm-alert) 8%, transparent);
 }
 .hextra-alert[data-alert] .hextra-alert-icon { color: var(--opm-alert); }
+
+/* A direction note (layouts/_markup/render-blockquote-alert.html) names an
+   enhancement, a design and not a feature: violet, the colour of the
+   enhancement graph's categories, with a dashed start border for work not
+   built, and its label in the accent. Tailwind v4's violet, as above. */
+:root { --opm-alert-direction: oklch(54.1% .281 293.009); }
+html.dark { --opm-alert-direction: oklch(70.2% .183 293.541); }
+.opm-direction .hextra-alert[data-alert] {
+  --opm-alert: var(--opm-alert-direction);
+  border-inline-start: 3px dashed var(--opm-alert);
+  background: color-mix(in oklab, var(--opm-alert) 7%, transparent);
+}
+html.dark .opm-direction .hextra-alert[data-alert] {
+  border-inline-start-color: var(--opm-alert);
+  background: color-mix(in oklab, var(--opm-alert) 10%, transparent);
+}
+.opm-direction .hextra-alert-title-text { color: var(--opm-alert); font-weight: 600; }

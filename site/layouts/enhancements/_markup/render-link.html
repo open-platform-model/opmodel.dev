@@ -1,0 +1,80 @@
+{{- /* Links in the Enhancements section. A relative link is a path in the
+       enhancements repository, resolved against the page's file (repoPath):
+       - an entry (NNNN/, NNNN/README.md, archive/NNNN/...) goes to
+         /enhancements/NNNN/, and one of its seven numbered documents to
+         /enhancements/NNNN/<slug>/, so a link survives the entry's move to
+         archive/;
+       - INDEX.md and GRAPH.md go to the section page and the graph;
+       - any other path of the repository (a schema, an experiment, research,
+         config.yaml) goes to GitHub at the commit built, data/opm/build.json's
+         sections.enhancements (main when the build names no commit): blob for
+         a file, tree for a directory (data/opm/enhancements.json, from
+         scripts/gen-mounts.sh);
+       - a path that names nothing in the repository at that commit fails
+         the build, and so does a path that climbs out of the repository: no
+         URL can name either (the enhancements repository's own link check
+         keeps them out).
+       A link whose text is the Markdown file name of the section page it
+       goes to reads as that page: INDEX.md as "the index", GRAPH.md as "the
+       relationship graph", any other (README.md, 03-decisions.md) as the
+       page's title, since a file name means nothing on the site. Other
+       texts, an INDEX row's 0018 among them, stay as written.
+       Root-absolute /docs/ links resolve as in the docs, through the default
+       version's page tree, and a miss fails the build. External, #fragment
+       and mailto: links pass through. The anchor markup is upstream's. */ -}}
+{{- $dest := .Destination -}}
+{{- $u := urls.Parse $dest -}}
+{{- $text := .Text -}}
+{{- if and $dest (not $u.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
+  {{- $rp := .PageInner.Params.repoPath | default "" -}}
+  {{- $frag := cond (ne $u.Fragment "") (printf "#%s" $u.Fragment) "" -}}
+  {{- if hasPrefix $u.Path "/" -}}
+    {{- with .PageInner.GetPage $u.Path -}}
+      {{- $dest = printf "%s%s" .RelPermalink $frag -}}
+    {{- else -}}
+      {{- errorf "enhancements: broken link %q in %s" $dest $rp -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $t := path.Clean (path.Join (path.Dir $rp) $u.Path) -}}
+    {{- if or (eq $t "..") (hasPrefix $t "../") -}}
+      {{- errorf "enhancements: link %q in %s climbs out of the repository (%s)" $.Destination $rp $t -}}
+    {{- end -}}
+    {{- if eq $t "." -}}{{- $t = "" -}}{{- end -}}
+    {{- $ref := "" -}}
+    {{- with findRESubmatch `^(?:archive/)?([0-9]{4})(?:/README\.md)?$` $t 1 -}}
+      {{- $ref = printf "/enhancements/%s" (index (index . 0) 1) -}}
+    {{- else -}}
+      {{- with findRESubmatch `^(?:archive/)?([0-9]{4})/0([1-7])-[a-z0-9-]+\.md$` $t 1 -}}
+        {{- $slug := index (slice "problem" "design" "decisions" "graduation" "risks" "operational" "questions") (sub (int (index (index . 0) 2)) 1) -}}
+        {{- $ref = printf "/enhancements/%s/%s" (index (index . 0) 1) $slug -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if or (eq $t "INDEX.md") (eq $t "") -}}{{- $ref = "/enhancements" -}}{{- end -}}
+    {{- if eq $t "GRAPH.md" -}}{{- $ref = "/enhancements/graph" -}}{{- end -}}
+    {{- with and $ref ($.PageInner.GetPage $ref) -}}
+      {{- $dest = printf "%s%s" .RelPermalink $frag -}}
+      {{- if and (strings.HasSuffix $t ".md") (eq (strings.TrimSpace $.PlainText) (path.Base $t)) -}}
+        {{- $text = index (dict "INDEX.md" "the index" "GRAPH.md" "the relationship graph") $t | default .LinkTitle -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $sha := "main" -}}
+      {{- with hugo.Data.opm.build -}}{{- with .sections -}}{{- with .enhancements -}}{{- with .sha -}}{{- $sha = . -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
+      {{- $kind := "" -}}
+      {{- with hugo.Data.opm.enhancements -}}{{- $kind = index .paths $t | default "" -}}{{- end -}}
+      {{- if not $kind -}}
+        {{- errorf "enhancements: link %q in %s names nothing in the repository at %s (%s)" $.Destination $rp $sha $t -}}
+      {{- end -}}
+      {{- $dest = printf "%s/enhancements/%s/%s/%s%s" site.Params.opm.github $kind $sha $t $frag -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- with . -}}
+  {{- $isExternal := strings.HasPrefix $dest "http" -}}
+  <a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>
+    {{- $text | safeHTML -}}
+    {{- if and .Page.Site.Params.externalLinkDecoration $isExternal -}}
+      {{- partial "utils/icon.html" (dict "name" "arrow-up-right" "attributes" `class="hx:inline hx:rtl:rotate-270 hx:align-baseline" height="1em" aria-hidden="true"`) -}}
+    {{- end -}}
+  </a>
+{{- end -}}

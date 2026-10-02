@@ -5,10 +5,14 @@ Every page of the default version that draws a figure (a <figure> holding an
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page, the open search palette and two section
-pages with their child cards) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+pages with their child cards, and the Enhancements section's page, graph, a
+draft entry, its decisions and an archived entry) get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
-Each version's footer stamp (build-stamp.json lists the versions) is shot as
+On every page of the default version that holds a direction note, the
+first one is shot as an element, into
+site/.shots/direction/<page>/note-<variant>.png. Each version's footer stamp
+(build-stamp.json lists the versions) is shot as
 an element, into site/.shots/<version>_docs/stamp-<variant>.png. With two or
 more versions, two more extras: the open version switch (site/.shots/switch/)
 and a page of a version that is not the default, which carries the outdated
@@ -28,7 +32,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import PUBLIC, SITE, default_version, new_page, serve, slug, versions
+from qa_common import PUBLIC, SITE, default_version, direction_pages, enhancement_pages, new_page, serve, slug, versions, wait_for_diagrams
 
 OUT = SITE / ".shots"
 MIN_TEXT_PX = 9
@@ -116,6 +120,25 @@ def shoot_sized_extras(browser, base, version, errors):
         print(f"{url}: {name} {width}x{height} x 2 themes -> .shots/{slug(url)}/")
 
 
+def shoot_direction(browser, base, version, errors):
+    """Each page's first direction note in six variants, as an element, into
+    site/.shots/direction/<page>/note-<variant>.png."""
+    urls = direction_pages(version)
+    if not urls:
+        print("no direction note in this build")
+    for url in urls:
+        folder = OUT / "direction" / slug(url)
+        folder.mkdir(parents=True, exist_ok=True)
+        for variant, width, theme, scheme, phone in VARIANTS:
+            page = new_page(browser, width, theme, scheme, phone)
+            page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
+            page.goto(base + url, wait_until="networkidle")
+            page.evaluate(UNSTICK)
+            page.locator(".opm-direction").first.screenshot(path=str(folder / f"note-{variant}.png"))
+            page.context.close()
+        print(f"{url}: direction note x {len(VARIANTS)} variants -> .shots/direction/{slug(url)}/")
+
+
 def check_landing(browser, base, version):
     """LANDING_FOLD on the landing; returns the failures as strings."""
     failures = []
@@ -151,6 +174,9 @@ def main():
         (f"/{version}/docs/", "section cards", None),
         (f"/{version}/docs/operating/", "section cards", None),
     ]
+    # The Enhancements section, outside every version: its page, the graph, a
+    # draft entry with its decisions and an archived entry.
+    extras += [(url, "enhancements page", None) for url in enhancement_pages()]
     listed = versions()
     others = [name for name, is_default in listed if not is_default]
     if others:
@@ -191,6 +217,7 @@ def main():
                 page = new_page(browser, width, theme, scheme, phone)
                 page.on("pageerror", lambda e, u=url: errors.append(f"{u}: {e}"))
                 page.goto(base + url, wait_until="networkidle")
+                wait_for_diagrams(page)
                 if kind == "search":
                     page.locator("[data-search-open]:visible").first.click()
                     page.locator("input.hextra-search-input").fill("module")
@@ -215,6 +242,7 @@ def main():
                 page.context.close()
             print(f"{url}: footer stamp x {len(VARIANTS)} variants -> .shots/{name}/")
         shoot_sized_extras(browser, base, version, errors)
+        shoot_direction(browser, base, version, errors)
         landing = check_landing(browser, base, version)
         browser.close()
     for e in errors:

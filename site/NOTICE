@@ -19,3 +19,18 @@ Pagefind 1.5.2
   MIT License. Installed in the site's build image; the
   search bundle it writes into each version (pagefind/) is published with
   the site.
+
+Mermaid 11.17.2
+  https://github.com/mermaid-js/mermaid
+  MIT License, site/assets/lib/mermaid/LICENSE. Vendored as the npm
+  package's dist/mermaid.min.js (version, source and SHA-256 in
+  site/vendored.sha256) and served, fingerprinted, on the Enhancements
+  pages that draw a diagram. The file is one bundle of Mermaid and what it
+  depends on. Its licence comments, kept at its end, name lodash-es (MIT),
+  DOMPurify (MPL-2.0 or Apache-2.0) and parts of cytoscape (MIT). Its direct
+  dependencies declare these licences: d3 (ISC), d3-sankey (BSD-3-Clause),
+  DOMPurify (MPL-2.0 or Apache-2.0), and the MIT License for
+  @braintree/sanitize-url, @iconify/utils, @mermaid-js/parser,
+  @upsetjs/venn.js, cytoscape, cytoscape-cose-bilkent, cytoscape-fcose,
+  dagre-d3-es, dayjs, es-toolkit, fastdom, KaTeX, khroma, marked, roughjs,
+  stylis, ts-dedent and uuid.
