@@ -1,0 +1,53 @@
+> **Gate (section 5 only).** Sections 1 to 4 need nothing from docs-kit or the registry and may be committed at any time. Section 5 starts only when: docs-kit `v0.1.0` is released; catalog_opm `publish-docs-bundle` section 1 has merged; `ghcr.io/open-platform-model/docs/catalog-opm` is public; the 4.4.5 backfill (`4.4.5.0`, `4.4.5`, `4.4`, `4`) and `edge` are published; and an anonymous `opm-docs pull --config site/bundles.cue` resolves and verifies `4.4` and `edge`. The PR merges after section 5.
+
+## 1. Factor the unversioned-section plumbing
+
+- [ ] 1.1 Move the version list, default version and `ENH_*` resolution from `site/scripts/build-all.sh` (`:56-99`) and `site/scripts/serve.sh` (`:21-56`) into `site/scripts/sections.sh`, sourced by both; error messages keep naming their caller.
+- [ ] 1.2 Prove no output change: `task build` before and after, and `diff -r` of the two `site/public/` trees (excluding `build-stamp.json`'s `site` SHA and `llms.txt`'s generation time) is empty; `task test:site` green.
+- [ ] 1.3 `task check`, `task build` and `task test:site` green, then commit `refactor(site): share the unversioned-section plumbing between build and serve`.
+
+## 2. The Catalogs section from fixture bundles
+
+- [ ] 2.1 Fixtures: `site/tests/fixtures/bundles/` in the unpack layout (`lock.json`; `catalog-opm/{4.4,4.5,edge}/` with `manifest.json`, `content/`, `data/catalog.json`, per design.md Decision 14) and `site/tests/fixtures/bundles.cue` whose SHA-256 the fixture lock records; `test-site.sh` copies them into its site copy as `.bundles/` and `bundles.cue`.
+- [ ] 2.2 Build image: `jq` (pinned apk version) in `site/Dockerfile`; `task image` rebuilds under the new hash tag.
+- [ ] 2.3 `sections.sh` resolves `CAT_DIR`/`CAT_FROM` per design.md Decision 2 (manifest, explicit, `OPM_BUNDLES`), including the lock-vs-`bundles.cue` check naming `task bundles:pull`; `OPM_BUNDLES` joins the Taskfile `*hugo-env` and `run-in-image.sh` mounts it read-only and passes it in.
+- [ ] 2.4 `site/scripts/gen-catalogs.sh` writes `data/opm/catalogs.json` and `.gen/catalogs/_index.md` with every refusal in Decision 4; `gen-stamp.sh` adds `sections.catalogs` (Decision 13); `gen-mounts.sh` writes the bundles, adapter and section-page mounts and the Catalogs menu entry; `config/_default/hugo.toml` menu weights become Docs 1, Reference 2, Search 5, GitHub 6, Theme 7 (Catalogs 3, Enhancements 4 from `gen-mounts.sh`).
+- [ ] 2.5 `site/catalogs/_content.gotmpl` per Decision 5 (paths, `url`, front matter, `params.catalog`, `lastmod`, `sitemap.disable`, `params.llms`, refusals); `layouts/catalogs/{list,single}.html`.
+- [ ] 2.6 Navigation and leakage per Decision 6: `sidebar.html` (segment as nav root), `navbar-link.html`, `opm/source.html` (View source at the bundle commit), `banner.html`, `opm/version-switch.html`, `custom/head-end.html` (no `/latest/` stub), `sitemap.xml` and `llms.txt` filters.
+- [ ] 2.7 `layouts/catalogs/_markup/render-link.html` per Decision 10 (own segment, `/docs/`, `/enhancements/`).
+- [ ] 2.8 `check-pages.sh`: a post block for `public/catalogs/` (want from `catalogs.json` and each manifest's `pages`, have, stray, "exists without section") and `nav-order-catalogs-<segment>.txt`; `check-front-matter` exempts adapter pages as for Enhancements.
+- [ ] 2.9 Check cases, each failing on its fixture under `site/tests/checks/`: `cat-q2`, `cat-stray-file`, `cat-own-root-other-segment`, `cat-without-bundles`, `cat-lock-mismatch`, `cat-manifest-mismatch`, `cat-front-matter`, `cat-shortcode`; `test-site.sh` asserts the pages of every fixture segment, the tab present and current, and the stamp's `sections.catalogs`.
+- [ ] 2.10 `task check`, `task build` (real manifest: no `site/bundles.cue` yet, so no section and no tab) and `task test:site` green; `OPM_BUNDLES=site/tests/fixtures/bundles task qa` green and its catalog PNGs read (landing, member; light, dark, phone); then commit `feat(site): build the Catalogs section from unpacked docs bundles`.
+
+## 3. Minors: switcher, aliases, indexing and search
+
+- [ ] 3.1 `layouts/_partials/opm/catalog-links.html` and `opm/catalog-switch.html` per Decision 7, shown on every catalog page; `edge` labelled "main (unreleased)", newest first.
+- [ ] 3.2 Aliases per Decision 8: the `_redirects` lines in `build-all.sh` (none matching `^/latest/\*`), the stubs from `custom/head-end.html` (base path included, `noindex`, canonical), none for `edge`; `check-pages.sh` knows the stubs; the output guards assert lines and stubs exist exactly when the section does.
+- [ ] 3.3 Indexing per Decision 9: `noindex` on older minors and `edge` in `head-end.html`; `llms.txt` and sitemap carry only indexed segments, the sitemap with the manifest `lastmod`.
+- [ ] 3.4 Search: a Pagefind run per `catalogs.json` segment in `build-all.sh`; `scripts/search.html` picks the segment's bundle on a catalog page.
+- [ ] 3.5 Tests: the `cat-redirects` case; `test-site.sh` asserts switcher targets (same page, parent fallback, landing), `noindex` per segment, `llms.txt` and sitemap content, `_redirects` lines and stubs, no `edge` stub; `check-two-versions.sh` asserts the section published once outside both versions and the tab in every version, with `versions:test` passing `OPM_BUNDLES` to the fixture tree.
+- [ ] 3.6 Browser QA in `site/tests/browser/`: `qa_common.catalog_pages()`; `shots.py` adds a catalog landing, a member page with a spec block, a kind index, an edge page and the switcher open (six variants); `a11y.py` covers them; `search.py` asserts results from a 4.4 page and from an edge page stay in their segment. They run against the real docs with the fixture bundles (`OPM_BUNDLES=site/tests/fixtures/bundles task qa`) until section 5, and against the pulled bundles after it; with no bundles `catalog_pages()` is empty and the catalog shots are skipped, not failed.
+- [ ] 3.7 `task check`, `task build`, `task test:site` and `OPM_BUNDLES=site/tests/fixtures/bundles task qa` green, the catalog PNGs read (landing, member, kind index, edge, switcher open; light, dark, phone), then commit `feat(site): switch, alias and index the catalog minors`.
+
+## 4. Docs pages link the tab; members leave Reference
+
+- [ ] 4.1 `site/scripts/lint-sources.sh` accepts exactly the Decision 11 forms on docs pages and rejects the rest with a message naming the major alias; `site/tests/lint/link-catalogs/` (rejected) and `lint/clean/` (accepted); the byte-identical copy and SHA-256 in `openspec/changes/deploy-site/orchestration.md`; compare the cases with docs-kit's `internal/dialect/testdata` docs-mode cases and record any disagreement in design.md (G5).
+- [ ] 4.2 The global `layouts/_markup/render-link.html` `/catalogs/` branch per Decision 10 (resolve through `catalogs.json` and `hugo.Sites`, write the resolved minor's URL, fail naming `task bundles:pull` without the section); fixture docs pages link `/catalogs/opm/4/` and a member through it; cases `cat-link-miss` and `cat-docs-link-without-section`; the Markdown output layouts write such links as absolute URLs, as for `/enhancements/`.
+- [ ] 4.3 Transition per Decision 12: `gen-mounts.sh` excludes catalog_opm's `reference/catalog-members/**` and `reference/catalog-contract.md` when the build has `catalog-opm`; the legacy map in the global link hook; `build-all.sh` lists pages still writing an old target; fixture workspace gains a `catalog-contract.md` and `catalog-members/` stub and a page linking each; `test-site.sh` asserts they are absent with bundles, present without, and the legacy links resolve to the tab.
+- [ ] 4.4 `site/content/docs/reference/_index.md`: description and body stop naming catalog members and point to the Catalogs tab.
+- [ ] 4.5 `task check`, `task build`, `task test:site` and `OPM_BUNDLES=site/tests/fixtures/bundles task qa` green (the Reference sidebar PNG read without catalog members), then commit `feat(site): let docs pages link the Catalogs tab and retire the Reference copies`.
+
+## 5. Pull the real bundles (GATED, see the top)
+
+- [ ] 5.1 Confirm the Gate: anonymous `opm-docs pull` against GHCR resolves `4.4` and `edge` and verifies both; record the digests in the PR description's verification note, not here.
+- [ ] 5.2 `site/Dockerfile`: `opm-docs` 0.1.0 with `OPM_DOCS_SHA256` taken from the release's `checksums.txt` and checked by hand against a second download; `task image` builds and `opm-docs version` prints `0.1.0`.
+- [ ] 5.3 `site/bundles.cue` (design.md Decision 2); `run-in-image.sh pull` with the mounts of Decision 1 (`OPM_BUNDLES_LOCAL`, `site/bundles.frozen.json` when present); `task bundles:pull`; `task versions:fetch` runs it after the git fetch; `task clean` removes `site/.bundles/` and `site/.cache/`; both are gitignored.
+- [ ] 5.4 `.github/workflows/site.yml` per Decision 13: the pull step in the build, browser and sources-main jobs, the Catalogs table in the Summary step, `lock.json` in the `build-manifest` artifact; `task ci:lint` green.
+- [ ] 5.5 Real build: `task bundles:pull build` shows `/catalogs/opm/4.4/` and `/catalogs/opm/edge/`, the landing is catalog_opm's contract page, every member page builds under every check, the stamp names both digests; `/catalogs/opm/` and `/catalogs/opm/4/` stubs land on 4.4; a local preview with `OPM_BUNDLES_LOCAL=catalog-opm=<catalog_opm>/out/catalog-opm task bundles:pull build` builds and the stamp shows `local`. Any mismatch with the fixtures is fixed in the fixtures or reported to docs-kit, never by loosening a check.
+- [ ] 5.6 Land the durable decisions: README ("The Catalogs section" with the transition and the frozen-lock recovery, "Sources", "Page dialect", "URL layout", "CI"), AGENTS.md (Repository Rules network list, Site versions bullet, Indexing, Generated reference pattern, Build And Dev Commands `task bundles:pull`, Repository Layout), `openspec/config.yaml` Principle III sentence, `TODO.md` (remove the exclusion and legacy map once catalog_opm has deleted the pages and no source writes the old links; decide old-URL redirects).
+- [ ] 5.7 `task check`, `task build`, `task test:site` and `task qa` green on the real bundles, the catalog PNGs of the real 4.4 and edge read, then commit `feat(site): pull the catalog docs bundles from GHCR`.
+
+## 6. Verify and archive
+
+- [ ] 6.1 Follow `.claude/skills/openspec-verify-change/SKILL.md`; check that the diff touches only the files in proposal.md's Impact and that every durable decision has landed.
+- [ ] 6.2 Archive with `openspec archive add-catalogs-tab --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, commit `chore(openspec): archive add-catalogs-tab`.
