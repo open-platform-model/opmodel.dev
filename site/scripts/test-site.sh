@@ -193,6 +193,12 @@ if [ $rc -eq 0 ]; then
     ok "dialect/weight" "nav-order.txt: zeta-first (weight 1) before alpha-second (weight 2); sections in weight order; Reference in its own tree, definitions before cli"
   else bad "dialect/weight" "nav-order.txt or nav-order-reference.txt is not in weight order, or a tree holds the other's pages" "$nav"; fi
 
+  # A site placeholder yields to a source page at its path, and stays where none exists.
+  if grep -q 'the cli repository publishes this section page itself' "$P/docs/reference/cli/index.html" &&
+     grep -q 'This page will list every definition' "$P/docs/reference/definitions/index.html"; then
+    ok "placeholder" "docs/reference/cli/ comes from the fixture cli; docs/reference/definitions/ keeps the site's placeholder"
+  else bad "placeholder" "a placeholder did not yield to the source page, or vanished where none exists" "$P/docs/reference/cli/index.html"; fi
+
   # Root-absolute links resolve through the link hook in the current version.
   if grep -q 'href="\{0,1\}/v1.0/docs/concepts/fixture-concept/#why"\{0,1\}>the fixture concept</a>' "$q" &&
      grep -q 'href="\{0,1\}/v1.0/docs/start/"\{0,1\}>the start section</a>' "$q"; then
