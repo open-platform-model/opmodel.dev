@@ -8,10 +8,10 @@
 
 ## 2. Durable decisions
 
-- [ ] 2.1 `AGENTS.md` Site versions: the docs rule names all five released repositories, and the floor and containment checks hold for each
-- [ ] 2.2 `AGENTS.md` Reserved sections: a generated CLI reference is generated from the cli release the stamp names (`ref`), never from the docs tree
-- [ ] 2.3 `README.md`: the line resolution table, the docs rule, "So a docs fix reaches the site", the CI "Source repositories" paragraph, the frozen-manifest paragraph (a cli frozen by its docs SHA with a comment) and the recovery paragraph (a cli docs head can fail a check)
-- [ ] 2.4 `task check` green, then commit `docs(site): record one docs rule for every released repository`
+- [x] 2.1 `AGENTS.md` Site versions: the docs rule names all five released repositories, and the floor and containment checks hold for each
+- [x] 2.2 `AGENTS.md` Reserved sections: a generated CLI reference is generated from the cli release the stamp names (`ref`), never from the docs tree
+- [x] 2.3 `README.md`: the line resolution table, the docs rule, "So a docs fix reaches the site", the CI "Source repositories" paragraph, the frozen-manifest paragraph (a cli frozen by its docs SHA with a comment) and the recovery paragraph (a cli docs head can fail a check)
+- [x] 2.4 `task check` green, then commit `docs(site): record one docs rule for every released repository`
 
 ## 3. Archive
 
