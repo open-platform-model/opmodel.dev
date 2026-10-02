@@ -15,8 +15,22 @@
        ref when that tree is the tag itself (docs "tag"), else the SHA.
        refText shows a SHA as seven hex characters. "Edit" goes where a fix to
        that tree lands: in a line version the branch the docs came from (main
-       or release/...), otherwise main. */ -}}
+       or release/...), otherwise main.
+       A page of the Enhancements section names its file in the enhancements
+       repository (repoPath) instead: viewURL at the commit the section was
+       built from (data/opm/build.json's sections.enhancements), when the
+       build names one, and no editURL, since an entry changes through its
+       own review, not a page edit. Its key is empty: its date is the entry's
+       updated date, not a git date. */ -}}
 {{- $out := dict -}}
+{{- if and (eq .Section "enhancements") .Params.repoPath -}}
+  {{- $sha := "" -}}
+  {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .sections -}}{{- with .enhancements -}}{{- $sha = .sha | default "" -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
+  {{- $base := printf "%s/enhancements" site.Params.opm.github -}}
+  {{- return dict "key" "" "repo" "enhancements" "path" .Params.repoPath "editURL" ""
+        "viewURL" (cond (ne $sha "") (printf "%s/blob/%s/%s" $base $sha .Params.repoPath) "")
+        "ref" $sha "refText" (cond (ne $sha "") (substr $sha 0 7) "") -}}
+{{- end -}}
 {{- with .File -}}
   {{- $fn := replace .Filename "\\" "/" -}}
   {{- $repo := "opmodel.dev" -}}

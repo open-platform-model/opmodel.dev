@@ -68,6 +68,35 @@ else
 fi
 [ -n "$VERSIONS" ] && [ -n "$DEFAULT" ] || fail "build-all: no versions to build"
 echo "build-all: versions $VERSIONS (default $DEFAULT)"
+# The enhancements section (site/enhancements/), unversioned: in manifest mode
+# the archive materialise.sh wrote for versions.tsv's "# section enhancements"
+# line, at the SHA it names; in explicit mode the enhancements/ beside the
+# default version's repositories (/src/enhancements, which run-in-image.sh
+# mounts; a fixture workspace's own), read in place, when it holds INDEX.md,
+# at the commit OPM_BUILD_REFS names for it. Otherwise there is no section.
+# gen-stamp.sh, gen-mounts.sh and check-pages.sh read the ENH_* values;
+# ENH_PATHS is materialise.sh's list of every path at that SHA.
+ENH_TREE=""; ENH_PATHS=""; ENH_REF=""; ENH_SHA=""; ENH_HOW=""
+if [ -n "${OPM_VERSIONS:-}" ] || [ ! -f .versions/versions.tsv ]; then
+  r=${VERSIONS%% *}; r=${r#*=}
+  if [ -f "$r/enhancements/INDEX.md" ]; then
+    ENH_TREE=$r/enhancements; ENH_REF=worktree; ENH_HOW=explicit
+    if [ "$r" = /src ]; then
+      for p in ${OPM_BUILD_REFS:-}; do case "$p" in enhancements=*) ENH_SHA=${p#*=} ;; esac; done
+      [ "$ENH_SHA" != none ] || ENH_SHA=""
+    fi
+  fi
+else
+  line=$(awk -F'\t' '$1 == "# section" && $2 == "enhancements"' .versions/versions.tsv)
+  if [ -n "$line" ]; then
+    ENH_TREE=$SITE_DIR/.versions/enhancements/tree; ENH_PATHS=$SITE_DIR/.versions/enhancements/paths.txt
+    ENH_REF=$(printf '%s' "$line" | cut -f3); ENH_SHA=$(printf '%s' "$line" | cut -f4); ENH_HOW=$(printf '%s' "$line" | cut -f5)
+    [ -f "$ENH_TREE/INDEX.md" ] || fail "build-all: versions.tsv names the enhancements section at $ENH_SHA, but $ENH_TREE holds no INDEX.md; run task versions:prepare"
+  fi
+fi
+export ENH_TREE ENH_PATHS ENH_REF ENH_SHA ENH_HOW
+if [ -n "$ENH_TREE" ]; then echo "build-all: enhancements section from $ENH_TREE (${ENH_SHA:-no commit}, $ENH_HOW)"
+else echo "build-all: no enhancements section"; fi
 
 step "drift guard: overridden theme files unchanged upstream"
 sh "$SCRIPTS/check-overrides.sh"
@@ -110,6 +139,15 @@ for pair in $VERSIONS; do
     --quiet
   printf '%s: pagefind %s pages, %s\n' "$v" "$(find "$PUBLIC/$v/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC/$v/pagefind" | cut -f1)"
 done
+# The Enhancements section has its own bundle, so the docs search never
+# returns a design (layouts/_partials/scripts/search.html picks it).
+if [ -n "$ENH_TREE" ]; then
+  [ -f "$PUBLIC/enhancements/index.html" ] || fail "ENHANCEMENTS FAIL: $PUBLIC/enhancements/index.html was not built"
+  pagefind --site "$PUBLIC/enhancements" --root-selector 'main#content > .content' \
+    --exclude-selectors '.hextra-page-context-menu, .hextra-code-copy-btn, .opm-enh-status, .opm-enh-meta' \
+    --quiet
+  printf 'enhancements: pagefind %s pages, %s\n' "$(find "$PUBLIC/enhancements/pagefind/fragment" -type f | wc -l | tr -d ' ')" "$(du -sh "$PUBLIC/enhancements/pagefind" | cut -f1)"
+fi
 
 step "page set, stray files, sidebar order, links"
 # shellcheck disable=SC2086
@@ -132,7 +170,23 @@ echo "dialect: no raw ':::' in $PUBLIC/"
 # holding "|", an indented or blank-line-split brief) shows up as &lt;!-- or
 # --&gt;, or, once the typographer has turned "--" into a dash, as &lt;!&ndash;.
 leak=$(find "$PUBLIC" \( -name '*.html' -o -name '*.txt' -o -name '*.md' -o -name '*.xml' -o -name '*.json' \) -exec grep -l -e '<!--' {} + || true)
-shown=$(find "$PUBLIC" -name '*.html' -exec grep -lE -e '&lt;!(--|&ndash;|&mdash;)' -e '(--|&ndash;|&mdash;)&gt;' {} + || true)
+# A closing --> inside <pre> or <code> is code (an arrow in an ASCII diagram,
+# a Mermaid edge shown as source), so that half ignores code; an opening <!--
+# counts everywhere, an indented brief rendered as a code block included.
+shown=$(find "$PUBLIC" -name '*.html' -exec grep -lE -e '&lt;!(--|&ndash;|&mdash;)' {} + || true)
+closing=$(find "$PUBLIC" -name '*.html' -exec grep -lE -e '(--|&ndash;|&mdash;)&gt;' {} + || true)
+for f in $closing; do
+  tr '\n' ' ' < "$f" | awk '{
+      s = $0; out = ""
+      while (match(s, /<(pre|code)[ >]/)) {
+        t = substr(s, RSTART + 1, RLENGTH - 2); out = out substr(s, 1, RSTART - 1); s = substr(s, RSTART)
+        e = index(s, "</" t ">"); if (e == 0) { s = ""; break }
+        s = substr(s, e + length(t) + 3)
+      }
+      print out s
+    }' | grep -qE '(--|&ndash;|&mdash;)&gt;' && shown="$shown
+$f"
+done
 [ -z "$leak$shown" ] || fail "COMMENT FAIL: a planning comment reached:
 $(printf '%s\n%s\n' "$leak" "$shown" | sed '/^$/d; s/^/  /')"
 echo "comments: no HTML comment in any published text, escaped or not"
@@ -171,9 +225,24 @@ cdn=$(find "$PUBLIC" \( -name '*.html' -o -name '*.js' -o -name '*.css' \) -exec
 $(echo "$cdn" | sed 's/^/  /')"
 echo "supply: every loaded URL is relative or under $BASE_URL; no CDN reference"
 
+# The Enhancements section's links to a path its repository does not hold
+# (layouts/enhancements/_markup/render-link.html links them to GitHub at the
+# commit built and marks them): listed, not failed, since the repository owns
+# the fix.
+if [ -n "$ENH_TREE" ]; then
+  unres=$(find "$PUBLIC/enhancements" -name '*.html' ! -path '*/pagefind/*' -exec grep -ohE 'data-opm-enh-unresolved="[^"]*"' {} + | sed 's/^data-opm-enh-unresolved="//; s/"$//' | sort -u || true)
+  if [ -n "$unres" ]; then
+    echo "enhancements: $(printf '%s\n' "$unres" | grep -c .) link(s) name no path in the enhancements repository at ${ENH_SHA:-its worktree}; they link to GitHub (fix them there):"
+    printf '%s\n' "$unres" | sed 's/^/  /'
+  else
+    echo "enhancements: every repository link resolves"
+  fi
+fi
+
 step "summary"
 for pair in $VERSIONS; do
   v=${pair%%=*}
   echo "$v: $(find "$PUBLIC/$v" -name index.html ! -path "$PUBLIC/$v/pagefind/*" | wc -l | tr -d ' ') pages"
 done
+[ -z "$ENH_TREE" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
 echo "build-all: OK in $(( $(date +%s) - t0 )) s -> $SITE_DIR/$PUBLIC ($(find "$PUBLIC" -type f | wc -l | tr -d ' ') files, $(du -sh "$PUBLIC" | cut -f1))"

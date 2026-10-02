@@ -5,13 +5,15 @@ Pagefind bundle). Then the same on every version that public/build-stamp.json
 lists (one in a normal build, two in the two-version build). check_sublines
 then checks what a result shows: the page's description as its page-level
 sub-line, excerpts on heading matches, and crumbs that start below the docs
-root."""
+root. Last, with the Enhancements section built, its own search: on a section
+page every result is a section page (and the docs search above never returns
+one, since its results stay in the version)."""
 
 import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import default_version, new_page, serve, versions
+from qa_common import default_version, enhancement_pages, new_page, serve, versions
 
 QUERY = "quickstart"
 EXPECT = "/docs/start/quickstart/"
@@ -77,7 +79,38 @@ def main():
         print(f"search: FAILED in {failures} version(s)")
         return 1
     print(f"search: OK in every version ({', '.join(v for v, _ in versions())})")
-    return check_sublines(version, base)
+    return check_sublines(version, base) or check_enhancements(base)
+
+
+ENH_QUERY = "decision"
+
+
+def check_enhancements(base):
+    """On the section page, ENH_QUERY finds results, and every one is a page
+    of the section (its own Pagefind bundle, /enhancements/pagefind/)."""
+    pages = enhancement_pages()
+    if not pages:
+        print("search enhancements: no section in this build, skipped")
+        return 0
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = new_page(browser, 1280, "light", "light")
+        page.goto(f"{base}{pages[0]}", wait_until="networkidle")
+        page.locator("[data-search-open]:visible").first.click()
+        page.locator("input.hextra-search-input").fill(ENH_QUERY)
+        page.wait_for_selector('#hextra-search-results a[role="option"]', timeout=10000)
+        page.wait_for_timeout(500)
+        hrefs = page.eval_on_selector_all(
+            "#hextra-search-results > li:not(.hextra-search-child) a",
+            "els => els.map(e => e.getAttribute('href'))",
+        )
+        browser.close()
+    outside = [h for h in hrefs if not h.startswith("/enhancements/")]
+    if not hrefs or outside:
+        print(f"search enhancements: FAILED, {len(hrefs)} result(s) for {ENH_QUERY!r}; outside the section: {outside}")
+        return 1
+    print(f"search enhancements: OK, {len(hrefs)} result(s) for {ENH_QUERY!r}, all under /enhancements/")
+    return 0
 
 
 # The palette's results as groups: each page result with its crumbs and the

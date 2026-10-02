@@ -28,3 +28,10 @@
   {{- range .Ancestors.Reverse -}}{{- if and (not .IsHome) (ne . $root) -}}{{ $crumbs = $crumbs | append (partial "utils/title" .) }}{{- end -}}{{- end -}}
   {{- with $crumbs }}<span hidden data-pagefind-meta="crumbs:{{ delimit . " / " }}"></span>{{ end -}}
 {{- end -}}
+{{- /* The Enhancements section (enhancements/_content.gotmpl): a status
+       banner on every page, which nobody can dismiss, so no reader takes a
+       design for a feature; on an entry and its documents, the entry's data
+       from config.yaml under it. Neither is indexed for search. */ -}}
+{{- if and (not .IsHome) (eq .Section "enhancements") -}}
+  {{- partial "opm/enh-status.html" . -}}
+{{- end -}}

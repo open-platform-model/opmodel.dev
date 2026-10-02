@@ -1,0 +1,11 @@
+{{- /* A mermaid fence in the Enhancements section renders as its source, a
+       plain code block, the way Hextra's render-codeblock.html (v0.13.0)
+       renders any fence. Hextra's own mermaid hook would load Mermaid at run
+       time from a CDN, which this site never does; outside this section that
+       hook still fails the network-less build. */ -}}
+<div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code">
+  {{- partial "components/codeblock" (dict "filename" "" "lang" "mermaid" "base_url" "" "content" .Inner "options" .Options) -}}
+  {{- if or (eq site.Params.highlight.copy.enable nil) (site.Params.highlight.copy.enable) -}}
+    {{- partialCached "components/codeblock-copy-button" (dict "filename" "") "" -}}
+  {{- end -}}
+</div>

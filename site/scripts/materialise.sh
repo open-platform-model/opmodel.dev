@@ -16,9 +16,21 @@
 #                           repository (a source = main version: the root's HEAD), and
 #                           opmodel.dev/site/content/<path> dated at this checkout's HEAD
 #                           (the site-owned pages, mounted once for every version)
-# and removes the directory of a vN.N version the manifest no longer lists. A
-# page that git cannot date (not committed yet) gets no row; gen-lastmod.sh
-# counts it as a miss.
+#   enhancements/tree/      when versions.tsv holds the "# section enhancements" line: a
+#                           git archive, at the SHA it names, of only the files the
+#                           section publishes (INDEX.md, GRAPH.md, and of every entry
+#                           NNNN/ and archive/NNNN/ but the 0000/ template its
+#                           config.yaml, README.md and seven numbered documents); not
+#                           experiments, research, schemas or the gitignored diagrams/
+#   enhancements/paths.txt  every file and directory of the repository at that SHA,
+#                           "blob\t<path>" or "tree\t<path>", one per line: the section's link hook maps a link to a file
+#                           it does not publish to GitHub at that SHA, and knows a path
+#                           that names nothing
+#   enhancements/.sha       the SHA archived; an archive already there is kept
+# and removes the directory of a vN.N version the manifest no longer lists (and
+# enhancements/ when the manifest names no section). A page that git cannot
+# date (not committed yet) gets no row; gen-lastmod.sh counts it as a miss.
+# The section's pages are dated from each entry's config.yaml, not from git.
 set -euf
 export LC_ALL=C
 SCRIPTS=$(cd "$(dirname "$0")" && pwd -P)
@@ -85,6 +97,26 @@ $(dates "$tree" "$root" "$sha" docs/site "$r/docs/site" "$v")"
 done <<EOF
 $versions
 EOF
+
+# The enhancements section.
+E=$V/enhancements
+esha=$(awk -F'\t' '$1 == "# section" && $2 == "enhancements" { print $4; exit }' "$TSV")
+if [ -z "$esha" ]; then
+  rm -rf "$E"
+elif [ -d "$E/tree" ] && [ -f "$E/paths.txt" ] && [ "$(cat "$E/.sha" 2>/dev/null || true)" = "$esha" ]; then
+  echo "materialise: enhancements at $esha unchanged"
+else
+  eroot=$(root_of enhancements)
+  [ -n "$eroot" ] || { echo "materialise: versions.tsv names the enhancements section, but there is no enhancements root" >&2; exit 1; }
+  rm -rf "$E"; mkdir -p "$E/tree"
+  git -C "$eroot" ls-tree -r -t "$esha" | awk -F'\t' '{ split($1, a, " "); print a[2] "\t" $2 }' > "$E/paths.txt"
+  files=$(cut -f2 "$E/paths.txt" | grep -E '^(INDEX\.md|GRAPH\.md|(archive/)?[0-9]{4}/(config\.yaml|README\.md|0[1-7]-[a-z0-9-]+\.md))$' | grep -vE '^(archive/)?0000/')
+  case "$files" in *" "*) echo "materialise: an enhancements path holds a space" >&2; exit 1 ;; esac
+  # shellcheck disable=SC2086 # one path per word
+  git -C "$eroot" archive "$esha" -- $files | tar -x -C "$E/tree"
+  printf '%s\n' "$esha" > "$E/.sha"
+  echo "materialise: enhancements at $esha: $(printf '%s\n' "$files" | grep -c .) files -> .versions/enhancements/tree"
+fi
 
 # Remove the directory of a version the manifest no longer lists (vN.N names
 # only; nothing outside site/.versions/ is touched).

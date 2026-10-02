@@ -1,6 +1,7 @@
 """Accessibility smoke test: axe-core (in the QA image) on key pages of the
 default version, light and dark (set through Hextra's 'color-theme' key), for
-the WCAG 2.1 A and AA rules. Any violation fails the run.
+the WCAG 2.1 A and AA rules, and the Enhancements section's pages
+(qa_common.enhancement_pages). Any violation fails the run.
 
 Two more checks, each its own function: the breadcrumb is a landmark that
 marks the current page and clips no crumb on a phone (check_breadcrumb), and
@@ -10,7 +11,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from qa_common import AXE, PUBLIC, SITE, default_version, new_page, serve
+from qa_common import AXE, PUBLIC, SITE, default_version, enhancement_pages, new_page, serve
 
 TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
 PAGES = [
@@ -27,11 +28,11 @@ def main():
     version = default_version()
     base = serve()
     failures = 0
+    urls = [f"/{version}{path}" for path in PAGES] + enhancement_pages()
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for theme in ("light", "dark"):
-            for path in PAGES:
-                url = f"/{version}{path}"
+            for url in urls:
                 page = new_page(browser, 1280, theme, theme)
                 page.goto(base + url, wait_until="networkidle")
                 page.add_script_tag(path=AXE)
@@ -52,7 +53,7 @@ def main():
     if failures:
         print(f"a11y: FAILED, {failures} violation(s)")
         return 1
-    print(f"a11y: OK, {len(PAGES)} pages x 2 themes, WCAG 2.1 A and AA")
+    print(f"a11y: OK, {len(urls)} pages x 2 themes, WCAG 2.1 A and AA")
     return 0
 
 

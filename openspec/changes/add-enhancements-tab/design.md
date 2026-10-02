@@ -2,7 +2,7 @@
 
 The site is one Hugo 0.167 build over Hextra v0.13.0, run in Docker with `--network none`. Sources are the six repositories' `docs/site/` trees, mounted per version from `site/.versions/<v>/` (a `git archive` of the SHAs `resolve-versions.sh` picks from `site/versions.conf`), or read in place in explicit mode (`OPM_VERSIONS`). The enhancements repository (27 publishable entries, 216 core pages, Mermaid in 36 fences, generated INDEX.md and GRAPH.md) is not a source today. `research-notes.md` in this change holds the research and the spike report in full; `.claude/worktrees/enhancements-tab-spike` holds the spike's code.
 
-Files under `site/` this change touches are listed in proposal.md's Impact.
+Files under `site/` this change touches are listed in proposal.md's Impact. Section 1 also touched `site/scripts/gen-stamp.sh` (the stamp's `sections` key), `site/assets/js/opm-pagefind.js` and the override copies `layouts/_partials/scripts/search.html`, `sidebar.html` and `components/last-updated.html`, the site's own `layouts/sitemap.xml`, plus `opm/source.html`, `opm/build-stamp.html`, `opm/docs-main.html`, `opm/version-switch.html` and `custom/head-end.html`; no upstream pin in `site/overrides.sha256` changed.
 
 ## Goals / Non-Goals
 
@@ -58,6 +58,18 @@ The dialect lint accepts `/enhancements/<id>/` (and `#fragment`); the contract a
 **Explored**: check-front-matter (fires: adapter pages report the adapter as their file), check 10 (fires on `-->` in code blocks and Mermaid edges), the fixture suite (43 pass, 11 fail: the tab's link has no target without the source), llms/sitemap/stub/edit-link/search (leak by default).
 **Decision**: fix each in section 1 with a fixture, never by weakening a check outside the section.
 **Rationale**: the built site is the contract; a check that stops covering the docs is a regression.
+
+### How does the tab exist only with the section?
+**Context**: the menu lives in `config/_default/hugo.toml`; a menu entry in the generated `config/<env>/hugo.toml` replaced the whole `menus.main` (section 1 build: only Enhancements was left).
+**Explored**: Hugo's config merge (it cannot merge slices across config directories), a front-matter menu on the section page (absent from every non-default version), a navbar override.
+**Decision**: `gen-mounts.sh` writes the Enhancements entry together with a verbatim copy of `_default`'s `[menus]` block, only when the section is built; `_default` stays the one place the other entries are written.
+**Rationale**: no theme override, the tab shows in every version (checked by the two-version test), and a build without the section shows no dangling tab.
+
+### What do repository links that name nothing do?
+**Context**: ten links on published pages name no path at the built SHA today (six `../../core/*.cue` links in archive/0001, `../INDEX.md` and `../GRAPH.md` in archive/0015 and 0016); the enhancements link fix is in flight there.
+**Explored**: failing the build (every run red until enhancements merges), rendering them unlinked (spike).
+**Decision**: the section's link hook links them to GitHub at the built SHA, marks them, and `build-all.sh` lists them after the build without failing. A link that climbs out of the repository, a broken `/docs/` link and a shortcode delimiter still fail.
+**Rationale**: the enhancements repository owns the fix and its CI is the gate for it; once that CI lands, the listing can become a failure here.
 
 ## Risks / Trade-offs
 

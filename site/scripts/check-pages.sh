@@ -18,6 +18,14 @@
 #          _index.md, a swallowed page);
 #   stray  fails on a file under public/<version>/ that is not a known output
 #          type, or a .md that is not a page's Markdown output;
+#   enhancements  with ENH_TREE set (build-all.sh: the build has the
+#          Enhancements section), Q2 and stray for public/enhancements/, which
+#          belongs to no version: the section page, the graph when GRAPH.md
+#          exists, and per entry (NNNN/ and archive/NNNN/ holding config.yaml,
+#          but the 0000 template) /enhancements/NNNN/ and its seven documents;
+#          besides each page's index.html and index.md (its Markdown output)
+#          only the section's Pagefind bundle. Without ENH_TREE,
+#          public/enhancements/ must not exist;
 #   nav    writes SITE_DIR/.check/<version>/nav-order.txt (CHECK_DIR, default
 #          .check): the sidebar's links on the version's docs home, in
 #          document order, as site-root paths (BASE_PATH stripped), so the
@@ -120,6 +128,42 @@ for pair in "$@"; do
 done
 
 if [ "$mode" = post ]; then
+  E=$PUBLIC/enhancements
+  if [ -n "${ENH_TREE:-}" ]; then
+    {
+      echo /enhancements/
+      if [ -f "$ENH_TREE/GRAPH.md" ]; then echo /enhancements/graph/; fi
+      for c in "$ENH_TREE"/[0-9][0-9][0-9][0-9]/config.yaml "$ENH_TREE"/archive/[0-9][0-9][0-9][0-9]/config.yaml; do
+        [ -f "$c" ] || continue
+        id=${c%/config.yaml}; id=${id##*/}
+        [ "$id" != 0000 ] || continue
+        echo "/enhancements/$id/"
+        for d in problem design decisions graduation risks operational questions; do echo "/enhancements/$id/$d/"; done
+      done
+    } | sort > "$tmp/enh.want"
+    if [ -d "$E" ]; then
+      (cd "$PUBLIC" && find enhancements -type f -name index.html ! -path 'enhancements/pagefind/*') | sed 's|^|/|; s|index\.html$||' | sort > "$tmp/enh.have"
+    else
+      : > "$tmp/enh.have"
+    fi
+    missing=$(comm -23 "$tmp/enh.want" "$tmp/enh.have")
+    extra=$(comm -13 "$tmp/enh.want" "$tmp/enh.have")
+    if [ -n "$missing" ]; then rc=1; echo "Q2 FAIL enhancements: no page built for:"; echo "$missing" | sed 's/^/  /'; fi
+    if [ -n "$extra" ]; then rc=1; echo "Q2 FAIL enhancements: unexpected pages:"; echo "$extra" | sed 's/^/  /'; fi
+    stray=""
+    [ ! -d "$E" ] || stray=$( (cd "$PUBLIC" && find enhancements -type f ! -path 'enhancements/pagefind/*') | sort | while IFS= read -r f; do
+      case "$f" in
+        */index.html) ;;
+        */index.md) grep -qxF "/${f%index.md}" "$tmp/enh.have" || echo "$f" ;;
+        *) echo "$f" ;;
+      esac
+    done)
+    if [ -n "$stray" ]; then rc=1; echo "STRAY FAIL enhancements: files that are no known output:"; echo "$stray" | sed 's/^/  /'; fi
+    echo "enhancements: $(wc -l < "$tmp/enh.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/enh.have" | tr -d ' ') built"
+  elif [ -e "$E" ]; then
+    rc=1; echo "Q2 FAIL enhancements: $E exists, but the build has no enhancements section"
+  fi
+
   # Each extractor prints "<file>\t<kind>\t<url>": kind "root" is a
   # root-relative URL as written; "site" a relative CSS url() resolved to a
   # site-root path; "up" a relative one that climbs above public/.

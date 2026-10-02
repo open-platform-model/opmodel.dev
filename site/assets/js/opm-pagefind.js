@@ -4,12 +4,14 @@
 //   preload(): Promise<void>
 //   search(query): Promise<[{id, route, title, breadcrumbs[], matches: [{id, route, title, content}]}]>
 // so the palette renders Pagefind results with Hextra's own markup and
-// styles. The bundle is this version's (/<version>/pagefind/), so results
-// never leave the version being read. Loaded on first open of the palette.
-// Result URLs start at the version's home, passed as baseUrl so they are a
+// styles. The bundle is this version's (/<version>/pagefind/), or on a page of
+// the Enhancements section the section's (/enhancements/pagefind/), so results
+// never leave the version or the section being read. Loaded on first open of
+// the palette. Result URLs start at that root (base, passed in by
+// layouts/_partials/scripts/search.html), given as baseUrl so they are a
 // build output under any base path, not Pagefind's guess from the bundle URL.
 (function () {
-  const bundlePath = '{{ .Site.Home.RelPermalink }}pagefind/';
+  const bundlePath = '{{ .base }}pagefind/';
   const maxPages = 10;
   const maxSubResults = 3;
   let loading = null;
@@ -18,7 +20,7 @@
     if (!loading) {
       loading = import(bundlePath + 'pagefind.js')
         .then(async (pagefind) => {
-          await pagefind.options({ baseUrl: '{{ .Site.Home.RelPermalink }}', excerptLength: 20 });
+          await pagefind.options({ baseUrl: '{{ .base }}', excerptLength: 20 });
           pagefind.init();
           return pagefind;
         })

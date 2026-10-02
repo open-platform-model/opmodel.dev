@@ -12,8 +12,21 @@
        come from a branch head; a tree read at its tag is that tag, so the text
        is exact. A source = main version, and a fixture build, shows the commit
        of each repo the build read, resolved on the host ("none" for a root
-       that is not its own git checkout). Called from the Hextra hook
-       custom/footer.html with the page. */ -}}
+       that is not its own git checkout). A page of the Enhancements section,
+       which belongs to no version, names instead the enhancements commit it
+       was built from (data/opm/build.json's sections.enhancements). Called
+       from the Hextra hook custom/footer.html with the page. */ -}}
+{{- if eq .Section "enhancements" -}}
+  {{- $s := dict -}}
+  {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .sections -}}{{- with .enhancements -}}{{- $s = . -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
+<div class="opm-build-stamp" data-pagefind-ignore="all">
+  <span>Design record</span>
+  <span class="opm-build-refs">from <span class="opm-build-ref">enhancements
+  {{- with $s.sha }} <a href="{{ printf "%s/enhancements/commit/%s" site.Params.opm.github . }}" title="{{ replaceRE `^([a-z]+):` "$1: " ($s.how | default "") }}"><code>{{ substr . 0 7 }}</code></a>
+  {{- else }} <code>{{ $s.ref | default "none" }}</code>
+  {{- end }}</span></span>
+</div>
+{{- else -}}
 {{- $label := site.Version.Name -}}
 {{- range site.Params.opm.versions -}}{{- if eq .name site.Version.Name -}}{{- $label = .label | default .name -}}{{- end -}}{{- end -}}
 {{- $sources := dict -}}
@@ -59,3 +72,4 @@
   {{- end }}
   {{- end }}
 </div>
+{{- end -}}

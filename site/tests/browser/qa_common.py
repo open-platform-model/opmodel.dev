@@ -48,6 +48,32 @@ def versions():
     return listed or [(default_version(), True)]
 
 
+def enhancement_pages():
+    """The Enhancements section's pages the checks open, when the build has
+    the section (public/enhancements/): the section page, the graph, a draft
+    entry, its decisions document and an archived (delivered) entry, chosen
+    by the status banner each page carries. [] without the section."""
+    root = PUBLIC / "enhancements"
+    if not (root / "index.html").is_file():
+        return []
+    pages = ["/enhancements/"]
+    if (root / "graph" / "index.html").is_file():
+        pages.append("/enhancements/graph/")
+    entries = sorted(p for p in root.iterdir() if p.is_dir() and re.fullmatch(r"[0-9]{4}", p.name))
+
+    def status(entry):
+        m = re.search(r'data-status="?([a-z]+)', (entry / "index.html").read_text(errors="ignore"))
+        return m.group(1) if m else ""
+
+    draft = next((e for e in entries if status(e) == "draft"), None)
+    closed = next((e for e in entries if status(e) == "delivered"), None)
+    if draft:
+        pages += [f"/enhancements/{draft.name}/", f"/enhancements/{draft.name}/decisions/"]
+    if closed:
+        pages.append(f"/enhancements/{closed.name}/")
+    return pages
+
+
 def new_page(browser, width, site_theme, os_scheme, phone=False):
     """A page with the site's theme switch set (Hextra's 'color-theme' key) and
     the OS colour scheme set separately, so the two can disagree."""
