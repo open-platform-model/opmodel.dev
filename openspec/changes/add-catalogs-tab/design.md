@@ -300,16 +300,15 @@ Browser: `qa_common.catalog_pages()`; `shots.py` adds a catalog landing, a membe
 
 The Hugo mechanisms are the ones the Enhancements section proved on 0.167 (adapter `url`, default-only mounts, `.Publish` stubs, a section-scoped Pagefind bundle, section markup hooks). The unverified assumption is the real bundles' shape, which no spike here can check before docs-kit exists; it is held by the fixtures following `docs-kit C3`/`C8` and verified by section 5 against the real bundles.
 
-## Contract gaps (with docs-kit `build-opm-docs-phase-1`, read at `origin/plan/phase-1` 8e1eafa)
+## Contract gaps (with docs-kit `build-opm-docs-phase-1`, read at `origin/plan/phase-1` 83f08d0)
 
 Accepted into the contract on 2026-10-02 (supervisor): the image pin (C12), the no-double-publish transition (orchestration item 12), repeatable `--local <project>@<segment>=<dir>` with no network for an all-local pull (C7), `root` in every lock entry (C7), the shared conformance fixture set and the bare `/catalogs/<name>/` link (C11), the generated `## Catalog members` block on every landing (C8), no redirects from the old Reference URLs, and `publish.yml` pinned by tag, so the signer is the SAN `.../publish.yml@refs/tags/v*` (C9) with no SHA allowlist and no site commit per docs-kit release. The k8s bundle is gone, and catalog_opm section 2 waits for the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `catalog-members/` links with it. The cli fix now names both links.
 
-Left in the docs-kit text, for docs-kit to tidy (none blocks this change):
+Left in the docs-kit text, for docs-kit to tidy (none blocks this change). The tag-pinning decision itself is recorded in C5 at 83f08d0 and relies on docs-kit's tag rulesets being in place before its first release.
 
 - **G1. Lock check placement.** Orchestration item 3 still puts the lock/config check in `versions:prepare` on the host; here it runs in the image (`sections.sh`) for build and serve, so the host needs no `sha256sum` and serve is covered too.
 - **G2. Mounts.** Item 5 still says one mount per lock entry at `assets/catalogs/<project>/<segment>`; here it is one filtered `assets/bundles` mount (Research & Decisions).
 - **G3. Item 12's first sentence** ("Reference loses them when catalog_opm section 2 lands") contradicts its next sentence, and step 5 still describes the "exist twice" window; with this change Reference loses them at this merge.
-- **G4. C5's "Known conflict" note** still reads as unresolved at 8e1eafa; the owner's tag decision is to land in a later commit there.
 
 ## Open questions
 
