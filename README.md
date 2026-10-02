@@ -1,15 +1,14 @@
 # opmodel.dev
 
-Documentation site for the Open Platform Model, built with [Hugo](https://gohugo.io/) and the [Hextra](https://github.com/imfing/hextra) theme (v0.13.0, neutral skin), plus `docgen`, a Go tool that generates reference pages from the CUE schema and the CLI's commands.
+Documentation site for the Open Platform Model, built with [Hugo](https://gohugo.io/) and the [Hextra](https://github.com/imfing/hextra) theme (v0.13.0, neutral skin).
 
 ## Overview
 
 This repository contains:
 
 - **`site/`** - the Hugo site: configuration, the site-owned pages (the landing and the section overviews), layouts and theme overrides, styles, the vendored theme, build scripts, the build image and the tests.
-- **`cmd/docgen/`** and **`internal/`** - the `docgen` tool: CUE schema extraction and cobra doc generation.
 
-Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them. The enhancements repository, OPM's design record, is built in the same run as one unversioned section at `/enhancements/` (see "The Enhancements section" under Site versions).
+Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them. Reference pages generated from source (the CLI's commands, the operator's resources, the catalog's members, core's definitions) are generated and committed in the repository that owns the source; the site builds them like any other page. The enhancements repository, OPM's design record, is built in the same run as one unversioned section at `/enhancements/` (see "The Enhancements section" under Site versions).
 
 ## Architecture
 
@@ -23,22 +22,18 @@ site/content/             (landing and section overviews)
         |
         v
   site/public/   /v1.0/...   /latest/ -> /v1.0/   / -> /latest/   /enhancements/...
-
-docgen: CUE schema -> site/data/schema/*.json; cobra -> CLI reference Markdown (planned)
 ```
 
 Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2 and git, each pinned; a build runs with no network. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
 
 There is one version, `v1.0` (beta), built from its release lines: the newest cli `v1.0` tag and exactly what it pins, the newest `opm-v4` catalog tag and opm's `main`, resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
 
-See [RFC-0006](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md) for the docgen design.
-
 ## Prerequisites
 
 - Docker
 - [Task](https://taskfile.dev/)
 - git
-- Go 1.25+ (see `go.mod`) and the OpenSpec CLI, for `task check`
+- The OpenSpec CLI, for `task check`
 - The six source repositories and enhancements checked out next to this one (the default), or pointed at with the variables below
 
 ## Quick Start
@@ -76,8 +71,6 @@ OPM_VERSIONS=v1.0=/src OPM_SRC_CLI=/path/to/cli-worktree task serve
 
 ```text
 opmodel.dev/
-├── cmd/docgen/                 # docgen CLI (schema, cli, all)
-├── internal/                   # cuedoc (CUE extraction), cobradoc (cobra docs)
 ├── site/
 │   ├── Dockerfile              # Build image: Hugo, Pagefind, git
 │   ├── NOTICE                  # Third-party licences
@@ -121,8 +114,6 @@ task versions:check    # Print every version's resolved refs, SHAs and rules; wr
 task versions:fetch    # Fetch every tag and branch of the six roots and enhancements from origin; never moves or deletes a tag
 task versions:test     # Resolver tests and a two-version build into site/.check/versions-test/
 task clean             # Remove generated files
-task build:docgen      # Build the docgen tool
-task generate          # Generate the schema JSON and the CLI reference
 ```
 
 ## CI
@@ -142,7 +133,7 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 - **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
 - **Summary and artifacts.** The job summary lists every version's resolved refs from `site/public/build-stamp.json` (repository, ref, where its docs came from, the commit and the rule that chose it) and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days, and `build-manifest` holds `frozen.conf`, the build as an anchored manifest (Site versions), for 90 days. `build-manifest` is uploaded on every run but pull requests: a pull request run builds GitHub's temporary merge commit (`refs/pull/<n>/merge`), which would be the commit its header names and which goes away, so only runs of a real branch, `main` above all, can be rebuilt from their `frozen.conf`. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
 - **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same eight checkouts, since that build reads every source repository and enhancements), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
-- **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, Go comes from `go.mod`, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
+- **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
 - **Concurrency.** It is set per job, one group per job (`<workflow>-<ref>-<job>`), and a newer run cancels the older run's job. It is never set at workflow level, which would cancel a deploy job with the rest of a run; and two jobs never share one cancelling group, because they would cancel each other. A deploy job uses its own group, without `cancel-in-progress`. The `opmodel.dev` working directory is a per-job `defaults` entry for the same reason, never workflow-level: a deploy job runs a step before its checkout.
 - **Source repositories.** A line version resolves its release lines on every build, so the nightly run of `main` publishes what moved upstream within about a day, and `gh workflow run Site --ref main` publishes it at once; no source repository dispatches a run. What reaches the published build: new releases (a cli release with the library, core and opm-operator releases it pins, and every `opm-v4.*` catalog tag), opm's `main`, and the `main` or release-branch head of cli, library, opm-operator, core and catalog_opm while their docs rule reads it. The `sources-main` job keeps the early warning for all six: it builds every repository's `main` in explicit mode (`OPM_VERSIONS=v1.0=/src task build`: the source lint, every build check and the link crawl), uploads nothing, and `pages-deploy` does not wait for it. A source page that breaks the lint or a link on a branch head the line reads (today `main` of all six) also fails `build`, turning every run red and holding the deploy until it is fixed upstream or the version is recovered (Site versions, "When the resolution fails"); `sources-main` alone catches a `main` the line does not read. A new release that fails resolution or the build turns every run red and holds the deploy until it is recovered (Site versions, "When the resolution fails"). GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
 - **Pull request titles.** The `PR Title` workflow (`.github/workflows/pr-title.yml`) fails a pull request whose title is not a Conventional Commit with this repository's types (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`; the "Commit Standards" in `openspec/config.yaml`) and a lower-case subject. The squash merge keeps a single commit's subject, but a pull request with several commits, as every OpenSpec change has, lands on `main` under its title. The workflow runs on `pull_request_target`, which reads the workflow from `main`, so a change to it first applies to the pull request after it merges.
@@ -288,11 +279,11 @@ The content adapter `site/enhancements/_content.gotmpl` is mounted into the defa
 
 - [x] Hugo + Hextra site, built and served in Docker with no network
 - [x] Pages assembled from six source repositories, in one page dialect, with a source lint
-- [x] Build checks: drift guard, lint, front matter, links, page set, stray files, reserved sections, planning comments, supply chain, redirects, git dates
+- [x] Build checks: drift guard, lint, front matter, links, page set, stray files, placeholders that yield to source pages, planning comments, supply chain, redirects, git dates
 - [x] Per-version Pagefind search in Hextra's palette; `/latest/` and root redirects
 - [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
 - [x] All seven figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
-- [ ] `docgen schema` and `docgen cli` implementations, and pages generated from their output
+- [ ] Generated reference pages, committed in each owning repository (cli, opm-operator, catalog_opm, core)
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
 - [x] `v1.0` follows its release lines (`cli-line`, `catalog-line`), with every resolved SHA recorded and a frozen manifest per build
 - [ ] CI and deployment

@@ -8,17 +8,10 @@ Documentation site implementation status and roadmap.
 
 ### Repository & Structure
 - [x] Repository created at `open-platform-model/opmodel.dev`
-- [x] Go module initialized (`go.mod`)
 - [x] `.gitignore` configured for build output and generated files
 - [x] `README.md` with architecture overview
 - [x] `AGENTS.md` with standards and patterns
 - [x] `Taskfile.yml` with build automation
-
-### Documentation Generator Scaffold
-- [x] `cmd/docgen/main.go` - CLI with `schema`, `cli`, `all` subcommands (stubs)
-- [x] `internal/cuedoc/extractor.go` - Package stub with types defined
-- [x] `internal/cobradoc/generator.go` - Package stub
-- [x] Cobra dependency added (`github.com/spf13/cobra`)
 
 ### Hugo Site
 - [x] Hugo + Hextra v0.13.0 (vendored, neutral skin); site-owned pages in `site/content/`, the rest assembled from six source repos' `docs/site/`
@@ -29,64 +22,17 @@ Documentation site implementation status and roadmap.
 
 ## 🚧 Phase 1: Core Pipeline (MVP)
 
-**Goal**: Generate basic reference docs from CUE catalog and CLI commands.
+**Goal**: Publish reference generated from source, beside the authored pages.
 
-### 1.1 - CUE Schema Extraction
+### 1.1 - Generated reference (in the owning repositories)
 
-#### `internal/cuedoc` Implementation
-- [ ] Implement `Extract()` function
-  - [ ] Load CUE modules using `load.Instances()`
-  - [ ] Walk definitions with `Value.Fields(cue.Definitions(true))`
-  - [ ] Extract metadata:
-    - [ ] Definition name, kind, FQN
-    - [ ] Doc comments via `Value.Doc()`
-    - [ ] Field iteration with `Value.Fields(cue.Optional(true))`
-    - [ ] Field types via `Value.IncompleteKind()`
-    - [ ] Constraints via `Value.Expr()`
-    - [ ] Defaults via `Value.Default()`
-    - [ ] Required vs optional via `Selector.ConstraintType()`
-  - [ ] Handle cross-references:
-    - [ ] Trait `appliesTo` references
-    - [ ] Blueprint composition references
-  - [ ] Output JSON per module to `site/data/schema/`
+Since 2026-10-02 the site generates nothing: each repository generates its reference pages from its own source and commits them under `docs/site/reference/`, with a staleness check there. The removed `docgen` tool read the retired v0 catalog.
 
-#### Testing
-- [ ] Unit tests for CUE value extraction
-- [ ] Test fixtures with sample CUE definitions
-- [ ] Integration test with catalog `core/` module
-
-#### Dependencies
-- [ ] Add `cuelang.org/go` dependency
-- [ ] Add `cuelang.org/go/cue/load` dependency
-- [ ] Add `cuelang.org/go/cue/ast` for doc comments
-
-### 1.2 - CLI Documentation Generation
-
-#### `internal/cobradoc` Implementation
-- [ ] Implement `Generate()` function
-  - [ ] Import CLI root command as dependency
-    - [ ] Add `github.com/open-platform-model/cli` to `go.mod`
-    - [ ] Import `github.com/open-platform-model/cli/cmd/opm` package
-  - [ ] Create Hugo front matter prepender function (title, description, type, weight)
-  - [ ] Create link handler for cross-references
-  - [ ] Call `cobra/doc.GenMarkdownTreeCustom()`
-  - [ ] Output to `site/.gen/<version>/docs/reference/cli/` (mounted per version); today `task generate:cli` still writes to `site/content/docs/reference/cli/`
-  - [ ] Decide how the generator finds the cli release in an anchored version frozen from a line, where `cli` is the docs SHA (read the `; cli <tag>` comment, or freeze a separate key); open question from build-docs-from-branch-head
-
-#### Testing
-- [ ] Unit test for front matter generation
-- [ ] Integration test with CLI root command
-
-#### Dependencies
-- [ ] Add `github.com/spf13/cobra/doc` dependency
-- [ ] Add `github.com/open-platform-model/cli` as dependency
-
-### 1.3 - Hugo Content Adapter for Schema JSON
-
-- [ ] Write a Hugo content adapter (`_content.gotmpl`) that turns `site/data/schema/*.json` into definition pages
-- [ ] Include the generated pages in each version's page-set check (`site/scripts/check-pages.sh`)
-- [ ] Verify pages are created correctly
-- [ ] Add error handling for missing data files
+- [ ] cli: every `opm` command and flag, at `/docs/reference/cli/`
+- [ ] opm-operator: the four operator resources, at `/docs/reference/operator-resources/`
+- [ ] catalog_opm: one page per abstraction member, and the raw Kubernetes table
+- [ ] core: the definitions, at `/docs/reference/definitions/`
+- [ ] Delete the site's `placeholder: true` pages once every version has its source page
 
 ### 1.4 - Theme Selection & Integration
 
@@ -94,9 +40,6 @@ Documentation site implementation status and roadmap.
 
 ### 1.5 - Local Build Verification
 
-- [ ] `task build:docgen` succeeds
-- [ ] `task generate:schema` produces JSON files in `site/data/schema/`
-- [ ] `task generate:cli` produces markdown files in `site/content/docs/reference/cli/` (moving to `site/.gen/<version>/` with the generated-reference change)
 - [x] `task build` produces the complete site in `site/public/`
 - [x] Manual verification: `task preview`, browse http://127.0.0.1:1313/
 
@@ -104,49 +47,7 @@ Documentation site implementation status and roadmap.
 
 ## 📦 Phase 2: Full Coverage
 
-**Goal**: Process all CUE modules, add rich rendering, write guides.
-
-### 2.1 - Process All CUE Modules
-
-- [ ] Extend `cuedoc` to handle module dependency order
-- [ ] Process all 9 catalog modules:
-  - [ ] `core` (v0.1.21)
-  - [ ] `schemas` (v0.1.5)
-  - [ ] `schemas_kubernetes` (v0.0.2)
-  - [ ] `resources` (v0.2.15)
-  - [ ] `policies` (v0.1.19)
-  - [ ] `traits` (v0.1.27)
-  - [ ] `blueprints` (v0.1.26)
-  - [ ] `providers` (v0.1.36)
-  - [ ] `examples` (v0.1.26)
-- [ ] Resolve cross-references between modules
-- [ ] Generate module dependency graph visualization
-
-### 2.2 - Definition Components
-
-Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
-
-- [ ] `def-fields.html` - Definition fields table
-  - [ ] Render field name, type, constraint, required/optional, default
-  - [ ] Type badge styling (string, int, struct, etc.)
-  - [ ] Constraint rendering (disjunctions, bounds)
-- [ ] `def-ref.html` - Cross-reference links
-  - [ ] Link to related definitions (FQN resolution)
-  - [ ] Hover preview with description
-- [ ] `cue-source.html` - CUE source view
-  - [ ] Link to catalog repository file
-  - [ ] Optional inline source display with syntax highlighting
-
-### 2.3 - Enhanced Content Pages
-
-- [ ] Definition reference pages:
-  - [ ] Use shortcodes for rich rendering
-  - [ ] Add "Used By" section (reverse references)
-  - [ ] Add examples from catalog
-- [ ] CLI reference pages:
-  - [ ] Add usage examples
-  - [ ] Add "See Also" links to related commands
-  - [ ] Add common workflows
+**Goal**: Write guides.
 
 ### 2.4 - Hand-Written Content
 
@@ -190,12 +91,7 @@ Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
   - [ ] Trigger on workflow_dispatch (manual)
   - [ ] Steps:
     - [ ] Checkout opmodel.dev repo
-    - [ ] Checkout catalog repo (submodule or separate checkout)
-    - [ ] Set up Go
     - [ ] Build the site image (`task image`)
-    - [ ] Build docgen tool
-    - [ ] Generate schema docs
-    - [ ] Generate CLI docs
     - [ ] Build the site (`task build`)
     - [ ] Upload artifact (`site/public/`)
 
@@ -220,26 +116,6 @@ Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
 - [ ] Add custom domain `opmodel.dev`
 
 **Decision**: TBD based on infrastructure preferences.
-
-### 3.3 - Catalog Data Fetching Strategy
-
-**Current**: Manual `../catalog` sibling directory.
-
-**Production Options**:
-
-- [ ] **Git Submodule**
-  - [ ] Add catalog as submodule
-  - [ ] Update CI to initialize submodules
-  - [ ] Pin to specific catalog version/tag
-- [ ] **Clone in CI**
-  - [ ] Clone catalog at pinned tag/commit
-  - [ ] Pass catalog path to docgen
-- [ ] **OCI Registry**
-  - [ ] Pull published CUE modules from registry
-  - [ ] Requires catalog publishing pipeline
-  - [ ] Highest fidelity but most complex
-
-**Decision**: Start with **Git Submodule** for simplicity.
 
 ### 3.4 - Versioning
 
@@ -267,8 +143,6 @@ Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
 - [ ] Blog for announcements/updates
 
 ### Tooling
-- [ ] `docgen validate` - Validate docs coverage
-- [ ] `docgen diff` - Show doc changes between catalog versions
 - [x] Link checker (internal links fail the build; external links are not checked)
 - [x] Broken reference detection (the link render hook fails the build on a missing page)
 
@@ -299,17 +173,12 @@ Create Hugo partials and shortcodes in `site/layouts/` (`_partials/opm/`):
 - **Phase 3 (CI/CD)**: ⏳ 0% complete
 
 **Next Immediate Steps**:
-1. Implement `internal/cuedoc` CUE extraction (Phase 1.1)
-2. Hugo content adapter for the schema JSON (Phase 1.3)
-3. Test with `core` module only
+1. Generated reference in the owning repositories (Phase 1.1)
 
 ---
 
 ## 📚 References
 
-- [RFC-0006: Documentation Generation](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md)
-- [CUE Go API - Walking Schemas](https://cuelang.org/docs/howto/walk-schemas-using-go-api/)
 - [Hugo content adapters](https://gohugo.io/content-management/content-adapters/)
-- [cobra/doc package](https://pkg.go.dev/github.com/spf13/cobra/doc)
 - [Hugo](https://gohugo.io/)
 - [Hextra](https://github.com/imfing/hextra)

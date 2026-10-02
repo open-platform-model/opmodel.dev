@@ -158,9 +158,9 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 ### I1b `describe-hugo-site` (workspace root, after A merges)
 
 1. **`AGENTS.md`, the `opmodel.dev/` row of the repo table** (near line 190). It now says:
-   - "Public docs site (Hugo + Hextra v0.13.0, neutral skin; built and served in Docker) plus Go `docgen`";
+   - "Public docs site (Hugo + Hextra v0.13.0, neutral skin; built and served in Docker)";
    - "Read first": `AGENTS.md`, `CONSTITUTION.md`, `openspec/config.yaml`;
-   - Commands: `task generate` (kept; docgen stays), `task serve` (http://127.0.0.1:1313/), `task build`, `task ci`, `task check`;
+   - Commands: `task serve` (http://127.0.0.1:1313/), `task build`, `task ci`, `task check`;
    - a sentence like the catalog_opm row's: "Site work goes through OpenSpec (`docs-site-change` schema, no specs artifact)."
 2. **Section.** One. Commit `docs(workspace): describe opmodel.dev as the hugo site`.
 3. **Touches.** `AGENTS.md`.
@@ -469,7 +469,7 @@ A may refine names only by reporting them under `deviations` and getting the sup
   - `build-stamp.json`, holding the source SHAs.
 - `site/.check/<version>/nav-order.txt`: the sidebar link order, one URL per line.
 - `site/.shots/`.
-- Gitignored generated inputs: `site/config/{production,development}/module.toml`, `site/data/opm/{lastmod,build}.json`, `site/.gen/<v>/` (reserved for the generated reference) and `site/.versions/<v>/` (B).
+- Gitignored generated inputs: `site/config/{production,development}/module.toml`, `site/data/opm/{lastmod,build}.json`, `site/.gen/<v>/` and `site/.versions/<v>/` (B).
 - The build summary prints the page count per version and the total file count.
 
 **Versions.**
@@ -512,7 +512,7 @@ A may refine names only by reporting them under `deviations` and getting the sup
 5. A1: two sources publishing one URL.
 6. Q2: an expected page is missing, or an unexpected page appears.
 7. Stray output files.
-8. Reserved prefixes: no source page under `docs/reference/cli/` or `docs/reference/definitions/`.
+8. Placeholders: a site page with `placeholder: true` yields to a source page at its URL (since 2026-10-02; it replaced the reserved-prefix check).
 9. A raw `:::` in the output.
 10. A planning comment in any published text output (`*.html`, `*.txt` such as `llms.txt`, `*.md`, `*.xml`, `*.json`).
 11. Supply chain: no third-party or CDN URL in the output.

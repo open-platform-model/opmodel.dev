@@ -93,7 +93,7 @@ can reword them.
 
 ## Purpose
 
-Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site on the Hextra theme (v0.13.0, neutral skin), built, served and tested only in Docker, plus a custom Go tool (`docgen`) that generates reference docs from CUE definitions (in `core/`, `catalog/`) and CLI commands (in `cli/`). Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-operator), each in its `docs/site/`; the build assembles them. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews).
+Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site on the Hextra theme (v0.13.0, neutral skin), built, served and tested only in Docker. Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-operator), each in its `docs/site/`; the build assembles them. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews).
 
 ## Repository Rules
 
@@ -103,7 +103,6 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 - **Vendored theme, hash-guarded overrides.** Hextra is vendored as files by `site/scripts/vendor-hextra.sh` (runtime tree only, pinned commit in `site/themes/hextra.COMMIT`); it is never a Hugo module and never fetched at build time. `site/overrides.sha256` pins the upstream file behind every override copy, and the drift guard (`site/scripts/check-overrides.sh`) fails the build when upstream changes one. Diff upstream and merge the hunk before re-pinning; never run `--update` only to turn a build green. A new override copy appends its line by hand.
 - **Vendored files are pinned.** A third-party file the site serves as it came (Mermaid, `site/assets/lib/mermaid/`) is pinned by SHA-256 in `site/vendored.sha256`, with its version, source and licence in the comment above its line, and `site/scripts/check-vendored.sh` fails the build when its bytes differ. Never edit such a file or re-pin what is on disk; re-vendor from the source the comment names and verify it there. Mermaid draws only in the Enhancements section; a mermaid fence anywhere else fails the build.
 - **Checks fail the build.** Every check in `site/scripts/` has a failing case under `site/tests/` that `task test:site` runs; a new check brings its case.
-- Generated content under `site/data/schema/` is gitignored — never hand-edit; regenerate via `docgen`.
 
 ## Durable decisions
 
@@ -111,7 +110,7 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 - **URL layout.** Every version lives under `/<version>/`. `/latest/` is the default version and `/` goes to `/latest/` (`public/_redirects`, plus meta-refresh stubs for hosts that ignore it). `/reference-archive/` is reserved. Nothing globs `v*/` or "every top-level directory": the version list is explicit. Today there is one version, `v1.0` (beta), built from its release lines (`cli-line = v1.0`, `catalog-line = opm-v4`; see Site versions).
 - **Base path.** The site builds under any base URL, a path included (`https://example.org/docs/`). Every URL the build writes comes from Hugo's URL functions or is relative, CSS `url()` included, and `params.images` carries no leading slash (with one, Hugo's `absURL` drops the path). `OPM_BASE_URL` overrides `hugo.toml`'s `baseURL` for one build; `hugo.toml` keeps `https://opmodel.dev/`. The link crawl (`check-pages.sh`) fails a root-relative URL outside the base path, in HTML attributes, inline styles and CSS, and, under a path, an absolute URL on the base URL's host outside the base URL, in every published text file. A `/latest/` URL in the output must exist as written, because some hosts ignore `_redirects`. `task test:site` builds the fixture workspace under a two-segment path (`site/tests/subpath/`).
 - **Indexing.** Only `params.opm.indexedHost` (`opmodel.dev`) is indexed. A build for any other host carries a robots `noindex, nofollow` meta tag on every HTML page (`layouts/_partials/custom/head-end.html`), and a missing param fails the build. The Markdown twins, `llms.txt`, `sitemap.xml` and `build-stamp.json` cannot carry the tag, so on a host that sends no headers they stay out of search results only because nothing indexable links to them.
-- **Reserved sections.** `docs/reference/cli/` and `docs/reference/definitions/` are site-owned: no source page may publish there (the build fails), and generated content goes to `site/.gen/<version>/`, which the build mounts per version. For now `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`. The generated CLI reference is generated from the cli release the stamp names (the row's `ref`, a tag; in a version frozen from a line, `ref` is the docs SHA and the release survives only in the `; cli <tag>` comment, and how the generator finds it is open), never from the tree the cli's hand-written pages come from (`sha`, often `main`'s head): it documents the binary a reader can install.
+- **Placeholders.** A site-owned page whose front matter holds `placeholder: true` (today `docs/reference/cli/` and `docs/reference/definitions/`) stands in until a source repo publishes the same page; where one does, the build mounts the source page instead and the pair is no A1 collision (`gen-mounts.sh`, `check-pages.sh`). Delete a placeholder once every built version has its source page. Generated reference comes from the same tree as the repo's hand-written pages (its release branch head, else `main`), so the CLI reference can run ahead of the newest cli tag.
 
 ## Site versions
 
@@ -132,18 +131,10 @@ Read these on entry:
 - `openspec/config.yaml` — the OpenSpec workspace: principles, gates and artifact rules for changes.
 - `README.md` — architecture, tasks, contributing (page dialect, figures).
 - `Taskfile.yml` — authoritative build/generate/serve entrypoints.
-- [RFC-0006: Documentation Generation](https://github.com/open-platform-model/cli/blob/main/docs/rfc/0006-documentation-generation.md) — the design behind docgen.
 
 ## Repository Layout
 
 ```text
-├── cmd/docgen/            # Documentation generator tool
-│   └── main.go            # CLI with schema/cli/all subcommands
-├── internal/
-│   ├── cuedoc/            # CUE schema extraction logic
-│   │   └── extractor.go
-│   └── cobradoc/          # Cobra CLI doc generation
-│       └── generator.go
 ├── openspec/              # OpenSpec workspace (docs-site-change schema, no specs)
 ├── site/                  # Hugo site
 │   ├── Dockerfile         # Build image: Hugo, Pagefind, git (pinned)
@@ -168,13 +159,11 @@ Read these on entry:
 │   ├── tests/             # fixtures/ws, lint/, checks/, dialect/, subpath/ (the fixture's base-path build), browser/ (QA image and scripts), versions/ (resolver and two-version tests)
 │   └── data/schema/       # Generated JSON (gitignored)
 ├── Taskfile.yml           # Build automation
-├── go.mod
 └── README.md
 ```
 
 ## Environment Notes
 
-- **Go**: 1.25+ (see `go.mod`) for the `docgen` tool.
 - **Docker**: builds and runs the site's images; Hugo, Pagefind and the browsers live only there.
 - **Enhancements**: the enhancements root is `OPM_SRC_ENHANCEMENTS`, else `$OPM_WS/enhancements` (`OPM_SRC_WORKTREE` does not apply), mounted read-only at `/src/enhancements` when it holds `INDEX.md`.
 - **Source repositories**: the source roots are `<repo>` under `OPM_WS` (default: the parent of the main checkout, found through git, so it is right inside a worktree). `OPM_SRC_WORKTREE=<name>` takes `<repo>/.claude/worktrees/<name>` instead, and `OPM_SRC_<REPO>` (`OPM_SRC_CATALOG_OPM`, `OPM_SRC_OPM_OPERATOR`, ...) points at one repo. For an anchored or a line version (`v1.0` is a line version) these variables only choose the clone whose tags and `origin` refs are read: the tree built is the archive of the resolved ref in `site/.versions/<v>/`, never the root's working tree. To build or preview a worktree's pages, use explicit mode, which reads every root's `docs/site/` as it is: `OPM_VERSIONS=v1.0=/src OPM_SRC_WORKTREE=<name> task build`. Every root is checked before a container starts. Each root is mounted read-only at `/src/<repo>`, the repo at `/work/repo`.
@@ -199,33 +188,17 @@ Read these on entry:
 - `task versions:fetch` — fetch every tag and branch of the six roots (and the enhancements root) from `origin`, never moving or deleting a tag; a local build after a release is `task versions:fetch build`.
 - `task versions:test` — the resolver tests, then a two-version build into `site/.check/versions-test/` (never `site/public/`) and its assertions.
 - `task clean` — remove generated files.
-- `task build:docgen` — build docgen tool (output: `./bin/docgen`).
-- `task generate:schema`, `task generate:cli`, `task generate` — generate schema docs from CUE, CLI docs from cobra, or both.
-- `task fmt`, `task vet`, `task test` — Go formatting, vetting and tests.
-- `task check` — fmt + vet + `openspec:check` + test.
+- `task check` — `openspec:check`.
 
 ## Coding Standards
 
-### Go style
-
-- `gofmt`, `golangci-lint` compliant.
-- Imports: stdlib → external → internal, blank lines between groups.
-- Errors: wrap with context (`fmt.Errorf("extracting schema: %w", err)`).
-- Interfaces: accept interfaces, return concrete structs.
-- Context: propagate `context.Context` in all APIs.
-- Tests: table-driven, `testify` assertions.
-
 ### Technology stack
 
-- **docgen**: Go 1.25+ (see `go.mod`), `cuelang.org/go` (native CUE eval), `cobra` + `cobra/doc` (CLI ref).
 - **Site**: Hugo 0.167.0 (static, non-extended), Hextra v0.13.0 (vendored, neutral skin), Pagefind 1.5.2 per version; built in Docker from Alpine, every download SHA-256-checked. QA: Playwright for Python 1.63.0 and axe-core 4.10.3.
-- **CUE Go APIs used**: `load.Instances()`, `Value.Doc()`, `Value.Fields()`, `Value.Default()`, `Value.IncompleteKind()`, `Value.Expr()`.
 
 ### Patterns
 
-- **CUE doc extraction**: load modules via `load.Instances()` → walk defs with `Value.Fields(cue.Definitions(true))` → extract doc comments → resolve cross-refs (e.g. Trait `appliesTo` Resources) → output structured JSON per module.
-- **CLI doc generation**: import CLI root as Go dep → `cobra/doc.GenMarkdownTreeCustom()` with a Hugo front matter prepender → one markdown file per command.
-- **Site content generation**: `docgen` outputs JSON to `site/data/schema/` + markdown for the CLI reference; turning the JSON into pages (a Hugo content adapter) is not built yet. Generated pages go to `site/.gen/<version>/`, which the build mounts per version; `task generate:cli` still writes to `site/content/docs/reference/cli/` until the generated-reference change moves it to `site/.gen/<version>/`.
+- **Generated reference**: each owning repository (cli, opm-operator, catalog_opm, core) generates its reference pages from its own source and commits them under `docs/site/reference/`, with a check there that fails when they are stale. The site builds them like any other source page and generates nothing itself.
 - **Styles**: one CSS file per owner under `site/assets/css/opm/`, concatenated in lexical file-name order into one fingerprinted stylesheet; add a file, there is no list to edit. Use Hextra's CSS variables and key dark mode on `html.dark`.
 - **Theme changes**: prefer Hextra's built-ins and hooks (`_partials/custom/*`) over override copies; an override copy is pinned in `site/overrides.sha256`.
 - **Order**: `weight`, then title, in the sidebar, the section child lists and the pager.
@@ -249,7 +222,7 @@ Rationale: `[x]`/`[ ]` are 3 ASCII chars wide, easy table alignment. `OK`/`FAIL`
 ## Working Style for Agents
 
 - Update the Repository Layout tree above when adding new packages/directories.
-- Don't edit generated content (`site/data/schema/*`, and `site/content/docs/reference/cli/opm*.md` until the generated-reference change moves the CLI pages to `site/.gen/<version>/`) — regenerate via `task generate`.
+- Don't edit a generated reference page here or in its source repo by hand: regenerate it with that repo's task.
 - Schema source lives upstream in `core/` (and `catalog/`); CLI command source lives in `cli/`. Doc bugs that trace to source — fix upstream, not by patching generated output. A page's prose lives in the repo whose change would make it wrong: fix it there, not here.
 - Personas to keep in mind when writing docs: **Module Author** (writes CUE defs, primary audience for ref docs), **Platform Operator** (deploys modules, needs deployment guides + CLI ref), **End-user** (consumes modules, needs getting started + conceptual guides), **Contributor** (extends OPM, needs architecture + design docs).
 - For OPM-specific terms, link to the [canonical glossary in opm/](https://github.com/open-platform-model/opm/blob/main/docs/legacy/glossary.md) — don't duplicate definitions here.

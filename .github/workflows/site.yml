@@ -129,10 +129,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: opmodel.dev/go.mod
-          cache-dependency-path: opmodel.dev/go.sum
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
@@ -147,9 +143,8 @@ jobs:
       - name: Check, build and test the site
         run: task ci
       - name: The build leaves the tree clean
-        # go fmt rewrites unformatted Go without failing, and a build step may
-        # write a file that is not gitignored; both show up here. .task/ holds
-        # Task's checksum files, one of which is tracked.
+        # A build step may write a file that is not gitignored; it shows up
+        # here. .task/ holds Task's checksum files.
         run: |
           dirty=$(git status --porcelain --untracked-files=all -- . ':(exclude).task')
           if [ -n "$dirty" ]; then

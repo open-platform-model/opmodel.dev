@@ -11,8 +11,9 @@
 # Then:
 #   A1     fails when two files publish one URL, x.md against x/_index.md
 #          included (Hugo lets the first mount win, silently);
-#   RESERVED  fails when a source repo publishes under /docs/reference/cli/ or
-#          /docs/reference/definitions/: both are site-owned and generated;
+#   placeholder  a site-owned page whose front matter holds `placeholder: true`
+#          yields to a source page at the same URL, as gen-mounts.sh mounts it:
+#          that pair is no A1 collision;
 #   Q2     fails when a listed URL has no index.html under public/<version>/,
 #          or public/<version>/ holds a page nobody listed (a section with no
 #          _index.md, a swallowed page);
@@ -76,6 +77,10 @@ urls() { # $1 dir, $2 URL prefix, $3 label
   done
 }
 
+# Site-owned placeholders: content/ pages whose front matter holds
+# `placeholder: true` (see gen-mounts.sh).
+placeholders=$(grep -rlx 'placeholder: true' content 2>/dev/null | sed 's#^content/##' | sort | tr '\n' ' ' || true)
+
 for pair in "$@"; do
   v=${pair%%=*}; root=${pair#*=}
   {
@@ -83,10 +88,13 @@ for pair in "$@"; do
     urls ".gen/$v" / generated
     for r in $REPOS; do urls "$root/$r/docs/site" /docs/ "$r"; done
   } > "$tmp/$v.src"
-  reserved=$(awk -F'\t' '$2 !~ /^(site|generated)\// && $1 ~ /^\/docs\/reference\/(cli|definitions)\// { print "  " $2 " publishes " $1 }' "$tmp/$v.src")
-  if [ -n "$reserved" ]; then
-    rc=1; echo "RESERVED FAIL $v: docs/reference/cli/ and docs/reference/definitions/ are site-owned; a source page may not publish there:"; echo "$reserved"
-  fi
+  # A placeholder yields to a source page at its URL (gen-mounts.sh mounts it
+  # only where none exists), so it takes no part in A1 there.
+  awk -F'\t' -v ph="$placeholders" '
+    BEGIN { n = split(ph, a, " "); for (i = 1; i <= n; i++) isph["site/" a[i]] = 1 }
+    { line[NR] = $0; url[NR] = $1; lab[NR] = $2; if (!($2 in isph)) other[$1] = 1 }
+    END { for (i = 1; i <= NR; i++) if (!(lab[i] in isph && other[url[i]])) print line[i] }
+  ' "$tmp/$v.src" > "$tmp/$v.src2" && mv "$tmp/$v.src2" "$tmp/$v.src"
   awk -F'\t' -v v="$v" '
     { n[$1]++; src[$1] = src[$1] " " $2 }
     END { for (u in n) { if (n[u] > 1) print "A1 FAIL " v ": " u " is published by:" src[u] > "/dev/stderr"; print u } }
