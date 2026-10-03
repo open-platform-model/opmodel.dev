@@ -46,7 +46,7 @@ site/Dockerfile                OPM_DOCS_VERSION=<release with add-version-histor
 
 ## Impact
 
-- **Files.** `site/Dockerfile`, `site/scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh`, `site/catalogs/_content.gotmpl`, `site/layouts/catalogs/{list,single}.html`, new `site/layouts/_partials/opm/history-{badge,changes,removed}.html`, `site/assets/css/opm/` (one new file for the badge), `site/tests/fixtures/bundles/**`, new check cases under `site/tests/checks/`, `site/tests/browser/` (a member with a badge and a list), `README.md`, `AGENTS.md`.
+- **Files.** `site/Dockerfile`, `site/scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh`, `site/catalogs/_content.gotmpl`, the Hextra hooks `site/layouts/_partials/custom/content-{begin,end}.html` (design.md Decision 3), new `site/layouts/_partials/opm/history-{badge,changes,code,removed}.html`, `site/assets/css/opm/` (one new file for the badge), `site/tests/fixtures/bundles/**`, `site/tests/fixtures/history/` (sections 1-2 only), new check cases under `site/tests/checks/`, `site/tests/browser/` (a member with a badge and a list), `README.md`, `AGENTS.md`.
 - **Build inputs.** Gained: one file per tab project, `history.json`, at the digest the lock records. The pinned `opm-docs` moves to the release carrying `add-version-history`. No theme file is newly overridden.
 - **Published URLs.** None added or removed. The version set is unchanged; catalog minors are not site versions and 0021:OQ15 is not touched.
 - **Source repos.** None. catalog_opm's bundles already carry every field the history reads (C10 `fqn`, `spec.fields`).

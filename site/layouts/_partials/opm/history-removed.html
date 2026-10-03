@@ -1,0 +1,20 @@
+{{- /* "Removed in <segment label>" on a Catalogs kind index: the members C13
+       records as removed in this segment whose page was under this index
+       (params.catalog.history.removed), each linking its page in the last
+       segment that had it (<root><lastIn>/<page>/). The build fails, naming
+       the FQN, when that page does not exist. Takes the page. */ -}}
+{{- $c := .Params.catalog -}}
+{{- with $c.history -}}
+  {{- $h := . | transform.Unmarshal -}}
+  {{- with $h.removed -}}
+    {{- $title := printf "Removed in %s" $c.label -}}
+    <h2 id="{{ anchorize $title }}">{{ $title }}</h2>
+    <ul class="opm-history-removed">
+      {{- range . -}}
+        {{- $p := site.GetPage (printf "/catalogs/%s/%s/%s" $c.name .lastIn .page) -}}
+        {{- if not $p -}}{{- errorf "catalogs: %s %s: removed member %s has no page %s in %s" $c.project $c.segment .fqn .page .lastIn -}}{{- end -}}
+        <li><a href="{{ $p.RelPermalink }}">{{ .name }}</a> <code>{{ .apiVersion }}</code>, last in {{ .lastIn }}</li>
+      {{- end -}}
+    </ul>
+  {{- end -}}
+{{- end -}}

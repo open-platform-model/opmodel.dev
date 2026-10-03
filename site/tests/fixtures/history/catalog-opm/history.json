@@ -105,6 +105,18 @@
             "to": "required"
           },
           {
+            "op": "presence",
+            "path": "window",
+            "from": "regular",
+            "to": "optional"
+          },
+          {
+            "op": "presence",
+            "path": "label",
+            "from": "optional",
+            "to": "regular"
+          },
+          {
             "op": "added",
             "path": "volumes",
             "from": null,
@@ -118,6 +130,24 @@
           }
         ],
         "edge": [
+          {
+            "op": "presence",
+            "path": "schedule",
+            "from": "required",
+            "to": "regular"
+          },
+          {
+            "op": "presence",
+            "path": "keep",
+            "from": "regular",
+            "to": "required"
+          },
+          {
+            "op": "presence",
+            "path": "target",
+            "from": "required",
+            "to": "optional"
+          },
           {
             "op": "presence",
             "path": "volumes",

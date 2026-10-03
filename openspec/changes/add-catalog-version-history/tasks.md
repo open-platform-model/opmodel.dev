@@ -11,11 +11,11 @@
 
 ## 2. Badges, the Changes list and Removed entries
 
-- [ ] 2.1 `layouts/_partials/opm/history-badge.html` and `assets/css/opm/history.css` per Decision 3; `layouts/catalogs/single.html` renders the badge row under the title; "Newer version" resolves its page through `catalogs.json` and fails the build naming the FQN when the page is missing (case `cat-history-newer-missing`).
-- [ ] 2.2 `history-changes.html` (the page-end list, the `paths`-mode sentence) and `history-removed.html` (kind index entries linking `<root><lastIn>/<page>/`); `layouts/catalogs/list.html` renders the latter.
-- [ ] 2.3 `test-site.sh` assertions on the built fixture pages: each origin badge, "Changed in 4.5", "Newer version" target, every list line form, the `paths` sentence on the edge pair, a Removed entry and its link, and no badge in any spec code block.
-- [ ] 2.4 Browser QA: `shots.py` adds a member page with all three badges and the list, and a kind index with a Removed entry (light, dark, phone); `a11y.py` covers them.
-- [ ] 2.5 `task check`, `task build`, `task test:site` and `OPM_BUNDLES=site/tests/fixtures/bundles task qa` green, the new PNGs read (badges legible in dark mode and at phone width), then commit `feat(site): show catalog version badges and change lists`.
+- [x] 2.1 `layouts/_partials/opm/history-badge.html` and `assets/css/opm/history.css` per Decision 3; `layouts/catalogs/single.html` renders the badge row under the title; "Newer version" resolves its page through `catalogs.json` and fails the build naming the FQN when the page is missing (case `cat-history-newer-missing`).
+- [x] 2.2 `history-changes.html` (the page-end list, the `paths`-mode sentence) and `history-removed.html` (kind index entries linking `<root><lastIn>/<page>/`); `layouts/catalogs/list.html` renders the latter.
+- [x] 2.3 `test-site.sh` assertions on the built fixture pages: each origin badge, "Changed in 4.5", "Newer version" target, every list line form, the `paths` sentence on the edge pair, a Removed entry and its link, and no badge in any spec code block.
+- [x] 2.4 Browser QA: `shots.py` adds a member page with all three badges and the list, and a kind index with a Removed entry (light, dark, phone); `a11y.py` covers them.
+- [x] 2.5 `task check`, `task build`, `task test:site` and `OPM_BUNDLES=site/tests/fixtures/bundles task qa` green, the new PNGs read (badges legible in dark mode and at phone width), then commit `feat(site): show catalog version badges and change lists`.
 
 ## 3. The pinned tool writes the history (GATED: G1b)
 

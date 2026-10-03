@@ -118,6 +118,22 @@
             "default": null,
             "doc": "Use the pre-4.5 copy format.",
             "ref": null
+          },
+          {
+            "path": "window",
+            "type": "string",
+            "presence": "regular",
+            "default": null,
+            "doc": "When copies may run.",
+            "ref": null
+          },
+          {
+            "path": "label",
+            "type": "string",
+            "presence": "optional",
+            "default": null,
+            "doc": "A name for the copies.",
+            "ref": null
           }
         ],
         "linked": [],

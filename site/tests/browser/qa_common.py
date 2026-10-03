@@ -107,7 +107,9 @@ def catalog_pages():
     """The Catalogs section's pages the checks open, when the build has the
     section (public/catalogs/): the /catalogs/ page, the first catalog's
     newest minor landing, a member page with a spec block (a cue code block)
-    and a kind index there, and the edge landing. [] without the section."""
+    and a kind index there, the edge landing, and with a version history the
+    member pages with the most badges and the longest "Changes in" list.
+    [] without the section."""
     cats = catalog_segments()
     if not cats:
         return []
@@ -126,6 +128,19 @@ def catalog_pages():
             pages.append("/" + kinds[-1].relative_to(PUBLIC).as_posix() + "/")
     if "edge" in segs:
         pages.append(f"/catalogs/{name}/edge/")
+    # With a version history (docs-kit C13): the member page with the most
+    # badges (all three, where one has them) and the one with the longest
+    # "Changes in" list. The kind index above already shows "Removed in"
+    # where its segment removed a member.
+    found = sorted(h for s in segs for h in (PUBLIC / "catalogs" / name / s).glob("*/*/index.html") if "pagefind" not in h.parts)
+    texts = [(h, h.read_text(errors="ignore")) for h in found]
+    with_badges = [(t.count("opm-history-badge"), h) for h, t in texts if "opm-history-badge" in t]
+    with_list = [(t.count("<li><code>"), h) for h, t in texts if "Changes in" in t and "opm-history-link" in t]
+    for picked in (max(with_badges, key=lambda x: x[0], default=None), max(with_list, key=lambda x: x[0], default=None)):
+        if picked:
+            url = "/" + picked[1].parent.relative_to(PUBLIC).as_posix() + "/"
+            if url not in pages:
+                pages.append(url)
     return pages
 
 

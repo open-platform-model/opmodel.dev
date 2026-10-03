@@ -1,0 +1,5 @@
+{{- /* A value of a history change as a Markdown code span, with a longer
+       fence when the value holds a backtick. */ -}}
+{{- $v := printf "%v" . -}}
+{{- if strings.Contains $v "`" -}}{{- return printf "`` %s ``" $v -}}{{- end -}}
+{{- return printf "`%s`" $v -}}

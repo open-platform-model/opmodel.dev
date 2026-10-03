@@ -7,9 +7,12 @@ page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page, the open search palette and two section
 pages with their child cards, the Enhancements section's page, graph, a
 draft entry, its decisions and an archived entry, and the Catalogs section's
-page, newest landing, a member with a spec block, a kind index and the edge
-landing, and the open segment switch on the member, into site/.shots/catalog-switch/)
-get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png. The
+page, newest landing, a member with a spec block, a kind index, the edge
+landing and, with a version history, the members with the most badges and the
+longest change list, and the open segment switch on the member, into site/.shots/catalog-switch/)
+get a viewport shot per variant, into site/.shots/<page>/page-<variant>.png
+(a catalog member with a "Changes in" list, with a version history, also one
+scrolled to that list, changes-<variant>.png). The
 sized extras (SIZED_EXTRAS: a tablet width, for example) get one viewport
 shot per theme at their own size, into site/.shots/<page>/<name>-<theme>.png.
 On every page of the default version that holds a direction note, the
@@ -240,6 +243,13 @@ def main():
                     page.wait_for_selector(".opm-version .hextra-nav-menu-items:visible", timeout=5000)
                     page.wait_for_timeout(300)
                 page.screenshot(path=str(OUT / name / f"page-{variant}.png"))
+                # A catalog member's "Changes in" list sits at the page end:
+                # one more viewport shot with its heading at the top.
+                changes = page.locator(".content h2:has([id^='changes-in-'])")
+                if changes.count():
+                    changes.first.evaluate("e => window.scrollTo(0, e.getBoundingClientRect().top + window.scrollY - 80)")
+                    page.wait_for_timeout(100)
+                    page.screenshot(path=str(OUT / name / f"changes-{variant}.png"))
                 page.context.close()
             print(f"{url}: {what} x {len(VARIANTS)} variants -> .shots/{name}/")
         for v, _ in listed:

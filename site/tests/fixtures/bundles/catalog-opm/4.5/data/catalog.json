@@ -112,6 +112,22 @@
             "ref": null
           },
           {
+            "path": "window",
+            "type": "string",
+            "presence": "optional",
+            "default": null,
+            "doc": "When copies may run.",
+            "ref": null
+          },
+          {
+            "path": "label",
+            "type": "string",
+            "presence": "regular",
+            "default": null,
+            "doc": "A name for the copies.",
+            "ref": null
+          },
+          {
             "path": "volumes",
             "type": "list",
             "presence": "optional",

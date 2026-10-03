@@ -580,7 +580,7 @@ else
   want='["4.4","","opmodel.dev/catalogs/opm/traits/backup@v1alpha1","4.4",true,["4.4"],["v1alpha2","v1alpha1"],{"v1alpha1":"traits/backup-v1alpha1","v1alpha2":"traits/backup"},[]]'
   [ "$got" = "$want" ] || why="4.4 backup-v1alpha1: $got"
   got=$(hist_of "$name" /catalogs/opm/edge/traits/backup/ | jq -c '[.mode, (.member.changes | keys), (.member.changes.edge | map(.op + " " + .path))]' 2>&1)
-  [ "$got" = '["paths",["4.5","edge"],["presence volumes","added compress"]]' ] || why="${why:+$why; }edge backup: $got"
+  [ "$got" = '["paths",["4.5","edge"],["presence schedule","presence keep","presence target","presence volumes","added compress"]]' ] || why="${why:+$why; }edge backup: $got"
   got=$(hist_of "$name" /catalogs/opm/4.5/traits/ | jq -c '[.mode, .member, (.removed | map(.fqn + " " + .lastIn + " " + .page))]' 2>&1)
   [ "$got" = '["full",false,["opmodel.dev/catalogs/opm/traits/backup@v1alpha1 4.4 traits/backup-v1alpha1"]]' ] || why="${why:+$why; }4.5 traits/: $got"
   got=$(hist_of "$name" /catalogs/opm/4.4/traits/ | jq -c '.removed' 2>&1)
@@ -590,6 +590,50 @@ else
   [ "$(jq -r '.catalogs[0].history | "\(.path) \(.floor)"' "$OUT/$name/site/data/opm/catalogs.json")" = "catalog-opm/history.json 4.4" ] || why="${why:+$why; }catalogs.json has no history"
   if [ -z "$why" ]; then ok "$name" "a member page carries its C13 history by FQN, its lineage and pages in its segment; a kind index the members removed under it; the pair's mode"
   else bad "$name" "$why" "$OUT/$name/log"; fi
+  # The rendered history: C13's derivations as badges under the title, the
+  # page-end "Changes in" list (in the table of contents and the .md output),
+  # "Removed in" on a kind index; nothing inside a spec code block.
+  C=$OUT/$name/site/public/catalogs/opm
+  has() { dq "$C/$1index.html" | grep -qF -- "$2" || why="${why:+$why; }$1 lacks: $2"; }
+  hasnt() { ! dq "$C/$1index.html" | grep -qF -- "$2" || why="${why:+$why; }$1 has: $2"; }
+  why=""
+  has 4.4/traits/backup/ '>In 4.4 or earlier</div>'; hasnt 4.4/traits/backup/ 'Changed in'; hasnt 4.4/traits/backup/ 'Newer version'
+  has 4.4/traits/backup-v1alpha1/ '<a class=opm-history-link href=/catalogs/opm/4.4/traits/backup/>'
+  has 4.4/traits/backup-v1alpha1/ '>Newer version: v1alpha2</div>'
+  has 4.5/traits/expose/ '>Added in 4.5</div>'; hasnt 4.5/traits/expose/ 'Changes in'
+  has edge/traits/expose/ '>Unreleased</div>'
+  has edge/traits/expose-v1alpha1/ '>Added in 4.5</div>'
+  has edge/traits/expose-v1alpha1/ '<a class=opm-history-link href=#changes-in-main-unreleased>'
+  has edge/traits/expose-v1alpha1/ '>Changed in main (unreleased)</div>'
+  has edge/traits/expose-v1alpha1/ '<a class=opm-history-link href=/catalogs/opm/edge/traits/expose/>'
+  has edge/traits/expose-v1alpha1/ '>Newer version: v1alpha2</div>'
+  has 4.5/traits/backup/ '<a class=opm-history-link href=#changes-in-45>'
+  has 4.5/traits/backup/ '<h2 data-hextra-search-id=changes-in-45>Changes in 4.5<span class=hx:absolute hx:-mt-20 id=changes-in-45>'
+  has 4.5/traits/backup/ 'href=#changes-in-45>Changes in 4.5</a>'
+  for l in '<li><code>schedule</code> now refers to <code>opmodel.dev/catalogs/opm/schemas.#CronSchema</code></li>' \
+    '<li><code>keep</code> type changed from <code>*7 | int</code> to <code>*14 | int</code></li>' \
+    '<li><code>keep</code> default changed from <code>7</code> to <code>14</code></li>' \
+    '<li><code>target</code> made required</li>' '<li><code>window</code> made optional</li>' \
+    '<li><code>label</code> made regular</li>' '<li><code>volumes</code> added</li>' '<li><code>legacy</code> removed</li>'; do
+    has 4.5/traits/backup/ "$l"
+  done
+  hasnt 4.5/traits/backup/ 'Compared by field paths only'
+  has edge/traits/backup/ '<h2 data-hextra-search-id=changes-in-main-unreleased>Changes in main (unreleased)<span class=hx:absolute hx:-mt-20 id=changes-in-main-unreleased>'
+  has edge/traits/backup/ '<p>Compared by field paths only: these two builds were made by different docs-kit minors, so type, default and reference changes are not shown.</p>'
+  for l in '<li><code>schedule</code> made regular</li>' '<li><code>keep</code> made required</li>' \
+    '<li><code>target</code> made optional</li>' '<li><code>volumes</code> made required</li>' '<li><code>compress</code> added</li>'; do
+    has edge/traits/backup/ "$l"
+  done
+  has 4.5/resources/volumes/ '<li>The spec changed in a way the field list does not show.</li>'
+  has 4.5/traits/ '<h2 id=removed-in-45>Removed in 4.5</h2>'
+  has 4.5/traits/ '<li><a href=/catalogs/opm/4.4/traits/backup-v1alpha1/>backup</a> <code>v1alpha1</code>, last in 4.4</li>'
+  hasnt 4.4/traits/ 'Removed in'; hasnt edge/traits/ 'Removed in'
+  grep -qF '## Changes in 4.5' "$C/4.5/traits/backup/index.md" || why="${why:+$why; }the .md output lacks the Changes section"
+  inpre=$(find "$C" -name index.html | while IFS= read -r f; do
+    dq "$f" | sed 's#<pre#\n<pre#g; s#</pre>#</pre>\n#g' | grep '^<pre' | grep -v opm-history-dump | grep -lE 'opm-history|Changed in|made (required|optional|regular)|Changes in' >/dev/null && echo "$f"; done)
+  [ -z "$inpre" ] || why="${why:+$why; }history inside a code block: $inpre"
+  if [ -z "$why" ]; then ok "$name/rendered" "origin, Changed in and Newer version badges per C13; the Changes list in every line form, paths-mode sentence, in the TOC and .md; Removed in on the kind index; nothing in a spec block"
+  else bad "$name/rendered" "$why"; fi
 fi
 name=catalogs/history-stale
 copy_site "$name"; copy_ws "$name"; dump_hook "$name"
@@ -599,8 +643,9 @@ if [ $rc -ne 0 ]; then bad "$name" "the build with an unrecorded history.json fa
 elif [ "$(jq -c '.catalogs[0].history' "$OUT/$name/site/data/opm/catalogs.json")" = null ] &&
      [ -z "$(hist_of "$name" /catalogs/opm/4.4/traits/backup-v1alpha1/)" ] &&
      [ -z "$(hist_of "$name" /catalogs/opm/4.5/traits/)" ] &&
-     grep -q 'id=opm-history-dump>' "$OUT/$name/site/public/catalogs/opm/4.5/traits/index.html"; then
-  ok "$name" "a history.json the lock does not record is ignored: no history in catalogs.json or on any page"
+     grep -q 'id=opm-history-dump>' "$OUT/$name/site/public/catalogs/opm/4.5/traits/index.html" &&
+     ! grep -rlE 'opm-history-(badge|link)|Changes in|Removed in' "$OUT/$name/site/public/catalogs" >/dev/null; then
+  ok "$name" "a history.json the lock does not record is ignored: no history in catalogs.json or on any page, no badge or list"
 else bad "$name" "an unrecorded history.json reached catalogs.json or a page" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------

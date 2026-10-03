@@ -145,6 +145,8 @@
           {{- $history = merge $history (dict "removed" $gone) -}}
         {{- end -}}
       {{- end -}}
+      {{- /* The page-end "Changes in <segment>" section, as Markdown. */ -}}
+      {{- $body = printf "%s%s" $body (partial "opm/history-changes.html" (dict "history" $history "segment" $seg.segment "label" $seg.label)) -}}
       {{- $path := printf "%s/%s" $cat.name $seg.segment -}}
       {{- $url := printf "%s%s/" $cat.root $seg.segment -}}
       {{- with $p -}}{{- $path = printf "%s/%s" $path . -}}{{- $url = printf "%s%s/" $url . -}}{{- end -}}

@@ -72,16 +72,16 @@ At page end (`history-changes.html`), only when `member.changes[<segment>]` exis
 ```text
 added      `retention.weekly` added
 removed    `retention.monthly` removed
-presence   `retention.daily` made required          (optional -> required; the reverse: "made optional")
+presence   `retention.daily` made required          ("made <to>" for each of regular, optional, required, so all six transitions; C13's per-transition wording, docs-kit#17, replaces it when it lands)
 type       `retention.daily` type changed from `int` to `int & >0`
 default    `schedule` default changed from `"0 2 * * *"` to `"0 3 * * *"`
 ref        `target` now refers to `#BackupTarget`
 spec       The spec changed in a way the field list does not show.
 ```
 
-When `mode == "paths"`, the list opens with one sentence: "Compared by field paths only: the two minors were built by different docs-kit minors, so type and default changes are not shown." On a kind index (`history-removed.html`), a "Removed in `<segment label>`" list linking `<root><lastIn>/<page>/`.
+When `mode == "paths"`, the list opens with one sentence: "Compared by field paths only: these two builds were made by different docs-kit minors, so type, default and reference changes are not shown." (as built: edge is no minor, and `ref` is skipped too). A `default` or `ref` change with one side `null` reads "now defaults to", "no longer has a default (was ...)", "now refers to", "no longer refers to". On a kind index (`history-removed.html`), a "Removed in `<segment label>`" list linking `<root><lastIn>/<page>/`; the build fails, naming the FQN, when that page is missing.
 
-The heading `Changes in ...` is a page heading written by the site layout, not page content, so it does not pass the page dialect; it uses the same heading partial as the generated sections so the right-hand TOC lists it.
+As built (Hextra's TOC reads only the rendered content, so a heading a layout writes would need an override copy of `toc.html`): the adapter appends the section to the page body as Markdown that `history-changes.html` returns (the derivations stay in that template; the adapter only calls it), so the TOC, the heading anchor, search and the `.md` output carry it; it holds no links, so the catalogs link hook is not involved. The badges render from Hextra's `custom/content-begin.html` hook (beside the type badge, in one `.opm-badges` row) and the Removed list from the `custom/content-end.html` hook, not from `layouts/catalogs/{list,single}.html`: both catalogs layouts delegate to `opm/docs-main.html`, whose title and content area those hooks already sit in, so no layout or override copy changes.
 
 ### 4. Fixtures before the gate
 
@@ -97,7 +97,7 @@ The fixture segments stay `4.4`, `4.5` and `edge` (docs-kit's orchestration name
 
 ### 5. Files under `site/`
 
-`Dockerfile`; `scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh` (`gen-stamp.sh` records `sections.catalogs.history: [{project, digest}]`); `catalogs/_content.gotmpl`; `layouts/catalogs/{list,single}.html`; `layouts/_partials/opm/history-{badge,changes,removed}.html`; `assets/css/opm/history.css`; `tests/fixtures/{bundles,history}/`; `tests/checks/` cases; `tests/browser/` shot list.
+`Dockerfile`; `scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh` (`gen-stamp.sh` records `sections.catalogs.history: [{project, digest}]`); `catalogs/_content.gotmpl`; `layouts/_partials/custom/content-begin.html` and a new `layouts/_partials/custom/content-end.html` (Hextra hooks, not override copies); `layouts/_partials/opm/history-{badge,changes,code,removed}.html`; `assets/css/opm/history.css`; `tests/checks/cat-q2/` (it now drops edge's retention page, since 4.4's `backup-v1alpha1` is linked by the Removed list); `tests/fixtures/{bundles,history}/`; `tests/checks/` cases; `tests/browser/` shot list.
 
 ## Research & Decisions
 

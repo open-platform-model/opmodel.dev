@@ -90,7 +90,7 @@
           {
             "path": "schedule",
             "type": "string",
-            "presence": "required",
+            "presence": "regular",
             "default": null,
             "doc": "How often the work runs, as a cron expression.",
             "ref": "opmodel.dev/catalogs/opm/schemas.#CronSchema"
@@ -98,7 +98,7 @@
           {
             "path": "keep",
             "type": "*14 | int",
-            "presence": "regular",
+            "presence": "required",
             "default": "14",
             "doc": "How many copies to keep.",
             "ref": null
@@ -106,9 +106,25 @@
           {
             "path": "target",
             "type": "struct",
-            "presence": "required",
+            "presence": "optional",
             "default": null,
             "doc": "Where the copies go.",
+            "ref": null
+          },
+          {
+            "path": "window",
+            "type": "string",
+            "presence": "optional",
+            "default": null,
+            "doc": "When copies may run.",
+            "ref": null
+          },
+          {
+            "path": "label",
+            "type": "string",
+            "presence": "regular",
+            "default": null,
+            "doc": "A name for the copies.",
             "ref": null
           },
           {
