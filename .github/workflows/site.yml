@@ -198,6 +198,16 @@ jobs:
               jq -r '.sections.catalogs.bundles[]
                 | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' site/public/build-stamp.json
             fi
+            # The docs bundles a version reads instead of git (docs-kit C16).
+            if jq -e '[.versions[] | .bundles // empty] | length > 0' site/public/build-stamp.json >/dev/null; then
+              echo
+              echo '### Docs bundles'
+              echo
+              echo '| Site version | Project | Role | Tag | Version | Revision | Digest | Commit | Pins |'
+              echo '|---|---|---|---|---|---|---|---|---|'
+              jq -r '.versions | to_entries[] | .key as $v | (.value.bundles // [])[]
+                | "| \($v) | \(.project) | \(.role) | \(.tag) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) | \(.pins | to_entries | map("\(.key) \(.value)") | join(", ")) |"' site/public/build-stamp.json
+            fi
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"

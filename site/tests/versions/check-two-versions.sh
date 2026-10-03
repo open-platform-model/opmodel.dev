@@ -1,7 +1,7 @@
 #!/bin/sh
 # The two-version regression test (task versions:test runs it after
 # versions:prepare with site/tests/versions/two-versions.conf, and restores
-# the real manifest afterwards). Host side: POSIX sh, grep and awk.
+# the real manifest afterwards). Host side: POSIX sh, grep, awk and jq.
 #
 # This test never writes site/public/, which CI uploads and the deploy
 # publishes, nor the real build's site/.check/<version>/: it builds into
@@ -47,8 +47,15 @@ rm -rf "$P" "$C"
 marker=$OUT/.started; : > "$marker"
 unset OPM_VERSIONS
 # The fixture docs bundles give the build its Catalogs section (sources()
-# mounts OPM_BUNDLES and sets CAT).
-OPM_BUNDLES=$SITE/tests/fixtures/bundles; export OPM_BUNDLES
+# mounts OPM_BUNDLES and sets CAT); a copy without their site-version docs
+# bundles (the lock's "docs" key and _versions/), which document fixture
+# repositories, not the real ones this test builds: both versions read all
+# six repositories from git, as two-versions.conf says.
+rm -rf "$OUT/bundles"
+cp -R "$SITE/tests/fixtures/bundles" "$OUT/bundles"
+rm -rf "$OUT/bundles/_versions"
+jq 'del(.docs)' "$SITE/tests/fixtures/bundles/lock.json" > "$OUT/bundles/lock.json"
+OPM_BUNDLES=$OUT/bundles; export OPM_BUNDLES
 if ! sh -c '. "$0" >/dev/null
   sources; image >/dev/null
   # shellcheck disable=SC2086

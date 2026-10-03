@@ -18,6 +18,11 @@
 # shallow clone, or a tree that is not a git repo (the fixtures); in manifest
 # mode a page that is not committed yet has no row. With OPM_REQUIRE_DATES=1
 # (CI) every page without a date fails the build.
+#
+# A repository a version reads from a docs bundle (data/opm/docs-bundles.json,
+# gen-docs-bundles.sh) is skipped there: its pages' dates are the lastmod its
+# manifest records (opm/source.html), and a generated page without one shows
+# no date rather than counting as a miss.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 REPOS="opm core catalog_opm cli library opm-operator"
@@ -44,7 +49,11 @@ dates() { # $1 dir, $2 key prefix, $3 version
 for pair in "$@"; do
   v=${pair%%=*}; root=${pair#*=}
   dates "$SITE_DIR/content" opmodel.dev/site/content "$v"
-  for r in $REPOS; do dates "$root/$r/docs/site" "$r/docs/site" "$v"; done
+  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' data/opm/docs-bundles.json) "
+  for r in $REPOS; do
+    case "$fromb" in *" $r "*) continue ;; esac
+    dates "$root/$r/docs/site" "$r/docs/site" "$v"
+  done
 done
 
 awk -F'\t' '

@@ -5,7 +5,8 @@
        lists it. The Catalogs section, in the default version's tree, lists
        /catalogs/ and only the newest minor of each major (the adapter
        disables the sitemap for the others and edge), each with the lastmod
-       its bundle's manifest records (the page's Lastmod). */ -}}
+       its bundle's manifest records (the page's Lastmod). A docs bundle's
+       page carries the lastmod its manifest records (opm/source.html). */ -}}
 {{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   {{- range where (where .Pages "Sitemap.Disable" "ne" true) "Section" "ne" "enhancements" }}
@@ -15,9 +16,15 @@
     <lastmod>{{ .Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
     {{- end -}}{{- end -}}
     {{- else -}}
-    {{- with (partial "opm/source.html" .).key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- with index . site.Version.Name }}
+    {{- $src := partial "opm/source.html" . -}}
+    {{- if $src.bundle -}}{{- with $src.lastmod }}
+    <lastmod>{{ (time .).Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
+    {{- end -}}
+    {{- else -}}
+    {{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- with index . site.Version.Name }}
     <lastmod>{{ (time .).Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
     {{- end -}}{{- end -}}{{- end }}
+    {{- end -}}
     {{- end }}
   </url>
   {{- end }}

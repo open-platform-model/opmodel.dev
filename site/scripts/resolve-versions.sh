@@ -68,6 +68,20 @@
 # records the opmodel.dev commit. frozen.conf is the same build as an anchored
 # manifest: a row whose docs is a tag by its tag name, every other row by SHA.
 #
+# A version may read some repositories from docs bundles instead of git
+# (docs-kit C16; site/bundles.cue "versions" decides, the build reads the
+# lock): "from-bundles = <repo> ..." mirrors that set here, where the
+# resolver runs on the host without CUE or the lock, and the build fails when
+# the mirror and the lock disagree (gen-docs-bundles.sh). The repositories it
+# may name are cli, core, library and opm-operator; one that names cli names
+# the other three too (the cli bundle's pins choose them), and then the
+# version has no cli anchor: a line version has catalog-line and no cli-line
+# (the resolver refuses both together), an anchored one catalog and opm and
+# no cli. A named repository gets no row (nothing archives it, nothing reads
+# its git tree for that version) and no override; the others resolve as
+# before. It is one "# from-bundles" line of versions.tsv
+# ("# from-bundles\t<version>\t<repo> ...") and the same key in frozen.conf.
+#
 # The manifest may also name the enhancements section, [section "enhancements"],
 # which belongs to no version: ref = origin/<branch> (the remote-tracking ref,
 # never a local branch or HEAD), a tag or a full SHA, resolved on every run;
@@ -416,7 +430,7 @@ while IFS= read -r k; do
   if [ "$rest" = "$key" ]; then err "$(basename "$manifest"): unknown key \"$k\""; continue; fi
   case "$sec.$key" in
     repo.floor) case " $REPOS " in *" $sub "*) ;; *) err "$(basename "$manifest"): unknown key \"$k\" (repositories: $REPOS)" ;; esac ;;
-    version.label|version.weight|version.default|version.source|version.cli|version.catalog|version.opm|version.override|version.cli-line|version.catalog-line)
+    version.label|version.weight|version.default|version.source|version.cli|version.catalog|version.opm|version.override|version.cli-line|version.catalog-line|version.from-bundles)
       case " $versions " in *" $sub "*) ;; *) versions="$versions${versions:+ }$sub" ;; esac ;;
     section.ref|section.override)
       [ "$sub" = enhancements ] || err "$(basename "$manifest"): unknown key \"$k\" (the only section is enhancements)" ;;
@@ -442,9 +456,27 @@ done
 defaults=""; mains=""; linevs=""; weights=""
 for v in $versions; do
   if ! printf '%s' "$v" | grep -Eq '^v[0-9]+\.[0-9]+$'; then err "version $v: the name is a URL segment and must be vN.N"; fi
-  for k in label weight default source cli catalog opm cli-line catalog-line; do
+  for k in label weight default source cli catalog opm cli-line catalog-line from-bundles; do
     if [ "$(count "version.$v.$k")" -gt 1 ]; then err "version $v: more than one $k"; fi
   done
+  # from-bundles: which repositories the version reads from docs bundles.
+  fb=$(one "version.$v.from-bundles")
+  fbcli=""
+  if has "$v" from-bundles; then
+    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator)"
+    fbseen=" "
+    for r in $fb; do
+      case " cli core library opm-operator " in *" $r "*) ;; *) err "version $v: from-bundles names $r; only cli, core, library and opm-operator publish docs bundles" ;; esac
+      case "$fbseen" in *" $r "*) err "version $v: from-bundles names $r twice" ;; esac
+      fbseen="$fbseen$r "
+    done
+    case "$fbseen" in *" cli "*)
+      fbcli=yes
+      for r in library core opm-operator; do
+        case "$fbseen" in *" $r "*) ;; *) err "version $v: from-bundles names cli but not $r: the cli bundle's pins choose $r, so it comes from its bundle too" ;; esac
+      done ;;
+    esac
+  fi
   label=$(one "version.$v.label")
   if [ -z "$label" ]; then err "version $v: label is required"
   elif bad_text "$label" || [ "$(lines "version.$v.label")" -gt 1 ]; then err "version $v: label \"$label\" holds a tab, ', \" or \\ or a line break"; fi
@@ -463,9 +495,28 @@ for v in $versions; do
     s=$(one "version.$v.source")
     if [ "$s" != main ]; then err "version $v: source \"$s\": the only source is main"; fi
     mains="$mains $v"
-    for k in cli catalog opm override cli-line catalog-line; do
+    for k in cli catalog opm override cli-line catalog-line from-bundles; do
       if has "$v" "$k"; then err "version $v: source = main excludes $k"; fi
     done
+  elif [ -n "$fbcli" ]; then
+    # The cli and its pins come from bundles: no cli anchor, no cli line.
+    for k in cli cli-line; do
+      if has "$v" "$k"; then err "version $v: from-bundles names cli, which excludes $k: the version follows the cli docs bundle site/bundles.cue anchors"; fi
+    done
+    if has "$v" catalog-line; then
+      kind=line
+      linevs="$linevs $v"
+      for k in catalog opm; do
+        if has "$v" "$k"; then err "version $v: catalog-line excludes $k: a line version resolves catalog and opm from their lines"; fi
+      done
+      gl=$(one "version.$v.catalog-line")
+      printf '%s' "$gl" | grep -Eq '^opm-v[0-9]+$' || err "version $v: catalog-line \"$gl\": not an opm catalog major opm-vN (for example opm-v4)"
+    else
+      kind=anchored
+      for k in catalog opm; do
+        if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set catalog-line)"; fi
+      done
+    fi
   elif has "$v" cli-line; then
     kind=line
     linevs="$linevs $v"
@@ -501,6 +552,7 @@ for v in $versions; do
       else err "version $v: override \"$o\": cli is the anchor; set cli instead"; fi
       continue
     fi
+    case " $fb " in *" $orepo "*) err "version $v: override \"$o\": from-bundles names $orepo, which is read from its docs bundle, never from git"; continue ;; esac
     if [ -z "$oref" ] || [ -z "$reason" ]; then err "version $v: override $orepo ${oref:-(no ref)}: write override = $orepo <ref> <reason>; the reason is required"; continue; fi
     if bad_text "$reason"; then err "version $v: override $orepo $oref: the reason holds a tab, ', \" or \\"; fi
     case " $seen " in *" $orepo "*) err "version $v: more than one override for $orepo" ;; esac
@@ -650,8 +702,10 @@ resolve_line() {
   cl=$(one "version.$lv.cli-line"); gl=$(one "version.$lv.catalog-line")
   lrows=""
   # cli: the newest tag of the line; its pins are read only when it resolves.
+  # A version that reads cli from its docs bundle (from-bundles) has neither.
   croot=$(root_of cli); csha=""
-  if cref=$(newest_in_line "$croot" "" "${cl#v}"); then
+  if [ -z "$cl" ]; then :
+  elif cref=$(newest_in_line "$croot" "" "${cl#v}"); then
     csha=$(commit_of "$croot" "refs/tags/$cref")
     # The docs move to the line's branch head; csha stays the tag, where the
     # pins are read.
@@ -759,9 +813,11 @@ for v in $ordered; do
     continue
   fi
   ovr=$(cfg --get-all "version.$v.override" 2>/dev/null | awk '{ r = $1; f = $2; $1 = ""; $2 = ""; sub(/^ +/, ""); print r "\t" f "\t" $0 }' || true)
-  if [ -n "$(one "version.$v.cli-line")" ]; then
+  fb=" $(one "version.$v.from-bundles") "
+  if [ -n "$(one "version.$v.cli-line")" ] || [ -n "$(one "version.$v.catalog-line")" ]; then
     resolve_line "$v"
     for r in $REPOS; do
+      case "$fb" in *" $r "*) continue ;; esac
       line=$(printf '%s' "$lrows" | awk -F'\t' -v r="$r" '$1 == r')
       [ -n "$line" ] || continue
       row "$v" "$label" "$w" "$d" line "$r" "$(printf '%s' "$line" | cut -f2)" "$(printf '%s' "$line" | cut -f3)" \
@@ -769,10 +825,14 @@ for v in $ordered; do
     done
     continue
   fi
-  # cli, the anchor: its pins are read only when it resolves.
-  cref=$(one "version.$v.cli")
-  if csha=$(anchor cli "$cref"); then derived=$(resolve_pins "$cref" "$csha" "$v" "$ovr")
-  else err "$v: cli $cref: $csha"; csha=""; derived=""; fi
+  # cli, the anchor: its pins are read only when it resolves. A version that
+  # reads cli from its docs bundle (from-bundles) has neither.
+  cref=$(one "version.$v.cli"); csha=""; derived=""
+  case "$fb" in
+    *" cli "*) ;;
+    *) if csha=$(anchor cli "$cref"); then derived=$(resolve_pins "$cref" "$csha" "$v" "$ovr")
+       else err "$v: cli $cref: $csha"; csha=""; derived=""; fi ;;
+  esac
   # catalog_opm and opm: explicit, or overridden
   explicit=""
   for pair in catalog_opm:catalog opm:opm; do
@@ -782,6 +842,7 @@ for v in $ordered; do
     if sha=$(anchor "$r" "$ref"); then explicit="$explicit$r$TAB$ref$TAB$sha$TAB$how$NL"; else err "$v: $r $ref: $sha"; fi
   done
   for r in $REPOS; do
+    case "$fb" in *" $r "*) continue ;; esac
     case "$r" in
       cli) line=""; [ -z "$csha" ] || line="cli$TAB$cref$TAB$csha${TAB}anchor" ;;
       catalog_opm|opm) line=$(printf '%s' "$explicit" | awk -F'\t' -v r="$r" '$1 == r') ;;
@@ -795,6 +856,13 @@ for v in $ordered; do
   done
   fails=$(printf '%s\n' "$derived" | sed -n 's/^!//p')
   [ -z "$fails" ] || errs="$errs$fails$NL"
+done
+
+# The from-bundles mirror, one "# from-bundles" line per version that has it.
+fblines=""
+for v in $ordered; do
+  fbv=$(one "version.$v.from-bundles")
+  [ -z "$fbv" ] || fblines="$fblines# from-bundles$TAB$v$TAB$(printf '%s' "$fbv" | tr -s ' \t' ' ')$NL"
 done
 
 # --- The enhancements section ---------------------------------------------------------
@@ -856,8 +924,9 @@ freeze() {
   printf '; and run task bundles:pull (the docs bundles it read), then run\n'
   printf '; OPM_VERSIONS_MANIFEST=<the copy> task build\n'
   for r in $REPOS; do printf '[repo "%s"]\n\tfloor = %s\n' "$r" "$(one "repo.$r.floor")"; done
-  printf '%s' "$rows" | awk -F'\t' '
+  printf '%s%s' "$fblines" "$rows" | awk -F'\t' '
     function val() { return ($10 == "tag") ? $7 : $8 }
+    $1 == "# from-bundles" { fb[$2] = $3; next }
     !($1 in seen) { seen[$1]; order[++n] = $1; head[$1] = sprintf("[version \"%s\"]\n\tlabel = \"%s\"\n\tweight = %s\n\tdefault = %s\n", $1, $2, $3, $4) }
     $6 == "cli" { key[$1, "cli"] = val(); if ($5 == "line" && $10 != "tag") note[$1] = sprintf("\t; cli %s, docs %s\n", $7, $10) }
     $6 == "catalog_opm" { key[$1, "catalog"] = val() }
@@ -870,7 +939,9 @@ freeze() {
     END {
       for (i = 1; i <= n; i++) {
         v = order[i]; printf "%s", head[v]
-        printf "%s\tcli = %s\n\tcatalog = %s\n\topm = %s\n", note[v], key[v, "cli"], key[v, "catalog"], key[v, "opm"]
+        if (v in fb) printf "\tfrom-bundles = %s\n", fb[v]
+        if (key[v, "cli"] != "") printf "%s\tcli = %s\n", note[v], key[v, "cli"]
+        printf "\tcatalog = %s\n\topm = %s\n", key[v, "catalog"], key[v, "opm"]
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }
     }'
@@ -881,7 +952,7 @@ freeze() {
 nvers=$(printf '%s' "$ordered" | grep -c .)
 case "$mode" in
   check)
-    printf '%s\n%s%s%s' "$header" "$siteline" "$secline" "$rows"
+    printf '%s\n%s%s%s%s' "$header" "$siteline" "$secline" "$fblines" "$rows"
     echo "resolve-versions: $nvers version(s)${secline:+ and the enhancements section} resolved from $manifest; nothing written" >&2
     exit 0 ;;
   freeze)
@@ -890,7 +961,7 @@ case "$mode" in
     exit 0 ;;
 esac
 mkdir -p "$(dirname "$OUT")"
-printf '%s\n%s%s%s' "$header" "$siteline" "$secline" "$rows" > "$OUT.tmp"
+printf '%s\n%s%s%s%s' "$header" "$siteline" "$secline" "$fblines" "$rows" > "$OUT.tmp"
 freeze > "$FROZEN.tmp"
 mv "$OUT.tmp" "$OUT"
 mv "$FROZEN.tmp" "$FROZEN"

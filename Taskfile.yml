@@ -76,13 +76,15 @@ tasks:
   # OPM_BUNDLES_LOCAL="catalog-opm@4.5=<release build> catalog-opm@edge=<dir>"
   # takes segments from local bundle trees (an author's preview); a local
   # project skips the registry entirely, so name a release minor too, or the
-  # docs' /catalogs/opm/4/ links fail. OPM_BUNDLES_FROZEN=<lock>, else a
+  # docs' /catalogs/opm/4/ links fail. A site version's docs project is
+  # named by the version: cli@v1.0=<dir> (docs-kit C16).
+  # OPM_BUNDLES_FROZEN=<lock>, else a
   # committed site/bundles.frozen.json, pulls exactly that lock's digests
   # (a bad bundle upstream; CI's browser and sources-main jobs). A frozen
   # pull still fetches from GHCR and Sigstore: an outage of either is
   # waited out, not worked around.
   bundles:pull:
-    desc: Pull, verify and unpack the Catalogs tab's docs bundles (site/bundles.cue) into site/.bundles/ (network)
+    desc: Pull, verify and unpack the docs bundles of site/bundles.cue (the Catalogs tab and the site versions' docs projects) into site/.bundles/ (network)
     env:
       OPM_BUNDLES_LOCAL: '{{.OPM_BUNDLES_LOCAL}}'
       OPM_BUNDLES_FROZEN: '{{.OPM_BUNDLES_FROZEN}}'

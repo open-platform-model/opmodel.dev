@@ -11,7 +11,12 @@
        (scripts/gen-lastmod.sh), because Hugo's GitInfo cannot see directory
        mounts from other repos; on an Enhancements section page it is the
        entry's updated date from its config.yaml (the page's Lastmod), and on
-       a Catalogs section page the lastmod its bundle's manifest records. */ -}}
+       a Catalogs section page the lastmod its bundle's manifest records.
+       A docs bundle's page (opm/source.html "bundle") shows Edit on every
+       version when its manifest gives the page an edit path (the link names
+       main), View source at the bundle's release, and the manifest's
+       lastmod; a generated page has no Edit, and no date when its manifest
+       records none (docs-kit C8). */ -}}
 {{- $src := partial "opm/source.html" . -}}
 {{- $date := "" -}}
 {{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- $date = index . site.Version.Name -}}{{- end -}}{{- end -}}
@@ -19,6 +24,7 @@
 {{- $kind := "" -}}
 {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}{{- $kind = .kind -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
 {{- $edit := and (or site.Version.IsDefault (and (ne $kind "anchored") (ne $kind "line"))) $src.editURL -}}
+{{- if $src.bundle -}}{{- $edit = $src.editURL -}}{{- $date = $src.lastmod -}}{{- end -}}
 {{- if or $edit $src.viewURL $date -}}
   <div class="opm-page-meta hx:mt-12 hx:mb-8 hx:text-xs hx:text-gray-500 hx:dark:text-gray-400">
     {{- with $edit -}}

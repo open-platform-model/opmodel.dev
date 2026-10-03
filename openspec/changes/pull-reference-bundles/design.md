@@ -4,7 +4,7 @@ Today every site version mounts the six source repositories' `docs/site/` at `co
 
 docs-kit's phase-2 contracts, read at `origin/plan/phases-1b-2-3`: C15 (docs placement, `owns`, completable pages, pins in `manifest.json`; `generalize-build-assembly` D2/D3/D7), C16 (pull config `docs`/`versions`, the `_versions/` layout, the lock's `docs` key, `--local <project>@v<M>.<m>`; `pull-docs-placement` D1 to D6), and `pages[].edit` with the Edit/View-source table (`add-authored-docs` D1, recorded in C8). Cross-bundle `/docs/` links are left to the site's post-build link check (C15).
 
-The build gains one input set (docs bundles per bundle-backed site version) and, in section 3, loses four git archives for `v1.0`. URLs and the version set do not change. `last-updated.html`, already an override, gains a branch; no new theme file is overridden.
+The build gains one input set (docs bundles per bundle-backed site version) and, in section 2, loses four git archives for `v1.0`. URLs and the version set do not change. `last-updated.html`, already an override, gains a branch; no new theme file is overridden.
 
 ## Goals / Non-Goals
 
@@ -12,7 +12,7 @@ The build gains one input set (docs bundles per bundle-backed site version) and,
 
 - A site version reads a repository from its docs bundle or from git, per version, decided by the lock alone, so one repository can cut over at a time.
 - Bundle pages behave like git pages for every check (A1, page set, links, front matter) and carry the manifest's page data.
-- Section 1 is built and tested on fixtures before G2-site, and merges with no change to the real build; section 2 changes only the tool and the config's `docs` (still no real output change).
+- Section 1 (support) is built and tested on fixtures and merges with no change to the real output: the real config gains only `docs`, without `versions`.
 
 **Non-Goals:**
 
@@ -106,15 +106,15 @@ site/tests/fixtures/bundles/
 site/tests/fixtures/bundles.cue  + docs, + versions."v1.0"
 ```
 
-Before G2-site (section 1) these trees and a lock with `docs` entries live under `site/tests/fixtures/docs-bundles/` and `test-site.sh` layers them onto its copy; section 2 moves them into `site/tests/fixtures/bundles/`, re-pulls with the pinned tool (`--local cli@v1.0=... --local core@v1.0=...`), and the drift test covers them. The fixture workspace `site/tests/fixtures/ws/` keeps its git trees for the other repositories, and loses `cli/core/library/opm-operator`'s reference pages only in section 3.
+The trees live in `site/tests/fixtures/bundles/`, pulled with the pinned tool (`--local cli@v1.0=... --local core@v1.0=...`), and the drift test covers them. (Planned: under `site/tests/fixtures/docs-bundles/`, layered by `test-site.sh` until G2-site; G2-site held before work started.) Only a fixture build that asks for them keeps the lock's `docs` entries (`copy_site CASE docs`, `CASE_DOCS_BUNDLES=1`); the others drop them and read git, so every existing case keeps its meaning. The fixture workspace `site/tests/fixtures/ws/` keeps its git trees for the other repositories, and loses `cli/core/library/opm-operator`'s reference pages only in section 2.
 
-Two-version test (`site/tests/versions/`): `v1.0` bundle-backed for the four, an anchored `v0.9` reading all six from git; the assertions check that each version publishes its own reference and that `v0.9` has no `/docs/reference/go-api/`.
+Two-version test: on fixtures in section 1 (`test-site.sh` `docs-bundles/manifest`, v0.9 from git and the default, v1.0 from bundles); in `site/tests/versions/` on the real repositories in section 2, `v1.0` bundle-backed for the four from the real pull, an anchored `v0.9` reading all six from git; the assertions check that each version publishes its own reference and that `v0.9` has no `/docs/reference/go-api/`.
 
 ### 8. The pin of `opm-docs` (forward compatibility)
 
-docs-kit validates every `manifest.json` against the closed `#Manifest` of the tool that pulls it (`internal/bundle/manifest.go` `Parse`, docs-kit `main`): a field added by a newer docs-kit (`pins`, `owns`, `pages[].edit`) is refused by an older pull. So the site's pin is bumped to a release no older than any producer's `.opm-docs-version`, and the site bumps first: docs-kit C12 records this rule (docs-kit#13 review). docs-kit also writes `pages[].edit` only for docs placements, so a tab bundle such as `catalog-opm` gains no new field; the rule still holds for every future manifest field. Section 2's bump is to the first release carrying `pull-docs-placement` and `add-authored-docs`; G3.0 for catalog_opm includes this pin being at least that release.
+docs-kit validates every `manifest.json` against the closed `#Manifest` of the tool that pulls it (`internal/bundle/manifest.go` `Parse`, docs-kit `main`): a field added by a newer docs-kit (`pins`, `owns`, `pages[].edit`) is refused by an older pull. So the site's pin is bumped to a release no older than any producer's `.opm-docs-version`, and the site bumps first: docs-kit C12 records this rule (docs-kit#13 review). docs-kit also writes `pages[].edit` only for docs placements, so a tab bundle such as `catalog-opm` gains no new field; the rule still holds for every future manifest field. The support section needs a pin at or after the first release carrying `pull-docs-placement` and `add-authored-docs` (0.4.0; the site pinned 0.5.0 when it started); G3.0 for catalog_opm includes this pin being at least that release.
 
-### 9. Section 3: the switch
+### 9. Section 2: the switch
 
 ```cue
 versions: "v1.0": {
@@ -149,8 +149,8 @@ versions: "v1.0": {
 
 ## Durable decisions
 
-- A site version reads a repository from its docs bundle exactly when the lock's `docs` entries name it for that version; `versions.conf` `from-bundles` mirrors it until `retire-git-pipeline`. Lands in `AGENTS.md` (Site versions) and `README.md` ("Site versions").
+- A site version reads a repository from its docs bundle exactly when the lock's `docs` entries name it for that version; `versions.conf` `from-bundles` mirrors it until `retire-git-pipeline`. Lands in `AGENTS.md` (Site versions, "Docs bundles in a site version") and `README.md` ("Docs bundles in a site version", under "Site versions").
 - The site's `opm-docs` pin is never older than any producer's `.opm-docs-version`. Lands in `AGENTS.md` (Repository Rules, "Docs bundles are signed and pinned").
-- Edit on a bundle page goes to `main` at the manifest's `edit`, on every version; generated pages have none. Lands in `README.md` ("Sources").
+- Edit on a bundle page goes to `main` at the manifest's `edit`, on every version; generated pages have none. Lands in `README.md` ("Docs bundles in a site version"; the README has no "Sources" section).
 - Generated reference now comes from bundles for these four repositories; Principle III's committed-reference sentence changes. Lands in `openspec/config.yaml` and `AGENTS.md` (Patterns, "Generated reference").
 - Placeholders are gone. Lands in `AGENTS.md` (Durable decisions, "Placeholders" removed).

@@ -6,7 +6,7 @@
 #   run-in-image.sh image    build opmodel-dev-hugo:<first 12 hex of sha256(Dockerfile)> if missing (network)
 #   run-in-image.sh tag      print that tag
 #   run-in-image.sh pull     opm-docs pull of site/bundles.cue in the image -> site/.bundles/ (network,
-#                            unless every tab is local)
+#                            unless every tab and docs bundle is local)
 #   run-in-image.sh build    build-all.sh in the image, --network none -> site/public/
 #   run-in-image.sh serve    serve.sh in the image, published on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
@@ -46,8 +46,10 @@
 #                      site/.bundles/ (site/scripts/sections.sh).
 #   OPM_BUNDLES_LOCAL  pull mode only: <project>@<segment>=<host dir> ..., space-separated, each a
 #                      local bundle tree (an opm-docs build output) pull takes instead of the
-#                      registry (docs-kit C7 --local). Each is mounted read-only. A pull whose every
-#                      tab of site/bundles.cue is named here runs with --network none.
+#                      registry (docs-kit C7 --local): a tab's segment (4.5, edge), or, for a docs
+#                      project, the site version it is placed in (cli@v1.0=<dir>, C16). Each is
+#                      mounted read-only. A pull whose every tab and every docs project of every
+#                      site version of site/bundles.cue is named here runs with --network none.
 #   OPM_BUNDLES_FROZEN pull mode only: a lock to pull exactly (opm-docs pull --frozen), e.g. the
 #                      build job's lock in CI; default site/bundles.frozen.json when it exists.
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
@@ -210,7 +212,7 @@ case "$mode" in
     set -- pull --config /in/bundles.cue --out /out --lock /out/lock.json
     vols="--volume $repo/site/bundles.cue:/in/bundles.cue:ro --volume $repo/site/.bundles:/out --volume $repo/site/.cache:/cache"
     case "$repo" in *[:,\ ]*) die "$repo contains ':', ',' or a space; docker -v cannot mount it" ;; esac
-    localproj=" "
+    localproj=" "; localkeys=" "
     for pair in $(envval OPM_BUNDLES_LOCAL); do
       key=${pair%%=*}; dir=${pair#*=}
       case "$key" in *@*) ;; *) die "OPM_BUNDLES_LOCAL: $pair is not <project>@<segment>=<dir>" ;; esac
@@ -220,7 +222,8 @@ case "$mode" in
       proj=${key%@*}; seg=${key#*@}
       vols="$vols --volume $abs:/local/$proj/$seg:ro"
       set -- "$@" --local "$key=/local/$proj/$seg"
-      localproj="$localproj$proj "
+      case "$seg" in v*) ;; *) localproj="$localproj$proj " ;; esac
+      localkeys="$localkeys$key "
     done
     # A frozen pull: exactly the digests of a lock (OPM_BUNDLES_FROZEN, else a
     # committed site/bundles.frozen.json), signatures and lint still checked.
@@ -239,12 +242,29 @@ case "$mode" in
     # The tabs of bundles.cue: the quoted keys of its tabs block
     # ("catalog-opm": {...}; bundles.cue says to keep them quoted). Network
     # only when some tab is not local; when no key is found, network too, so
-    # a misread never turns into an offline pull that cannot resolve.
-    net=none; tabs=$(awk '/^tabs:[[:space:]]*\{/ { in_tabs = 1; next } in_tabs && /^\}/ { in_tabs = 0 } in_tabs && match($0, /^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue)
+    # a misread never turns into an offline pull that cannot resolve. Docs
+    # bundles (C16) the same way: the quoted keys of the docs block, each of
+    # which must be local for every site version (the quoted keys of the
+    # versions block), as <project>@<version>; a config without versions
+    # pulls no docs bundle, so its docs block needs nothing local.
+    keys_of() { awk -v b="$1" '$0 ~ "^" b ":[[:space:]]*\\{" { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue; }
+    net=none; tabs=$(keys_of tabs)
     [ -n "$tabs" ] || net=bridge
     for proj in $tabs; do
       case "$localproj" in *" $proj "*) ;; *) net=bridge ;; esac
     done
+    sites=$(awk 'match($0, /^versions:[[:space:]]*"v[0-9]+\.[0-9]+"/) { k = substr($0, RSTART, RLENGTH); sub(/^versions:[[:space:]]*/, "", k); gsub(/"/, "", k); print k; next } /^versions:[[:space:]]*\{/ { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"v[0-9]+\.[0-9]+"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue)
+    if [ -n "$sites" ]; then
+      dprojs=$(keys_of docs)
+      [ -n "$dprojs" ] || net=bridge
+      for sv in $sites; do
+        for proj in $dprojs; do
+          case "$localkeys" in *" $proj@$sv "*) ;; *) net=bridge ;; esac
+        done
+      done
+    elif grep -q '^versions:' site/bundles.cue; then
+      net=bridge
+    fi
     # The frozen marker: gen-stamp.sh records "frozen": true while it exists.
     rm -f site/.bundles/frozen
     echo "run-in-image: pull of site/bundles.cue into site/.bundles/ (network: $net)"

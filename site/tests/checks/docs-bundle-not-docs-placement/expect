@@ -1,0 +1,2 @@
++ gen-docs-bundles: v1.0: library 1.0.0-beta.3 (local): _versions/v1.0/library/manifest.json places the bundle as tab at "/catalogs/library/", not as docs at /docs/
+- == source lint

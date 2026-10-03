@@ -72,11 +72,24 @@ sh "$SCRIPTS/check-overrides.sh"
 step "vendored files match their pins"
 sh "$SCRIPTS/check-vendored.sh"
 
+# Which repositories each version reads from a docs bundle instead of git
+# (data/opm/docs-bundles.json, from the lock's "docs" key): the source lint,
+# the dates, the mounts and the page-set checks skip their git trees.
+# gen-catalogs.sh first: it checks the lock both read.
+step "docs bundles"
+sh "$SCRIPTS/gen-catalogs.sh"
+# shellcheck disable=SC2086
+sh "$SCRIPTS/gen-docs-bundles.sh" $VERSIONS
+
 step "source lint"
+# Only git-sourced trees: opm-docs pull linted every bundle page in bundle mode.
 dirs=""
 for pair in $VERSIONS; do
-  root=${pair#*=}
-  for r in $REPOS; do dirs="$dirs $root/$r/docs/site"; done
+  v=${pair%%=*}; root=${pair#*=}
+  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' data/opm/docs-bundles.json) "
+  for r in $REPOS; do
+    case "$fromb" in *" $r "*) ;; *) dirs="$dirs $root/$r/docs/site" ;; esac
+  done
 done
 # shellcheck disable=SC2086 # the roots hold no spaces
 sh "$SCRIPTS/lint-sources.sh" $dirs
@@ -84,7 +97,6 @@ sh "$SCRIPTS/lint-sources.sh" $dirs
 step "dates, stamp, mounts, collisions"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
-sh "$SCRIPTS/gen-catalogs.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086

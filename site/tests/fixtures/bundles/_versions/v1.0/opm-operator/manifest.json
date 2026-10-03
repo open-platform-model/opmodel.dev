@@ -1,0 +1,38 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "opm-operator",
+  "version": "1.0.0-beta.7",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/opm-operator",
+    "commit": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
+    "ref": "v1.0.0-beta.7"
+  },
+  "created": "2026-09-30T12:00:00Z",
+  "tool": "0.4.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/",
+    "owns": [
+      "reference/operator-resources.md"
+    ]
+  },
+  "pages": [
+    {
+      "path": "operating/the-fixture-operator.md",
+      "source": "docs/site/operating/the-fixture-operator.md",
+      "lastmod": "2026-09-25T10:00:00Z",
+      "generated": false,
+      "edit": "docs/site/operating/the-fixture-operator.md"
+    },
+    {
+      "path": "reference/operator-resources.md",
+      "source": "docs/site/reference/operator-resources.md",
+      "lastmod": "2026-09-26T10:00:00Z",
+      "generated": false,
+      "edit": "docs/site/reference/operator-resources.md"
+    }
+  ],
+  "data": []
+}

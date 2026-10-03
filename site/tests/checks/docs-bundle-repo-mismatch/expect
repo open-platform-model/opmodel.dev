@@ -1,0 +1,2 @@
++ gen-docs-bundles: v1.0: library 1.0.0-beta.3 (local): _versions/v1.0/library/manifest.json says source.repo someone-else/library, site/bundles.cue allows only open-platform-model/library to sign library
+- == source lint

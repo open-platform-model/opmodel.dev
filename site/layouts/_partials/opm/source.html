@@ -27,7 +27,19 @@
        the commit the bundle was built from, and no editURL: an edit lands on
        main and reaches a released minor only through a docs revision. A
        page without a source gets no link. Its key is empty: its date is the
-       manifest's lastmod (the page's Lastmod). */ -}}
+       manifest's lastmod (the page's Lastmod).
+       A page of a docs bundle (a file under
+       <bundles>/_versions/<version>/<project>/content/<path>, mounted by
+       gen-mounts.sh for a repository the version reads from its bundle;
+       docs-kit C15, C16) takes its data from the bundle's manifest, through
+       data/opm/docs-bundles.json (gen-docs-bundles.sh), per docs-kit C8:
+       editURL https://github.com/<source.repo>/edit/main/<edit> when the
+       page has edit (an authored page whose file main still has; never a
+       generated one), shown on every version, since the link names main,
+       where a fix lands (docs-kit DESIGN decision 19); viewURL the page's
+       source at source.commit, when it has one, named by the release tag
+       (source.ref; an edge build by its commit); lastmod the manifest's, or
+       none. Its key is empty: its date is not a git date. "bundle" is true. */ -}}
 {{- $out := dict -}}
 {{- if eq .Section "catalogs" -}}
   {{- $c := .Params.catalog | default dict -}}
@@ -44,6 +56,24 @@
         "viewURL" (cond (ne $sha "") (printf "%s/blob/%s/%s" $base $sha .Params.repoPath) "")
         "ref" $sha "refText" (cond (ne $sha "") (substr $sha 0 7) "") -}}
 {{- end -}}
+{{- with .File -}}
+  {{- $fn := replace .Filename "\\" "/" -}}
+  {{- with findRESubmatch `/_versions/(v[0-9]+\.[0-9]+)/([a-z0-9]+(?:-[a-z0-9]+)*)/content/(.+)$` $fn 1 -}}
+    {{- $m := index . 0 -}}
+    {{- $b := dict -}}
+    {{- with hugo.Data.opm -}}{{- with index . "docs-bundles" -}}{{- with .versions -}}{{- with index . (index $m 1) -}}{{- with index . (index $m 2) -}}{{- $b = . -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
+    {{- if not $b.repo -}}{{- errorf "opm/source.html: %s is in no docs bundle data/opm/docs-bundles.json lists for %s" $fn (index $m 1) -}}{{- end -}}
+    {{- $p := index $b.pages (index $m 3) | default dict -}}
+    {{- $edit := "" -}}
+    {{- with $p.edit -}}{{- $edit = printf "https://github.com/%s/edit/main/%s" $b.repo . -}}{{- end -}}
+    {{- $view := "" -}}
+    {{- with $p.source -}}{{- $view = printf "https://github.com/%s/blob/%s/%s" $b.repo $b.commit . -}}{{- end -}}
+    {{- $refText := cond (and $b.ref (ne $b.version "edge")) $b.ref (substr $b.commit 0 7) -}}
+    {{- $out = dict "key" "" "repo" $b.tree "path" ($p.source | default "") "editURL" $edit "viewURL" $view
+          "ref" $b.commit "refText" $refText "lastmod" ($p.lastmod | default "") "bundle" true -}}
+  {{- end -}}
+{{- end -}}
+{{- if $out.bundle -}}{{- return $out -}}{{- end -}}
 {{- with .File -}}
   {{- $fn := replace .Filename "\\" "/" -}}
   {{- $repo := "opmodel.dev" -}}

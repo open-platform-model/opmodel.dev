@@ -23,16 +23,22 @@ CALLER=serve
 . "$SCRIPTS/sections.sh"
 
 sh "$SCRIPTS/check-overrides.sh"
+# Which repositories each version reads from a docs bundle (build-all.sh).
+sh "$SCRIPTS/gen-catalogs.sh"
+# shellcheck disable=SC2086
+sh "$SCRIPTS/gen-docs-bundles.sh" $VERSIONS
 dirs=""
 for pair in $VERSIONS; do
-  root=${pair#*=}
-  for r in $REPOS; do dirs="$dirs $root/$r/docs/site"; done
+  v=${pair%%=*}; root=${pair#*=}
+  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' data/opm/docs-bundles.json) "
+  for r in $REPOS; do
+    case "$fromb" in *" $r "*) ;; *) dirs="$dirs $root/$r/docs/site" ;; esac
+  done
 done
 # shellcheck disable=SC2086 # the roots hold no spaces
 sh "$SCRIPTS/lint-sources.sh" $dirs
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
-sh "$SCRIPTS/gen-catalogs.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
