@@ -26,7 +26,7 @@ site/.bundles/            (signed docs bundles, task bundles:pull from ghcr.io/o
                  /catalogs/opm/<MAJOR.MINOR>/...   /catalogs/opm/edge/...   /catalogs/opm/<MAJOR>/ -> newest minor
 ```
 
-Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2, opm-docs 0.4.0 (docs-kit), git and jq, each pinned; a build runs with no network, and only `task bundles:pull` runs `opm-docs` with it. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
+Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2, opm-docs 0.5.0 (docs-kit), git and jq, each pinned; a build runs with no network, and only `task bundles:pull` runs `opm-docs` with it. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
 
 There is one version, `v1.0` (beta), built from its release lines: the newest cli `v1.0` tag and exactly what it pins, the newest `opm-v4` catalog tag and opm's `main`, resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
 
