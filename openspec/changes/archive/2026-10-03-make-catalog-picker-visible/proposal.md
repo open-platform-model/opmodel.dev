@@ -26,13 +26,13 @@ sidebar: Catalogs
 ```text
 h1 Catalogs
 lead  Pick a catalog to read the reference of its newest release.
-div.opm-catpick
-  article.opm-catpick-card (one per catalog, stacked, full width)
-    h2 a[href=/catalogs/opm/4.5/]  opm catalog        (stretched over the card)
+ul.opm-catpick
+  li.opm-catpick-card (one per catalog, stacked, full width)
+    h2 a[href=/catalogs/opm/4.5/]  opm catalog        Newest release 4.5.1 ->
+       (the title link is stretched over the card)
        opmodel.dev/catalogs/opm@v4
        5 Blueprints  13 Resources  28 Traits
-       Newest release 4.5.1 . open-platform-model/catalog_opm
-       a[href=/catalogs/opm/edge/] main (unreleased)
+       From open-platform-model/catalog_opm   a[href=/catalogs/opm/edge/] main (unreleased)
 sidebar: Catalogs
            opm catalog -> /catalogs/opm/4.5/
 ```

@@ -26,6 +26,8 @@ description: Pick a catalog to read the reference of its newest release.
 ```
 
 ```markdown
+Pick a catalog to read the reference of its newest release.
+
 - [opm catalog](/catalogs/opm/): newest release 4.5.1 ([main, unreleased](/catalogs/opm/edge/)), from `open-platform-model/catalog_opm`
 ```
 
@@ -41,7 +43,7 @@ No bundle carries a display name or a description for a catalog: `manifest.json`
 | Module path `opmodel.dev/catalogs/opm@v4` | `modulePath` in the newest segment's `data/catalog.json`, when the bundle carries it; omitted otherwise |
 | Member kinds with counts (`5 Blueprints`) | the newest landing's child sections (title, weight order); the count is the number of distinct member names in `data/catalog.json` whose `page` lies in that section; without catalog data the kind shows without a count |
 | Repository `open-platform-model/catalog_opm` | `catalogs.json` `repo` (text, not a link: the bundle names no host) |
-| Newest release `4.5.1` | the newest segment's `version` |
+| Newest release `4.5.1`, beside the title with an arrow | the newest segment's `version` |
 | Links | the newest segment's landing, and `edge`'s landing as "main (unreleased)" |
 
 A catalog with no release yet links its card to `edge` and says "No release yet"; it has no second link.
@@ -50,13 +52,13 @@ The name is shown as written (`opm`), never upper-cased: the tab name is a path 
 
 ### 3. One card shape, one column
 
-Cards are stacked, full width, at every width and for any count. Two columns would leave the only card today beside empty space, and a catalog's facts (module path, kinds, repository) read better on one wide row than in a narrow cell. The card is an `article` whose title link is stretched over the card with a `::after` box (the whole card is the newest-release link, keyboard focus lands once on the title); the "main (unreleased)" link is positioned above that box, so it stays its own target. No link nests inside another.
+Cards are stacked, full width, at every width and for any count. Two columns would leave the only card today beside empty space, and a catalog's facts (module path, kinds, repository) read better on one wide row than in a narrow cell. The card is a list item whose title link is stretched over the card with a `::after` box (the whole card is the newest-release link, keyboard focus lands once on the title); the "main (unreleased)" link is positioned above that box, so it stays its own target. No link nests inside another.
 
 The styles live in `site/assets/css/opm/catalog-picker.css`, on Hextra's colour variables, with dark mode keyed on `html.dark`, like `cards.css`.
 
 ### 4. One data partial for the cards and the sidebar
 
-`opm/catalog-entries.html` returns one dict per catalog (name, title, href, release, edgeHref, repo, modulePath, kinds) and is called through `partialCached` once per build. `opm/catalog-picker.html` and `sidebar.html` both read it, so the sidebar entry and the card can never point at different pages.
+`opm/catalog-entries.html` returns one dict per catalog (name, title, href, release, edgeHref, repo, modulePath, kinds) and is called with `partial` (twice per build, only on `/catalogs/`, so it needs no cache). `opm/catalog-picker.html` and `sidebar.html` both read it, so the sidebar entry and the card can never point at different pages.
 
 ### 5. The sidebar on `/catalogs/`
 
