@@ -6,11 +6,33 @@
        to the unversioned Enhancements section; a file-relative link (what cobra's
        GenMarkdownTree writes) resolves against the page's directory. External
        (scheme), #fragment and mailto: links pass through. The anchor markup
-       below the resolution is upstream's, unchanged. */ -}}
+       below the resolution is upstream's, unchanged.
+       A /catalogs/ link (the bare tab root /catalogs/<name>/, or a major
+       alias /catalogs/<name>/<MAJOR>/<page>/; the source lint allows no
+       other form) resolves through data/opm/catalogs.json to the same page
+       in the newest minor of that major (opm/catalog-resolve.html), and the
+       link is written to that page's URL, not the alias. A missing catalog,
+       major or page, a build without the Catalogs section included, fails
+       the build naming task bundles:pull.
+       Transition (openspec add-catalogs-tab, design Decision 12): while the
+       build has the catalog-opm tab, catalog_opm's Reference copies of the
+       members (catalog-members/ or an older tree's catalog-members.md, and
+       catalog-contract.md) are not mounted (scripts/gen-mounts.sh), and the two old
+       targets sources still write resolve as their alias forms:
+       /docs/reference/catalog-contract/ as /catalogs/opm/4/ (fragment kept)
+       and /docs/reference/catalog-members/ as /catalogs/opm/4/#catalog-members.
+       Delete the map once no source writes either (TODO.md). */ -}}
 {{- $dest := .Destination -}}
 {{- $url := urls.Parse $dest -}}
 {{- $internal := and $dest (not $url.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
 {{- $enh := and $internal (or (eq $url.Path "/enhancements") (hasPrefix $url.Path "/enhancements/")) -}}
+{{- $catPath := "" -}}{{- $catFrag := $url.Fragment -}}
+{{- if and $internal (or (eq $url.Path "/catalogs") (hasPrefix $url.Path "/catalogs/")) -}}{{- $catPath = $url.Path -}}{{- end -}}
+{{- with hugo.Data.opm.catalogs -}}{{- range .catalogs -}}{{- if eq .project "catalog-opm" -}}
+  {{- if eq $url.Path "/docs/reference/catalog-contract/" -}}{{- $catPath = "/catalogs/opm/4/" -}}
+  {{- else if eq $url.Path "/docs/reference/catalog-members/" -}}{{- $catPath = "/catalogs/opm/4/" -}}{{- $catFrag = "catalog-members" -}}
+  {{- end -}}
+{{- end -}}{{- end -}}{{- end -}}
 {{- if $enh -}}
   {{- /* The Enhancements section is unversioned: its pages sit in the
          default version's page tree only (site/enhancements/), so a link to
@@ -26,6 +48,18 @@
   {{- else -}}
     {{- $src := "a generated page" -}}{{- with $.PageInner.File -}}{{- $src = .Filename -}}{{- end -}}
     {{- errorf "broken enhancement link %q in %s (version %s): the Enhancements section has no such page" $dest $src $.PageInner.Site.Version.Name -}}
+  {{- end -}}
+{{- else if $catPath -}}
+  {{- $r := partial "opm/catalog-resolve.html" (dict "path" $catPath) -}}
+  {{- $src := "a generated page" -}}{{- with $.PageInner.File -}}{{- $src = .Filename -}}{{- end -}}
+  {{- if not $r.page -}}
+    {{- errorf "broken catalog link %q in %s (version %s): %s" $dest $src $.PageInner.Site.Version.Name $r.err -}}
+  {{- end -}}
+  {{- if eq $r.form "segment" -}}
+    {{- errorf "catalog link %q in %s (version %s): a docs page links a catalog through /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/, never a minor or edge" $dest $src $.PageInner.Site.Version.Name -}}
+  {{- end -}}
+  {{- with $r.page -}}
+    {{- $dest = printf "%s%s" .RelPermalink (cond (ne $catFrag "") (printf "#%s" $catFrag) "") -}}
   {{- end -}}
 {{- else if $internal -}}
   {{- $target := $url.Path -}}

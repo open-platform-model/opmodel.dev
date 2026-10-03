@@ -249,7 +249,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `4dc241a46dd6e37f202c4bc5ef15b0b9bc8a79ddbfa14f070bc8d8476dd42abf`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `ddbc14d8e91e37a10afb437c3d82a2e3180dd30b5c6bfe3783a825fde7584ee9`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -291,6 +291,16 @@ for dir in "$@"; do
       function dest(t) {
         if (t ~ /^(https?:|mailto:|#)/) return
         if (t ~ /^\/docs\//) { if (t !~ /^\/docs\/([a-z0-9-]+\/)*(#[^ ]*)?$/) err(NR, "internal link \"" t "\": write /docs/<section>/<page>/ with a trailing slash"); return }
+        if (t ~ /^\/catalogs([\/#]|$)/) {
+          # A docs page links a catalog through its bare tab root or a major
+          # alias, never a minor or edge (docs-kit C11, docs mode).
+          if (t ~ /^\/catalogs\/[a-z0-9]+(-[a-z0-9]+)*\/((0|[1-9][0-9]*)\/([a-z0-9-]+\/)*)?(#[^ ]*)?$/) return
+          n = t; sub(/^\/catalogs\//, "", n); split(n, seg, "/")
+          if (seg[2] ~ /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/) { mj = seg[2]; sub(/\..*$/, "", mj); err(NR, "catalog link \"" t "\": docs pages link catalogs through /catalogs/" seg[1] "/" mj "/") }
+          else if (seg[2] == "edge") err(NR, "catalog link \"" t "\": docs pages link catalogs through /catalogs/" seg[1] "/<MAJOR>/")
+          else err(NR, "catalog link \"" t "\": write /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/<path>/ with a trailing slash")
+          return
+        }
         if (t ~ /^\/enhancements([\/#]|$)/) { if (t !~ /^\/enhancements\/([0-9][0-9][0-9][0-9]\/((problem|design|decisions|graduation|risks|operational|questions)\/)?)?(#[^ ]*)?$/) err(NR, "enhancement link \"" t "\": write /enhancements/, /enhancements/<NNNN>/ or /enhancements/<NNNN>/<document>/ with a trailing slash"); return }
         err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ or /enhancements/<NNNN>/ (no relative, .md or version-prefixed links)")
       }

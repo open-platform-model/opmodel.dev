@@ -91,6 +91,22 @@ sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 sh "$SCRIPTS/gen-mounts.sh" config/production/module.toml $VERSIONS
 # shellcheck disable=SC2086
 sh "$SCRIPTS/check-pages.sh" pre $VERSIONS
+# The transition (openspec add-catalogs-tab, design Decision 12): every
+# published source page that still links one of the two old Reference
+# targets, which layouts/_markup/render-link.html maps to the Catalogs tab
+# while the build has catalog-opm. It never fails; the follow-up that deletes
+# the map (TODO.md) waits for "none" on a main build.
+if [ -n "$CAT_DIR" ] && jq -e '[.catalogs[] | select(.project == "catalog-opm")] | length > 0' data/opm/catalogs.json >/dev/null; then
+  old=$(for pair in $VERSIONS; do
+    v=${pair%%=*}; root=${pair#*=}
+    for r in $REPOS; do
+      grep -rlE '/docs/reference/catalog-(contract|members)/' "$root/$r/docs/site" 2>/dev/null |
+        grep -vE '/catalog_opm/docs/site/reference/catalog-(members/|members\.md$|contract\.md$)' | sed "s#^$root/##; s#^#  $v: #" || true
+    done
+  done)
+  if [ -n "$old" ]; then echo "transition: pages that still link /docs/reference/catalog-contract/ or /docs/reference/catalog-members/ (mapped to /catalogs/opm/4/):"; echo "$old"
+  else echo "transition: no page links /docs/reference/catalog-contract/ or /docs/reference/catalog-members/; the legacy map can go (TODO.md)"; fi
+fi
 
 step "hugo build ($(hugo version | cut -d' ' -f1-2))"
 if [ -n "$OPM_BASE_URL" ]; then set -- --baseURL "$OPM_BASE_URL"; else set --; fi

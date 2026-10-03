@@ -1,0 +1,3 @@
++ build-all: no catalogs section
++ broken catalog link "/catalogs/opm/"
++ the build has no catalog "opm" (no Catalogs section, or no such tab; run task bundles:pull)

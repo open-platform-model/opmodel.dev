@@ -140,6 +140,23 @@ jobs:
 
       - name: Lint the workflows
         run: task ci:lint
+      - name: Pull the docs bundles
+        # The Catalogs tab's signed docs bundles (site/bundles.cue): opm-docs
+        # in the build image resolves, verifies and unpacks them into
+        # site/.bundles/ with lock.json. Anonymous: the packages are public,
+        # so no token and no permission. task build never pulls.
+        run: task bundles:pull
+      - name: Upload the docs bundles' lock
+        # The digests this build reads, so the browser and sources-main jobs
+        # pull exactly them (--frozen) and QA checks what deploys. Every
+        # event; include-hidden-files, because .bundles is a dot directory.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundles-lock
+          path: opmodel.dev/site/.bundles/lock.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
       - name: Check, build and test the site
         run: task ci
       - name: The build leaves the tree clean
@@ -164,8 +181,23 @@ jobs:
             echo '|---|---|---|---|---|---|'
             jq -r '.versions | to_entries[] | .key as $v | .value.refs | to_entries[]
               | "| \($v) | \(.key) | \(.value.ref) | \(.value.docs // "") | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
-            jq -r '.sections // {} | to_entries[]
+            jq -r '.sections // {} | to_entries[] | select(.value.ref)
               | "| (unversioned) | \(.key) | \(.value.ref) | | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
+            if jq -e '.sections.catalogs' site/public/build-stamp.json >/dev/null; then
+              if jq -e '.sections.catalogs.frozen' site/public/build-stamp.json >/dev/null; then
+                echo '::warning::The docs bundles were pulled frozen (site/bundles.frozen.json): the Catalogs tab shows pinned digests, not the newest tags. Delete the file once upstream is fixed.'
+                echo
+                echo '> [!WARNING]'
+                echo '> The docs bundles were pulled frozen (site/bundles.frozen.json); delete it once upstream is fixed.'
+              fi
+              echo
+              echo '### Catalogs'
+              echo
+              echo '| Project | Segment | Version | Revision | Digest | Commit |'
+              echo '|---|---|---|---|---|---|'
+              jq -r '.sections.catalogs.bundles[]
+                | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' site/public/build-stamp.json
+            fi
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -189,12 +221,17 @@ jobs:
         # temporary merge commit, which the header would name and which goes
         # away. Its own artifact, so build-stamp.json stays at the root of
         # build-stamp; include-hidden-files, because upload-artifact skips
-        # paths under a dot directory such as .versions.
+        # paths under a dot directory such as .versions. It also holds the
+        # docs bundles' lock, .bundles/lock.json beside .versions/frozen.conf:
+        # copied to site/bundles.frozen.json, it pins task bundles:pull to the
+        # digests this build read (README, "The Catalogs section").
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: build-manifest
-          path: opmodel.dev/site/.versions/frozen.conf
+          path: |
+            opmodel.dev/site/.versions/frozen.conf
+            opmodel.dev/site/.bundles/lock.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
@@ -217,6 +254,9 @@ jobs:
 
   browser:
     name: Browser QA
+    # It pulls the docs bundles the build job read (bundles-lock), so it
+    # waits for that job.
+    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
@@ -297,13 +337,19 @@ jobs:
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           version: 3.52.0
-      - name: Screenshots, accessibility and search smoke tests
-        # The fixture docs bundles give the build its Catalogs section, so
-        # the catalog shots, accessibility and search checks run, until the
-        # pull step (openspec add-catalogs-tab, task 5.4) replaces this with
-        # the real bundles. This build is QA only; nothing deploys it.
+      - name: Download the build job's docs bundles' lock
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundles-lock
+          path: ${{ runner.temp }}/bundles-lock
+      - name: Pull the docs bundles the build job read
+        # Exactly the build job's digests (opm-docs pull --frozen, signatures
+        # still checked), so this job checks the bundles that deploy, not
+        # whatever edge moved to since. The stamp then says "frozen": true.
         env:
-          OPM_BUNDLES: site/tests/fixtures/bundles
+          OPM_BUNDLES_FROZEN: ${{ runner.temp }}/bundles-lock/lock.json
+        run: task bundles:pull
+      - name: Screenshots, accessibility and search smoke tests
         run: task qa
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         # The screenshots are the only way to see why an accessibility or
@@ -327,6 +373,9 @@ jobs:
   # Dates are not its subject: shallow checkouts, OPM_REQUIRE_DATES off.
   sources-main:
     name: Source pages on main (not published)
+    # It pulls the docs bundles the build job read (bundles-lock), so it
+    # waits for that job.
+    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -394,6 +443,18 @@ jobs:
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           version: 3.52.0
+      - name: Download the build job's docs bundles' lock
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundles-lock
+          path: ${{ runner.temp }}/bundles-lock
+      - name: Pull the docs bundles the build job read
+        # Exactly the build job's digests (opm-docs pull --frozen, signatures
+        # still checked), so this job checks the bundles that deploy, not
+        # whatever edge moved to since. The stamp then says "frozen": true.
+        env:
+          OPM_BUNDLES_FROZEN: ${{ runner.temp }}/bundles-lock/lock.json
+        run: task bundles:pull
       - name: Build the main checkouts in explicit mode
         env:
           OPM_VERSIONS: v1.0=/src

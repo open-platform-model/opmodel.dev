@@ -13,8 +13,11 @@
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
 #   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge) and
 #                                              the lock an all-local opm-docs pull writes over
-#                                              them; every site copy holds them as .bundles/,
-#                                              with tests/fixtures/bundles.cue as bundles.cue
+#                                              them; the tests first re-pull them offline with
+#                                              the pinned opm-docs and fail unless the result is
+#                                              byte-identical, then every site copy holds that
+#                                              pulled tree as .bundles/, with
+#                                              tests/fixtures/bundles.cue as bundles.cue
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), read in place as explicit mode
@@ -67,11 +70,11 @@ copy_site() {
     [ -f "$e" ] && cp "$e" "$d/"
   done
   rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles"
-  # The fixture docs bundles as an unpacked pull (tests/fixtures/bundles/:
-  # the bundle trees and the lock an all-local opm-docs pull writes over
-  # them), with the bundles.cue they were pulled for, so every build has the
-  # Catalogs section: explicit mode reads .bundles/ when it holds lock.json.
-  cp -R "$TESTS/fixtures/bundles" "$d/.bundles"
+  # The fixture docs bundles as opm-docs pulled them (BUNDLES, the
+  # all-local pull below), with the bundles.cue they were pulled for, so
+  # every build has the Catalogs section: explicit mode reads .bundles/ when
+  # it holds lock.json.
+  cp -R "$BUNDLES" "$d/.bundles"
   cp "$TESTS/fixtures/bundles.cue" "$d/bundles.cue"
   return 0
 }
@@ -120,8 +123,53 @@ dq() { tr -d '"' < "$1"; }
 # refresh_of FILE: the URL a meta-refresh page sends to.
 refresh_of() { grep -oE 'url=[^"> ]+' "$1" | head -n 1 | cut -c5-; }
 
+# fixture_pull SRC DST: the all-local opm-docs pull (docs-kit C7 --local, no
+# network) of every bundle tree SRC/lock.json names into DST, with
+# tests/fixtures/bundles.cue; then DST must be byte-identical to SRC, lock.json
+# included. Output in DST.log.
+fixture_pull() {
+  (
+    set -e
+    set -- "$1" "$2" $(jq -r '.bundles[] | "--local \(.project)@\(.segment)='"$1"'/\(.dir)"' "$1/lock.json")
+    src=$1; dst=$2; shift 2
+    cache=$(mktemp -d)
+    rc=0; XDG_CACHE_HOME=$cache opm-docs pull --config "$TESTS/fixtures/bundles.cue" --out "$dst" --lock "$dst/lock.json" "$@" || rc=$?
+    rm -rf "$cache"
+    [ $rc -eq 0 ]
+    diff -r "$src" "$dst"
+  ) > "$2.log" 2>&1
+}
+
 rm -rf "$OUT"
 mkdir -p "$OUT"
+
+# ---------------------------------------------------------------------------
+# The fixture bundles through the real tool: the pinned opm-docs re-pulls them
+# offline, validating every manifest, applying the unpack guards and linting
+# each tree in bundle mode, and must write exactly the fixture tree and lock.
+# Every later fixture build reads the pulled copy. A fixture edit regenerates
+# lock.json with the same pull.
+BUNDLES=$OUT/bundles
+if fixture_pull "$TESTS/fixtures/bundles" "$BUNDLES"; then
+  ok "catalogs/fixture-pull" "opm-docs $(opm-docs version | cut -d' ' -f2) pulls the fixture bundles offline, byte-identical to tests/fixtures/bundles/ (lock included)"
+else
+  bad "catalogs/fixture-pull" "the all-local pull failed or differs from tests/fixtures/bundles/; regenerate lock.json with it" "$BUNDLES.log"
+  BUNDLES=$TESTS/fixtures/bundles
+fi
+# cat-fixture-drift: one edited byte (a commit in the lock) must fail it.
+mkdir -p "$OUT/cat-fixture-drift"
+cp -R "$TESTS/fixtures/bundles" "$OUT/cat-fixture-drift/src"
+awk '!done && /"commit": "/ { c = substr($0, index($0, "\"commit\": \"") + 11, 1); sub(/"commit": "./, "\"commit\": \"" (c == "0" ? "1" : "0")); done = 1 } { print }' \
+  "$TESTS/fixtures/bundles/lock.json" > "$OUT/cat-fixture-drift/src/lock.json"
+if cmp -s "$TESTS/fixtures/bundles/lock.json" "$OUT/cat-fixture-drift/src/lock.json"; then
+  bad "checks/cat-fixture-drift" "the case did not edit the fixture lock"
+elif fixture_pull "$OUT/cat-fixture-drift/src" "$OUT/cat-fixture-drift/pulled"; then
+  bad "checks/cat-fixture-drift" "a fixture lock edited by one byte still matched the pull" "$OUT/cat-fixture-drift/pulled.log"
+elif grep -qF 'lock.json' "$OUT/cat-fixture-drift/pulled.log"; then
+  ok "checks/cat-fixture-drift" "a fixture that is not what opm-docs pull writes fails, naming the file"
+else
+  bad "checks/cat-fixture-drift" "the pull failed, but not on the edited lock.json" "$OUT/cat-fixture-drift/pulled.log"
+fi
 
 # ---------------------------------------------------------------------------
 # Lint: each case prints exactly the violations its expect file names, each
@@ -143,9 +191,27 @@ for c in "$TESTS"/lint/*/; do
       awk -v w="$OUT/$name/ws/$e" 'index($0, w) == 1 { f = 1 } END { exit !f }' "$log" || why="${why:+$why; }missing: $e"
     done < "$c/expect"
   fi
+  # Parity with docs-kit (C11): the pinned opm-docs lint over the same
+  # roots, paths relative to the workspace copy, must report the same
+  # violations: as many lines, each starting with one expect line (the
+  # expect lines are prefixes, as for the shell lint), and exit 2 (0 clean).
+  # shellcheck disable=SC2046 # repo names hold no spaces
+  (cd "$OUT/$name/ws" && opm-docs lint $(for r in $REPOS; do printf ' %s/docs/site' "$r"; done)) > "$OUT/$name/opm-docs.log" 2>&1; drc=$?
+  grep -E '^[^ ]+:[0-9]+: ' "$OUT/$name/opm-docs.log" > "$OUT/$name/opm-docs.out"
+  if [ "$n" -eq 0 ]; then
+    [ $drc -eq 0 ] && [ ! -s "$OUT/$name/opm-docs.out" ] || why="${why:+$why; }opm-docs lint: expected a clean tree (exit $drc)"
+  else
+    [ $drc -eq 2 ] || why="${why:+$why; }opm-docs lint: expected exit 2 (exit $drc)"
+    awk 'NR == FNR { if ($0 != "") e[++ne] = $0; next } { o[++no] = $0 }
+      END { if (ne != no) { print "count " no " != " ne; bad = 1 }
+            for (i = 1; i <= ne; i++) { f = 0; for (j = 1; j <= no; j++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "missing: " e[i]; bad = 1 } }
+            for (j = 1; j <= no; j++) { f = 0; for (i = 1; i <= ne; i++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "extra: " o[j]; bad = 1 } }
+            exit bad }' "$c/expect" "$OUT/$name/opm-docs.out" > "$OUT/$name/opm-docs.diff" ||
+      why="${why:+$why; }opm-docs lint differs: $(head -n 2 "$OUT/$name/opm-docs.diff" | tr '\n' ' ')"
+  fi
   if [ "$n" -eq 0 ]; then first=clean; else first=$(head -n 1 "$c/expect"); fi
   if [ "$n" -gt 1 ]; then first="$first (+$((n - 1)) more)"; fi
-  if [ -z "$why" ]; then ok "$name" "$first"; else bad "$name" "$why" "$log"; fi
+  if [ -z "$why" ]; then ok "$name" "$first (shell lint and opm-docs lint)"; else bad "$name" "$why" "$log"; fi
 done
 
 # ---------------------------------------------------------------------------
@@ -457,11 +523,37 @@ if [ $rc -eq 0 ]; then
   if [ -z "$why" ]; then ok "catalogs/search" "4.4, 4.5 and edge each have a Pagefind bundle, and their pages' search loads it"
   else bad "catalogs/search" "$why"; fi
 
+  # Docs pages link the tab through the bare root and the major alias; the
+  # site writes the newest 4.x minor's URL, and the .md output the alias.
+  why=""
+  r=$(dq "$P/docs/concepts/catalog-links/index.html")
+  for want in 'href=/catalogs/opm/4.5/>opm catalog' 'href=/catalogs/opm/4.5/>newest 4.x' 'href=/catalogs/opm/4.5/traits/backup/#spec>the backup trait'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
+  done
+  grep -qF '](https://opmodel.dev/catalogs/opm/4/traits/backup/#spec)' "$P/docs/concepts/catalog-links.md" || why="${why:+$why; }the .md output does not link the absolute alias"
+  if [ -z "$why" ]; then ok "catalogs/docs-links" "/catalogs/opm/ and /catalogs/opm/4/... resolve to /catalogs/opm/4.5/..., fragment kept; the .md output keeps the alias, absolute"
+  else bad "catalogs/docs-links" "$why"; fi
+
+  # The transition: with catalog-opm, the Reference copies are not
+  # published, the two old targets resolve to the tab, and the build lists
+  # the pages that still write them; no redirect or stub for the old URLs.
+  why=""
+  [ ! -e "$P/docs/reference/catalog-contract" ] && [ ! -e "$P/docs/reference/catalog-members" ] || why="a Reference copy was published"
+  [ ! -e "$OUT/$name/site/public/latest/docs/reference/catalog-contract" ] || why="${why:+$why; }a /latest/ stub for the old URL"
+  ! grep -q 'catalog-contract\|catalog-members' "$OUT/$name/site/public/_redirects" || why="${why:+$why; }_redirects names an old URL"
+  dq "$P/docs/reference/registry-fixture/index.html" | grep -qF 'href=/catalogs/opm/4.5/#contract-levels>the catalog contract' || why="${why:+$why; }catalog-contract/ is not mapped to the 4.5 landing"
+  dq "$P/docs/reference/kubernetes-fixture/index.html" | grep -qF 'href=/catalogs/opm/4.5/#catalog-members>the catalog members' || why="${why:+$why; }catalog-members/ is not mapped to #catalog-members"
+  grep -qF '](https://opmodel.dev/catalogs/opm/4/#contract-levels)' "$P/docs/reference/registry-fixture.md" || why="${why:+$why; }the .md output keeps the old target"
+  grep -qF '  v1.0: cli/docs/site/reference/registry-fixture.md' "$log" && grep -qF '  v1.0: catalog_opm/docs/site/reference/kubernetes-fixture.md' "$log" &&
+    ! grep -qE '^  v1.0: catalog_opm/docs/site/reference/catalog-' "$log" || why="${why:+$why; }the build does not list the pages that still link the old targets"
+  if [ -z "$why" ]; then ok "catalogs/transition" "the Reference copies are not published, no redirect for them; catalog-contract/ and catalog-members/ resolve to the 4.5 landing (#catalog-members); the build lists both pages that write them"
+  else bad "catalogs/transition" "$why" "$log"; fi
+
   st=$OUT/$name/site/public/build-stamp.json
-  got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
-  if [ "$got" = "explicit true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
+  got=$(jq -r '.sections.catalogs | "\(.from) \(.frozen) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
+  if [ "$got" = "explicit false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
      [ "$(jq -r '.sections.enhancements.ref' "$st")" = worktree ]; then
-    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, the lock digest and every bundle (local); sections.enhancements kept"
+    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest and every bundle (local); sections.enhancements kept"
   else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi
 
@@ -475,12 +567,35 @@ mkdir -p "$OUT/$name/site/.versions/v1.0"
 cp -R "$WS/." "$OUT/$name/site/.versions/v1.0/"
 rm -rf "$OUT/$name/site/.versions/v1.0/enhancements"
 printf 'v1.0\tv1.0 (manifest)\t1\ttrue\tanchored\n' > "$OUT/$name/site/.versions/versions.tsv"
+# As a frozen pull leaves it: the marker run-in-image.sh writes.
+echo site/bundles.frozen.json > "$OUT/$name/site/.bundles/frozen"
 (SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
 st=$OUT/$name/site/public/build-stamp.json
 if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (manifest)" "$OUT/$name/log" &&
-   [ "$(jq -r '.sections.catalogs.from' "$st")" = manifest ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
-  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest)"
+   [ "$(jq -r '.sections.catalogs | "\(.from) \(.frozen)"' "$st")" = "manifest true" ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
+  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest); a frozen pull's marker shows as "frozen": true"
 else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
+
+# ---------------------------------------------------------------------------
+# The fixture workspace without docs bundles: no Catalogs section and no tab,
+# the Reference copies of the members published, the old targets their own.
+name=no-catalogs
+copy_site "$name"; copy_ws "$name"
+rm -rf "$OUT/$name/site/.bundles" "$OUT/$name/site/bundles.cue" "$OUT/$name/ws/core/docs/site/concepts/catalog-links.md"
+build "$name" "$OUT/$name/ws"; rc=$?
+P=$OUT/$name/site/public/v1.0
+if [ $rc -ne 0 ]; then bad "$name" "the build without bundles failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  [ ! -e "$OUT/$name/site/public/catalogs" ] || why="public/catalogs exists"
+  ! dq "$P/docs/start/quickstart/index.html" | grep -qF 'href=/catalogs/' || why="${why:+$why; }a Catalogs tab"
+  [ -f "$P/docs/reference/catalog-contract/index.html" ] && [ -f "$P/docs/reference/catalog-members/index.html" ] || why="${why:+$why; }the Reference copies are missing"
+  dq "$P/docs/reference/registry-fixture/index.html" | grep -qF 'href=/v1.0/docs/reference/catalog-contract/#contract-levels>' || why="${why:+$why; }catalog-contract/ is mapped without the tab"
+  ! grep -q '^/catalogs/' "$OUT/$name/site/public/_redirects" || why="${why:+$why; }_redirects has catalog lines"
+  ! grep -q '^transition:' "$OUT/$name/log" || why="${why:+$why; }the transition listing ran"
+  if [ -z "$why" ]; then ok "$name" "no section, no tab, no catalog _redirects lines; the Reference copies publish and the old links are their own"
+  else bad "$name" "$why" "$OUT/$name/log"; fi
+fi
 
 # ---------------------------------------------------------------------------
 # The fixture workspace under a two-segment base path (tests/subpath/env): the
