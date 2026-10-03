@@ -53,7 +53,7 @@
   {{- else -}}
     {{- errorf "catalogs: %s: link %q: a bundle page links /catalogs/, /docs/ or /enhancements/" $at $dest -}}
   {{- end -}}
-  {{- $dest = printf "%s%s" $p.RelPermalink $frag -}}
+  {{- with $p -}}{{- $dest = printf "%s%s" .RelPermalink $frag -}}{{- end -}}
 {{- end -}}
 
 {{- with . -}}

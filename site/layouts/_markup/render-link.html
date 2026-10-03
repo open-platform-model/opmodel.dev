@@ -58,7 +58,9 @@
   {{- if eq $r.form "segment" -}}
     {{- errorf "catalog link %q in %s (version %s): a docs page links a catalog through /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/, never a minor or edge" $dest $src $.PageInner.Site.Version.Name -}}
   {{- end -}}
-  {{- $dest = printf "%s%s" $r.page.RelPermalink (cond (ne $catFrag "") (printf "#%s" $catFrag) "") -}}
+  {{- with $r.page -}}
+    {{- $dest = printf "%s%s" .RelPermalink (cond (ne $catFrag "") (printf "#%s" $catFrag) "") -}}
+  {{- end -}}
 {{- else if $internal -}}
   {{- $target := $url.Path -}}
   {{- if not (hasPrefix $target "/") -}}
