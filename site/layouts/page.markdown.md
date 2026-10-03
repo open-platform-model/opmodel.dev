@@ -11,8 +11,8 @@
        page shows it. */ -}}
 {{- $body := .RawContent | replaceRE `(?s)<!--.*?-->\n?` "" -}}
 {{- with hugo.Data.opm.catalogs -}}{{- range .catalogs -}}{{- if eq .project "catalog-opm" -}}
-  {{- $body = replaceRE `(\]\(|\]:[ \t]*)/docs/reference/catalog-contract/` (printf "${1}%s" (absURL "catalogs/opm/4/")) $body -}}
-  {{- $body = replaceRE `(\]\(|\]:[ \t]*)/docs/reference/catalog-members/(#[^)\s]*)?` (printf "${1}%s" (absURL "catalogs/opm/4/#catalog-members")) $body -}}
+  {{- $body = replaceRE `(?m)(\]\(|\]:[ \t]*)/docs/reference/catalog-contract/(#[^)\s]*)?([)\s]|$)` (printf "${1}%s${2}${3}" (absURL "catalogs/opm/4/")) $body -}}
+  {{- $body = replaceRE `(?m)(\]\(|\]:[ \t]*)/docs/reference/catalog-members/(#[^)\s]*)?([)\s]|$)` (printf "${1}%s${3}" (absURL "catalogs/opm/4/#catalog-members")) $body -}}
 {{- end -}}{{- end -}}{{- end -}}
 {{- $body = replaceRE `(\]\(|\]:[ \t]*)/docs/` (printf "${1}%sdocs/" .Site.Home.Permalink) $body -}}
 {{- $body = replaceRE `(\]\(|\]:[ \t]*)/enhancements/` (printf "${1}%s" (absURL "enhancements/")) $body -}}
