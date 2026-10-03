@@ -43,7 +43,7 @@ RUN wget -q "https://github.com/open-platform-model/docs-kit/releases/download/v
 docker run --rm --init --user <uid>:<gid> --env HOME=/tmp --env XDG_CACHE_HOME=/cache
   --volume <repo>/site/bundles.cue:/in/bundles.cue:ro
   --volume <repo>/site/.bundles:/out
-  --volume <repo>/site/.cache/opm-docs:/cache
+  --volume <repo>/site/.cache:/cache                                        (blobs under site/.cache/opm-docs/)
   [--volume <OPM_BUNDLES_LOCAL dir>:/local/<project>/<segment>:ro]...      (one per pair)
   [--volume <repo>/site/bundles.frozen.json:/in/frozen.json:ro]
   --entrypoint opm-docs <build image>
@@ -75,7 +75,7 @@ The bundles a build reads, resolved in `site/scripts/sections.sh` (Decision 3):
 | explicit mode (`OPM_VERSIONS` set) | `site/.bundles/` when it holds `lock.json` | no: without it the build has no Catalogs section | as above, when present |
 | `OPM_BUNDLES=<dir>` set (tests, an author's saved tree) | that directory (mounted read-only by `run-in-image.sh`) | yes | skipped; the stamp records `"from": "OPM_BUNDLES"` |
 
-`OPM_BUNDLES_LOCAL` takes one or more `<project>@<segment>=<host dir>` pairs (`docs-kit C7`, repeatable); `run-in-image.sh pull` mounts each directory read-only and passes `--local` per pair. A pull whose every tab is local runs with `--network none`. A lock entry with `"local": true` builds, and the stamp shows it. CI never sets `OPM_BUNDLES_LOCAL` or `OPM_BUNDLES` for a published build.
+`OPM_BUNDLES_LOCAL` takes one or more `<project>@<segment>=<host dir>` pairs (`docs-kit C7`, repeatable); `run-in-image.sh pull` mounts each directory read-only and passes `--local` per pair. A pull whose every tab is local runs with `--network none`. Because `--local` skips registry resolution for the whole project, a preview names every segment it needs: at least one release minor of each major the docs link (`catalog-opm@4.5=<opm-docs build --release output> catalog-opm@edge=<edge build>`), else the docs' `/catalogs/opm/4/` links fail the build as designed. A lock entry with `"local": true` builds, and the stamp shows it. CI never sets `OPM_BUNDLES_LOCAL` or `OPM_BUNDLES` for a published build.
 
 **Recovery.** When a newly published bundle breaks the build (it fails `pull`'s lint or a site check), a committed `site/bundles.frozen.json` (a copy of the last good build's lock, from the `build-manifest` artifact) makes `bundles:pull` pass `--frozen`; deleting it returns to resolution. It plays the role `override` plays for a version, and README names it.
 
