@@ -13,8 +13,11 @@
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
 #   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge) and
 #                                              the lock an all-local opm-docs pull writes over
-#                                              them; every site copy holds them as .bundles/,
-#                                              with tests/fixtures/bundles.cue as bundles.cue
+#                                              them; the tests first re-pull them offline with
+#                                              the pinned opm-docs and fail unless the result is
+#                                              byte-identical, then every site copy holds that
+#                                              pulled tree as .bundles/, with
+#                                              tests/fixtures/bundles.cue as bundles.cue
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), read in place as explicit mode
@@ -67,11 +70,11 @@ copy_site() {
     [ -f "$e" ] && cp "$e" "$d/"
   done
   rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles"
-  # The fixture docs bundles as an unpacked pull (tests/fixtures/bundles/:
-  # the bundle trees and the lock an all-local opm-docs pull writes over
-  # them), with the bundles.cue they were pulled for, so every build has the
-  # Catalogs section: explicit mode reads .bundles/ when it holds lock.json.
-  cp -R "$TESTS/fixtures/bundles" "$d/.bundles"
+  # The fixture docs bundles as opm-docs pulled them (BUNDLES, the
+  # all-local pull below), with the bundles.cue they were pulled for, so
+  # every build has the Catalogs section: explicit mode reads .bundles/ when
+  # it holds lock.json.
+  cp -R "$BUNDLES" "$d/.bundles"
   cp "$TESTS/fixtures/bundles.cue" "$d/bundles.cue"
   return 0
 }
@@ -120,8 +123,50 @@ dq() { tr -d '"' < "$1"; }
 # refresh_of FILE: the URL a meta-refresh page sends to.
 refresh_of() { grep -oE 'url=[^"> ]+' "$1" | head -n 1 | cut -c5-; }
 
+# fixture_pull SRC DST: the all-local opm-docs pull (docs-kit C7 --local, no
+# network) of every bundle tree SRC/lock.json names into DST, with
+# tests/fixtures/bundles.cue; then DST must be byte-identical to SRC, lock.json
+# included. Output in DST.log.
+fixture_pull() {
+  (
+    set -e
+    set -- "$1" "$2" $(jq -r '.bundles[] | "--local \(.project)@\(.segment)='"$1"'/\(.dir)"' "$1/lock.json")
+    src=$1; dst=$2; shift 2
+    XDG_CACHE_HOME=$(mktemp -d) opm-docs pull --config "$TESTS/fixtures/bundles.cue" --out "$dst" --lock "$dst/lock.json" "$@"
+    diff -r "$src" "$dst"
+  ) > "$2.log" 2>&1
+}
+
 rm -rf "$OUT"
 mkdir -p "$OUT"
+
+# ---------------------------------------------------------------------------
+# The fixture bundles through the real tool: the pinned opm-docs re-pulls them
+# offline, validating every manifest, applying the unpack guards and linting
+# each tree in bundle mode, and must write exactly the fixture tree and lock.
+# Every later fixture build reads the pulled copy. A fixture edit regenerates
+# lock.json with the same pull.
+BUNDLES=$OUT/bundles
+if fixture_pull "$TESTS/fixtures/bundles" "$BUNDLES"; then
+  ok "catalogs/fixture-pull" "opm-docs $(opm-docs version | cut -d' ' -f2) pulls the fixture bundles offline, byte-identical to tests/fixtures/bundles/ (lock included)"
+else
+  bad "catalogs/fixture-pull" "the all-local pull failed or differs from tests/fixtures/bundles/; regenerate lock.json with it" "$BUNDLES.log"
+  BUNDLES=$TESTS/fixtures/bundles
+fi
+# cat-fixture-drift: one edited byte (a commit in the lock) must fail it.
+mkdir -p "$OUT/cat-fixture-drift"
+cp -R "$TESTS/fixtures/bundles" "$OUT/cat-fixture-drift/src"
+awk '!done && /"commit": "/ { c = substr($0, index($0, "\"commit\": \"") + 11, 1); sub(/"commit": "./, "\"commit\": \"" (c == "0" ? "1" : "0")); done = 1 } { print }' \
+  "$TESTS/fixtures/bundles/lock.json" > "$OUT/cat-fixture-drift/src/lock.json"
+if cmp -s "$TESTS/fixtures/bundles/lock.json" "$OUT/cat-fixture-drift/src/lock.json"; then
+  bad "checks/cat-fixture-drift" "the case did not edit the fixture lock"
+elif fixture_pull "$OUT/cat-fixture-drift/src" "$OUT/cat-fixture-drift/pulled"; then
+  bad "checks/cat-fixture-drift" "a fixture lock edited by one byte still matched the pull" "$OUT/cat-fixture-drift/pulled.log"
+elif grep -qF 'lock.json' "$OUT/cat-fixture-drift/pulled.log"; then
+  ok "checks/cat-fixture-drift" "a fixture that is not what opm-docs pull writes fails, naming the file"
+else
+  bad "checks/cat-fixture-drift" "the pull failed, but not on the edited lock.json" "$OUT/cat-fixture-drift/pulled.log"
+fi
 
 # ---------------------------------------------------------------------------
 # Lint: each case prints exactly the violations its expect file names, each

@@ -41,8 +41,9 @@ context: |
 
   ### III. Generated Before Handwritten
   Reference pages are generated in the repository that owns their source (core's definitions,
-  the catalog's members, the CLI's commands, the operator's resources), committed there with a
-  staleness check, and never hand-edited. A generated block is marked apart from authored
+  the CLI's commands, the operator's resources), committed there with a staleness check, or
+  published as signed docs bundles by docs-kit (the catalog's members, the Catalogs tab), and
+  never hand-edited. A generated block is marked apart from authored
   text. A doc bug that traces to source is fixed upstream, not in the generated output. This
   repo generates no pages.
 

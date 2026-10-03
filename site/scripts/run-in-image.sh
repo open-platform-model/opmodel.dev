@@ -5,6 +5,8 @@
 #
 #   run-in-image.sh image    build opmodel-dev-hugo:<first 12 hex of sha256(Dockerfile)> if missing (network)
 #   run-in-image.sh tag      print that tag
+#   run-in-image.sh pull     opm-docs pull of site/bundles.cue in the image -> site/.bundles/ (network,
+#                            unless every tab is local)
 #   run-in-image.sh build    build-all.sh in the image, --network none -> site/public/
 #   run-in-image.sh serve    serve.sh in the image, published on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
@@ -42,6 +44,10 @@
 #                      repo or absolute. Build and serve mount it read-only at /bundles and pass
 #                      OPM_BUNDLES=/bundles, so the Catalogs section comes from it instead of
 #                      site/.bundles/ (site/scripts/sections.sh).
+#   OPM_BUNDLES_LOCAL  pull mode only: <project>@<segment>=<host dir> ..., space-separated, each a
+#                      local bundle tree (an opm-docs build output) pull takes instead of the
+#                      registry (docs-kit C7 --local). Each is mounted read-only. A pull whose every
+#                      tab of site/bundles.cue is named here runs with --network none.
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
@@ -190,5 +196,44 @@ case "$mode" in
     cmd="python3 $b/shots.py && python3 $b/diagrams.py"
     if [ "$mode" = qa ]; then cmd="$cmd && python3 $b/a11y.py && python3 $b/search.py"; fi
     run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
-  *) sed -n '2,15p' "$0" >&2; exit 2 ;;
+  pull)
+    # The only network step besides the image builds and versions:fetch:
+    # opm-docs resolves the tabs of site/bundles.cue in GHCR, verifies each
+    # signature, unpacks into site/.bundles/ and writes its lock.json. It
+    # mounts only the config, the output, its cache, the local trees and the
+    # frozen lock; no source root, no repo-wide write, no token.
+    [ -f site/bundles.cue ] || die "site/bundles.cue does not exist: there is no Catalogs tab to pull"
+    image >/dev/null
+    mkdir -p site/.bundles site/.cache
+    set -- pull --config /in/bundles.cue --out /out --lock /out/lock.json
+    vols="--volume $repo/site/bundles.cue:/in/bundles.cue:ro --volume $repo/site/.bundles:/out --volume $repo/site/.cache:/cache"
+    case "$repo" in *[:,\ ]*) die "$repo contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+    localproj=" "
+    for pair in $(envval OPM_BUNDLES_LOCAL); do
+      key=${pair%%=*}; dir=${pair#*=}
+      case "$key" in *@*) ;; *) die "OPM_BUNDLES_LOCAL: $pair is not <project>@<segment>=<dir>" ;; esac
+      [ "$key" != "$pair" ] && [ -f "$dir/manifest.json" ] || die "OPM_BUNDLES_LOCAL: $pair names no bundle tree (no manifest.json in ${dir:-the empty path})"
+      abs=$(cd "$dir" && pwd -P)
+      case "$abs" in *[:,\ ]*) die "OPM_BUNDLES_LOCAL: $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+      proj=${key%@*}; seg=${key#*@}
+      vols="$vols --volume $abs:/local/$proj/$seg:ro"
+      set -- "$@" --local "$key=/local/$proj/$seg"
+      localproj="$localproj$proj "
+    done
+    if [ -f site/bundles.frozen.json ]; then
+      echo "run-in-image: site/bundles.frozen.json exists: pulling exactly the digests it names (delete it to resolve tags again)"
+      vols="$vols --volume $repo/site/bundles.frozen.json:/in/frozen.json:ro"
+      set -- "$@" --frozen /in/frozen.json
+    fi
+    # The tabs of bundles.cue, by their quoted project keys ("catalog-opm": {).
+    net=none
+    for proj in $(grep -oE '^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:[[:space:]]*\{' site/bundles.cue | tr -d ' \t"{:'); do
+      case "$localproj" in *" $proj "*) ;; *) net=bridge ;; esac
+    done
+    echo "run-in-image: pull of site/bundles.cue into site/.bundles/ (network: $net)"
+    # shellcheck disable=SC2086 # vols is a list of --volume flags without spaces inside paths
+    exec docker run --rm --init --user "$(id -u):$(id -g)" --network "$net" \
+      --env HOME=/tmp --env XDG_CACHE_HOME=/cache $vols \
+      --entrypoint opm-docs "$(tag)" "$@" ;;
+  *) sed -n '2,18p' "$0" >&2; exit 2 ;;
 esac

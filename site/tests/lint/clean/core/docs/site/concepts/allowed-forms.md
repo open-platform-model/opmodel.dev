@@ -19,8 +19,6 @@ A [page](/docs/start/quickstart/), a [heading](/docs/concepts/fixture-concept/#w
 >
 > The design record: [all enhancements](/enhancements/), [an entry](/enhancements/0018/), [its decisions](/enhancements/0018/decisions/), [one decision](/enhancements/0018/decisions/#d3) and [a heading](/enhancements/0018/#how-it-works).
 
-The catalogs: [the opm tab](/catalogs/opm/), [its newest 4.x](/catalogs/opm/4/), [a member](/catalogs/opm/4/traits/backup/) and [its spec](/catalogs/opm/4/traits/backup/#spec).
-
 ## A list
 
 - one
@@ -34,5 +32,4 @@ The catalogs: [the opm tab](/catalogs/opm/), [its newest 4.x](/catalogs/opm/4/),
 
 [d]: /docs/reference/
 [e]: /enhancements/0027/
-[c]: /catalogs/opm/4/
 [^1]: A footnote is not a link.

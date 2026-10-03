@@ -13,7 +13,7 @@ tasks:
   # form (task build OPM_WS=...) to the script; an unset variable arrives
   # empty and counts as unset. Image tags come from the Dockerfile hashes.
   image:
-    desc: Build the site's build image (Hugo, Pagefind, git), tagged by the hash of site/Dockerfile, if the tag is missing
+    desc: Build the site's build image (Hugo, Pagefind, opm-docs, git, jq), tagged by the hash of site/Dockerfile, if the tag is missing
     cmds:
       - sh site/scripts/run-in-image.sh image
 
@@ -62,6 +62,26 @@ tasks:
     env: *versions-env
     cmds:
       - sh site/scripts/resolve-versions.sh --fetch
+      # The docs bundles resolve again too: a new catalog minor or edge build
+      # needs no site commit.
+      - task: bundles:pull
+
+  # The Catalogs tab's docs bundles (site/bundles.cue): opm-docs pull in the
+  # build image, the only step besides the image builds and versions:fetch
+  # that reaches the network (an all-local pull does not). It resolves every
+  # minor tag from the tab's `from` and edge in GHCR, verifies each Sigstore
+  # signature, and unpacks into site/.bundles/ with lock.json (never
+  # committed; the build stamp records it). task build never pulls; in
+  # manifest mode it fails without a lock pulled for the current bundles.cue.
+  # OPM_BUNDLES_LOCAL="catalog-opm@edge=<dir> ..." takes segments from local
+  # bundle trees (an author's preview); site/bundles.frozen.json, when
+  # committed, pins the digests (recovery).
+  bundles:pull:
+    desc: Pull, verify and unpack the Catalogs tab's docs bundles (site/bundles.cue) into site/.bundles/ (network)
+    env:
+      OPM_BUNDLES_LOCAL: '{{.OPM_BUNDLES_LOCAL}}'
+    cmds:
+      - sh site/scripts/run-in-image.sh pull
 
   # The two-version test never writes site/public/: it builds into
   # site/.check/versions-test/. The last steps restore the real manifest's
@@ -199,7 +219,7 @@ tasks:
   clean:
     desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:
-      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/
+      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/
 
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.

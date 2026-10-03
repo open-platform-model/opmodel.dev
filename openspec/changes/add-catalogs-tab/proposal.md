@@ -6,18 +6,20 @@ docs-kit (owner decisions of 2026-10-02, `docs-kit DESIGN decision 2`, `5`, `8`,
 
 ## Gate
 
+> **Amended 2026-10-03 (owner decision, docs-kit DESIGN decision 8 amended): no backfill.** The tab starts at the first opm release after catalog_opm adopted docs-kit, so `site/bundles.cue` has `from: "4.5"` and the first released segment is `4.5` (opm 4.5.1, tags `4.5.1.0`, `4.5.1`, `4.5`, `4`); the pin is docs-kit `v0.2.0`. Every "4.4" below that names a real bundle now reads "4.5"; the fixture bundles keep their 4.4, 4.5 and edge trees (they are fixtures).
+
 Sections 1 to 4 are built and tested against fixture bundles and need nothing from docs-kit or the registry. **Section 5, and so the merge of section 4 and the final PR, starts only when all of these hold** (sections 1 to 3 merge before it, see Delivery):
 
 - docs-kit `v0.1.0` is released (its binaries and `checksums.txt` are on the GitHub release).
 - catalog_opm `publish-docs-bundle` section 1 has merged and its section 2 (owner go-live) is done: the owner has made `ghcr.io/open-platform-model/docs/catalog-opm` public, and the backfill has published `4.4.5` (full tag `4.4.5.0`, moving tags `4.4.5`, `4.4`, `4`) and `edge` has published from `main`.
-- An anonymous `opm-docs pull` with this change's `site/bundles.cue` resolves and verifies `4.4` and `edge`.
+- An anonymous `opm-docs pull` with this change's `site/bundles.cue` resolves and verifies `4.4` and `edge` (amended: `4.5` and `edge`, verified 2026-10-03).
 
 ## What Changes
 
 - A new **Catalogs** tab in the navbar between Reference and Enhancements, shown only when the build has catalog bundles.
 - An unversioned section built in the same Hugo run, outside `/<version>/`, mounted into the default version only (the Enhancements pattern):
   - `/catalogs/`: a section page listing the catalogs (today one, opm);
-  - `/catalogs/opm/<MAJOR.MINOR>/...` for every opm minor from 4.4 on, and `/catalogs/opm/edge/...` ("main (unreleased)"), each from its own pulled bundle, with its own sidebar;
+  - `/catalogs/opm/<MAJOR.MINOR>/...` for every opm minor from 4.5 on (amended 2026-10-03; was 4.4), and `/catalogs/opm/edge/...` ("main (unreleased)"), each from its own pulled bundle, with its own sidebar;
   - the landing of each minor is the authored catalog contract page that catalog_opm ships in the bundle.
 - A version switcher on every catalog page: newest minor first, `edge` last; it keeps the reader on the same page when the chosen minor has it, else the nearest parent, else that minor's landing.
 - Aliases: `/catalogs/opm/` to the newest minor, `/catalogs/opm/<MAJOR>/` to the newest minor of that major, `/catalogs/opm/<MAJOR>/<path>/` to the same path there; as `_redirects` lines and as meta-refresh stubs for hosts that ignore them (GitHub Pages today). `edge` gets no alias.
@@ -54,7 +56,7 @@ site/         + bundles.cue
               + layouts/_partials/opm/{catalog-links,catalog-switch}.html
               + scripts/sections.sh (sourced by build-all.sh and serve.sh), scripts/gen-catalogs.sh
               + tests/fixtures/bundles/ (bundle trees catalog-opm/{4.4,4.5,edge}/ + the lock an all-local pull writes; re-pulled offline by test:site)
-              Dockerfile: + opm-docs 0.1.0 (pinned SHA-256), + jq (pinned apk)
+              Dockerfile: + opm-docs 0.2.0 (pinned SHA-256), + jq (pinned apk)
 public/       + catalogs/index.html
               + catalogs/opm/<MAJOR.MINOR>/** and catalogs/opm/edge/**, each with its own pagefind/
               + catalogs/opm/index.html, catalogs/opm/<MAJOR>/**/index.html   (meta-refresh stubs)
@@ -71,13 +73,13 @@ There is no window in which the members are published twice (accepted into docs-
 ## Impact
 
 - **Files.** `site/Dockerfile`, `site/config/_default/hugo.toml` (menu weights), new `site/bundles.cue`, `site/catalogs/`, `site/layouts/catalogs/`, `site/layouts/_partials/opm/{catalog-links,catalog-switch}.html`, `site/scripts/{sections,gen-catalogs}.sh`; changed `site/scripts/{build-all,serve,run-in-image,gen-mounts,gen-stamp,check-pages,lint-sources,test-site}.sh`, `site/layouts/_markup/render-link.html`, `site/layouts/_partials/{sidebar,navbar-link,banner,custom/head-end}.html`, `site/layouts/_partials/opm/{source,version-switch,build-stamp}.html`, `site/layouts/_partials/scripts/search.html`, `site/layouts/{sitemap.xml,llms.txt}`, `site/content/docs/reference/_index.md`, `site/tests/` (fixtures, check cases, browser and two-version tests), `Taskfile.yml`, `.github/workflows/site.yml`, `.gitignore`/`site/.gitignore`, the dialect contract in `openspec/changes/deploy-site/orchestration.md`, `README.md`, `AGENTS.md`, `TODO.md`, and `openspec/config.yaml` (Principle III's committed-reference sentence).
-- **Build inputs.** Gained: the docs bundles of `catalog-opm` from GHCR, at the digests the lock records; two pinned tools in the build image, `opm-docs` 0.1.0 and `jq`. The overridden theme file set is unchanged; existing overrides (`sidebar.html`, `render-link.html`, `navbar-link.html`, `banner.html`, `search.html`) gain branches.
-- **Published URLs.** Added: `/catalogs/`, `/catalogs/opm/<MAJOR.MINOR>/` and below for every minor from 4.4, `/catalogs/opm/edge/` and below, and the alias stubs. Removed (in every site version, from the first build with the tab): `/<version>/docs/reference/catalog-members/**`, `/<version>/docs/reference/catalog-contract/` and their `/latest/` stubs. They get no redirects (supervisor decision, 2026-10-02: the site is interim and `noindex`). The version set is unchanged; the catalog minors are not site versions, and 0021:OQ15 is not touched.
+- **Build inputs.** Gained: the docs bundles of `catalog-opm` from GHCR, at the digests the lock records; two pinned tools in the build image, `opm-docs` 0.2.0 and `jq`. The overridden theme file set is unchanged; existing overrides (`sidebar.html`, `render-link.html`, `navbar-link.html`, `banner.html`, `search.html`) gain branches.
+- **Published URLs.** Added: `/catalogs/`, `/catalogs/opm/<MAJOR.MINOR>/` and below for every minor from 4.5, `/catalogs/opm/edge/` and below, and the alias stubs. Removed (in every site version, from the first build with the tab): `/<version>/docs/reference/catalog-members/**`, `/<version>/docs/reference/catalog-contract/` and their `/latest/` stubs. They get no redirects (supervisor decision, 2026-10-02: the site is interim and `noindex`). The version set is unchanged; the catalog minors are not site versions, and 0021:OQ15 is not touched.
 - **Source repos (follow-ups, never edited from here).**
   - catalog_opm `publish-docs-bundle` section 1 (before section 5 here): `docs/catalogs/opm/_index.md` with the contract page's body; it must not link `/catalogs/k8s/` (no k8s tab).
   - opm (after this merges): `docs/site/reference/glossary.md:97`, the link to `/docs/reference/catalog-members/` becomes `/catalogs/opm/4/#catalog-members` (found 2026-10-02 after planning; the legacy map resolves it until then).
   - cli (after this merges): `docs/site/reference/registry-namespaces.md`, **both** links to `/docs/reference/catalog-contract/` (lines 19 and 38) become `/catalogs/opm/4/`.
-  - catalog_opm `publish-docs-bundle` section 3 (retire refgen; after this merges, and after the k8s catalog's removal, which takes `kubernetes-resources.md` and its two `/docs/reference/catalog-members/` links with it): delete `docs/site/reference/catalog-members/` and `catalog-contract.md`. The site already stopped publishing them at this merge, so the order of this and the cli fix does not matter.
+  - catalog_opm `publish-docs-bundle` section 3 (retire refgen; after this merges; the k8s catalog's removal, now on catalog_opm `main`, took `kubernetes-resources.md` and its two `/docs/reference/catalog-members/` links with it): delete `docs/site/reference/catalog-members/` and `catalog-contract.md`. The site already stopped publishing them at this merge, so the order of this and the cli fix does not matter.
   - workspace `STYLE.md` ("Site Pages"): name the `/catalogs/<name>/<MAJOR>/` link form.
 - **Delivery.** Two PRs (supervisor decision, 2026-10-02). Sections 1 to 3 merge first, as their own PR: without `site/bundles.cue` (section 5) a build has no section and publishes exactly what it did before. Section 4 waits on the branch `feat/catalogs-tab-s4`, stacked on them, and merges with section 5 in the final PR, after the Gate; the archive rides that final PR.
 

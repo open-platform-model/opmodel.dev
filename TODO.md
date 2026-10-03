@@ -30,7 +30,8 @@ Since 2026-10-02 the site generates nothing: each repository generates its refer
 
 - [ ] cli: every `opm` command and flag, at `/docs/reference/cli/`
 - [ ] opm-operator: the four operator resources, at `/docs/reference/operator-resources/`
-- [ ] catalog_opm: one page per abstraction member
+- [x] catalog_opm: one page per abstraction member, now the Catalogs tab, built from signed docs bundles (openspec `add-catalogs-tab`)
+- [ ] Remove the Catalogs transition (`gen-mounts.sh`'s exclusion of catalog_opm's `reference/catalog-members/**`, `reference/catalog-members.md` and `reference/catalog-contract.md`, and the two-entry legacy map in `layouts/_markup/render-link.html` with `build-all.sh`'s listing) once catalog_opm `publish-docs-bundle` section 3 has deleted the pages and a `main` build lists no page writing `/docs/reference/catalog-contract/` or `/docs/reference/catalog-members/` (today opm `reference/glossary.md` and cli `reference/registry-namespaces.md`)
 - [ ] core: the definitions, at `/docs/reference/definitions/`
 - [ ] Delete the site's `placeholder: true` pages once every version has its source page
 

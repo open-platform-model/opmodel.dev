@@ -10,7 +10,7 @@ Every file under `site/` this change touches is listed in proposal.md's Impact. 
 
 **Goals:**
 
-- The opm catalog's members readable per minor, from 4.4 on, and on `edge`, at stable URLs `/catalogs/opm/<MAJOR.MINOR>/<kind>/<name>/`, built only from bundles whose signature names catalog_opm's `main` and docs-kit's workflow.
+- The opm catalog's members readable per minor, from 4.5 on (amended 2026-10-03: no backfill, see proposal.md's Gate), and on `edge`, at stable URLs `/catalogs/opm/<MAJOR.MINOR>/<kind>/<name>/`, built only from bundles whose signature names catalog_opm's `main` and docs-kit's workflow.
 - A reader who follows a docs link lands on the newest minor of the major the docs were written for, and can switch minor without losing their place.
 - The build stays as strict as it is: every existing check keeps failing on what it fails on today; every new rule brings a failing fixture.
 - Sections 1 to 4 are built and tested against fixture bundles, before docs-kit or the real bundles exist.
@@ -29,8 +29,8 @@ Every file under `site/` this change touches is listed in proposal.md's Impact. 
 `opm-docs` is pinned in `site/Dockerfile` like Hugo and Pagefind, with the SHA-256 committed in the repository (`docs-kit C12`, the build-image pattern; no `.opm-docs-version`, no host install):
 
 ```dockerfile
-ARG OPM_DOCS_VERSION=0.1.0
-ARG OPM_DOCS_SHA256=<the archive's line in v0.1.0's checksums.txt>
+ARG OPM_DOCS_VERSION=0.2.0
+ARG OPM_DOCS_SHA256=<the archive's line in v0.2.0's checksums.txt>
 RUN wget -q "https://github.com/open-platform-model/docs-kit/releases/download/v${OPM_DOCS_VERSION}/opm-docs_${OPM_DOCS_VERSION}_linux_amd64.tar.gz" -O opm-docs.tgz \
  && echo "${OPM_DOCS_SHA256}  opm-docs.tgz" | sha256sum -c - \
  && tar -xzf opm-docs.tgz opm-docs && ./opm-docs version
@@ -61,9 +61,11 @@ The release's own `checksums.txt` is read once, by the person bumping the pin, a
 
 ```cue
 tabs: {
-	"catalog-opm": {repo: "open-platform-model/catalog_opm", root: "/catalogs/opm/", from: "4.4"}
+	"catalog-opm": {repo: "open-platform-model/catalog_opm", root: "/catalogs/opm/", from: "4.5"}
 }
 ```
+
+`from` was `"4.4"` (the backfill) until the owner's 2026-10-03 decision; the fixtures' `site/tests/fixtures/bundles.cue` keeps `"4.4"`, and the segment numbers in the examples below are illustrative.
 
 The bundles a build reads, resolved in `site/scripts/sections.sh` (Decision 3):
 

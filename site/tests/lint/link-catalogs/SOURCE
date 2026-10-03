@@ -1,7 +1,8 @@
 The /catalogs/ link forms of page dialect 1 (docs-kit C11, docs mode). docs-kit
-is the source of this case: catalog-links.md and expect are copied from
-docs-kit internal/dialect/testdata/conformance/link-catalogs/ at commit
-82ef477 (branch feat/opm-docs-phase-1, before docs-kit's first release). When
-site/Dockerfile pins opm-docs, this case and the /catalogs/ lines of
-lint/clean/ are re-synced from the conformance set at the pinned tag
-(add-catalogs-tab task 5.5), and that tag replaces the commit here.
+is the source of this case and of lint/clean/: both are byte-identical to
+docs-kit internal/dialect/testdata/conformance/{link-catalogs,clean}/ at the
+tag v0.2.0, the opm-docs release site/Dockerfile pins (expect here equals
+shell.out there). The accepted /catalogs/ forms are this case's line 7 and its
+reference definition; docs-kit's clean case carries none. A bump of the
+opm-docs pin re-syncs every case that changed in the conformance set at the
+new tag, in the same PR, and names that tag here.
