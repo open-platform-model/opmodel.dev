@@ -208,19 +208,16 @@ root_of() { printf '%s\n' "$mounts" | awk -v r="$1" '{ m = $0; sub(/:\/src\/.*/,
 pages_at() { git -C "$1" ls-tree -r --name-only "$2" docs/site | grep '\.md$' | sed 's#^docs/site/##' | sort; }
 pages_in() { (cd "$1" 2>/dev/null && find . -type f -name '*.md' | sed 's#^\./##' | sort); }
 url_of() { sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#'; }
-# The build has the catalog-opm tab (the fixture bundles), so catalog_opm's
-# Reference copies of the members publish in no version (gen-mounts.sh).
-published() { if [ "$1" = catalog_opm ]; then grep -vE '^reference/(catalog-members/|catalog-members\.md$|catalog-contract\.md$)'; else cat; fi; }
 set_bad=""; set10_bad=""; newer=""; newer_bad=""
 for r in $REPOS; do
   root=$(root_of "$r"); s=$(sha_of "$r"); s10=$(row10 "$r" 8)
   want=$(pages_at "$root" "$s")
   [ "$want" = "$(pages_in "$SITE/.versions/v0.9/$r/docs/site")" ] || set_bad="$set_bad $r(archive)"
   [ -n "$s10" ] && [ "$(pages_at "$root" "$s10")" = "$(pages_in "$SITE/.versions/v1.0/$r/docs/site")" ] || set10_bad="$set10_bad $r"
-  unbuilt=$(printf '%s\n' "$want" | published "$r" | url_of | while IFS= read -r u; do [ -f "$P/v0.9/docs/${u}index.html" ] || echo "$u"; done | head -n 1)
+  unbuilt=$(printf '%s\n' "$want" | url_of | while IFS= read -r u; do [ -f "$P/v0.9/docs/${u}index.html" ] || echo "$u"; done | head -n 1)
   [ -z "$unbuilt" ] || set_bad="$set_bad $r(/v0.9/docs/$unbuilt)"
   printf '%s\n' "$want" > "$OUT/.want"
-  for u in $(pages_at "$root" "$s10" | comm -23 - "$OUT/.want" | published "$r" | url_of); do
+  for u in $(pages_at "$root" "$s10" | comm -23 - "$OUT/.want" | url_of); do
     # A new file at a URL v0.9 already publishes is no new page: a page moved
     # to a section of its own (x.md to x/_index.md), or a source page taking a
     # site placeholder's place (gen-mounts.sh).
@@ -231,9 +228,19 @@ for r in $REPOS; do
   done
 done
 rm -f "$OUT/.want"
-leaked=$(find "$P/v1.0/docs/reference/catalog-members" "$P/v0.9/docs/reference/catalog-members" "$P/v1.0/docs/reference/catalog-contract" "$P/v0.9/docs/reference/catalog-contract" -name index.html 2>/dev/null | head -n 3)
-why="published: $leaked"
-check "catalog_opm's Reference copies of the members publish in neither version (the build has the catalog-opm tab)" [ -z "$leaked" ]
+# An older tree is self-consistent with the catalog-opm tab: v0.9's
+# catalog_opm (its floor) still holds the Reference copies of the members,
+# which publish in v0.9 like any page, and v0.9's cli links one of them,
+# resolved in v0.9; no build-side map or exclusion stands between them.
+why=""
+if git -C "$(root_of catalog_opm)" cat-file -e "$(sha_of catalog_opm):docs/site/reference/catalog-contract.md" 2>/dev/null; then
+  [ -f "$P/v0.9/docs/reference/catalog-contract/index.html" ] || why="/v0.9/docs/reference/catalog-contract/ is not published"
+  if git -C "$(root_of cli)" grep -qF '](/docs/reference/catalog-contract/)' "$(sha_of cli)" -- docs/site/reference/registry-namespaces.md 2>/dev/null; then
+    tr -d '"' < "$P/v0.9/docs/reference/registry-namespaces/index.html" | grep -qF 'href=/v0.9/docs/reference/catalog-contract/>' ||
+      why="${why:+$why; }v0.9's registry-namespaces does not link /v0.9/docs/reference/catalog-contract/"
+  fi
+  check "v0.9's own Reference copy of the catalog contract publishes in v0.9, and v0.9's links to it resolve there" [ -z "$why" ]
+fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
