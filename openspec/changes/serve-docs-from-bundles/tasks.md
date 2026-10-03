@@ -1,0 +1,36 @@
+> **Gates.** Section 1 needs `pull-reference-bundles` section 2 merged, and nothing from any phase-3 producer. Section 2 starts at **G3.1** (the first `catalog-opm-docs` release bundle, from the next opm release, public, tag `4` verifies) and needs `pull-reference-bundles` section 3 merged. Section 3 starts at **G3.2** (opm's first release published `docs/opm`, tag `1.0` verifies). Section 4 starts at **G3.3** (docs-kit `add-enhancements-bundle` released; `docs/enhancements` public, `edge` verifies). Delivery is one PR per section; sections 2 to 4 may land in any order among themselves once their gates hold.
+
+## 1. Phase-3 fixtures and the bundle-built Enhancements section
+
+- [ ] 1.1 Fixtures per design.md Decision 3: `site/tests/fixtures/bundles/_versions/v1.0/{catalog-opm-docs,opm}/`, added to `site/tests/fixtures/bundles.cue` (`docs`, `tags`), re-pulled with `--local` offline into the fixture lock; move the fixture workspace's opm and catalog_opm `docs/site` pages a bundle-backed fixture version now takes from bundles; the drift test passes.
+- [ ] 1.2 Hand-write `site/tests/fixtures/sections/enhancements/edge/` to C21 (D2 pages, D3 transforms applied, D4 `data/enhancements.json`, a manifest with `placement: {kind: "section", root: "/enhancements/"}`) from `site/tests/fixtures/ws/enhancements/`, and a lock `bundles` entry rooted at `/enhancements/`; `test-site.sh` layers both onto its copy.
+- [ ] 1.3 `sections.sh` decides the section per Decision 2 (lock entry, or `OPM_BUNDLES` holding `enhancements/edge/`), keeping the git-tree path while `versions.conf` still has `[section "enhancements"]`; with both present the bundle wins and the build says so; `gen-catalogs.sh` reads only `/catalogs/` roots.
+- [ ] 1.4 The bundle path of the section: `gen-mounts.sh` mounts the bundle at `assets/sections/enhancements` and writes `.gen/enhancements/_index.md` from its `content/_index.md`; `site/enhancements/_content.gotmpl` gains the bundle branch of Decision 2; `opm/enh-status.html` and `opm/source.html` read `params.enhancement` and `params.source`; `gen-stamp.sh` records the bundle.
+- [ ] 1.5 Cases under `site/tests/checks/`, each failing: `enh-bundle-manifest-mismatch`, `enh-bundle-unlisted-page`, `enh-bundle-entry-missing` (a page with no data entry), `cat-ignores-section` (the section's files under the catalogs mount refuse nothing); `test-site.sh` runs the existing Enhancements assertions (URLs, header, diagrams load the pinned Mermaid only where a fence is, noindex, no llms, no sitemap) against the bundle-built section, and asserts the page set equals the git-built one for the same fixture.
+- [ ] 1.6 `task check`, `task build` (real build unchanged: git section, git opm and catalog_opm), `task test:site` and the fixture-bundle `task qa` green (an enhancement page with its header and a diagram, light, dark, phone, read), then commit `feat(site): build the Enhancements section and phase-3 docs from bundle fixtures`.
+
+## 2. catalog_opm's docs from catalog-opm-docs (GATED: G3.1)
+
+- [ ] 2.1 Confirm G3.1: an anonymous pull of `docs/catalog-opm-docs` tag `4` resolves and verifies (signer `open-platform-model/catalog_opm` at `refs/heads/main`); record the digest in the PR description.
+- [ ] 2.2 `site/bundles.cue` `docs."catalog-opm-docs"` and `versions."v1.0".tags."catalog-opm-docs": "4"`; `versions.conf` `from-bundles` gains `catalog_opm`, `catalog-line` removed; `resolve-versions.sh` and `test-resolve.sh` handle a version without a catalog row.
+- [ ] 2.3 Real build: `task bundles:pull build`; catalog_opm's `/docs/` pages build from the bundle, Edit goes to `main`, the stamp names the bundle, no A1 or link failure.
+- [ ] 2.4 `README.md` ("Site versions") names `catalog-opm-docs` and its major tag.
+- [ ] 2.5 `task check`, `task build`, `task test:site` and `task qa` green, then commit `feat(site): read catalog_opm's docs from its docs bundle`.
+
+## 3. opm's docs from its bundle (GATED: G3.2)
+
+- [ ] 3.1 Confirm G3.2: an anonymous pull of `docs/opm` tag `1.0` resolves and verifies; record the version and digest in the PR description.
+- [ ] 3.2 `site/bundles.cue` `docs.opm` and `versions."v1.0".tags.opm: "1.0"`; `versions.conf` `from-bundles` gains `opm`; `resolve-versions.sh` writes a version with no git row and `materialise.sh` and `gen-lastmod.sh` skip it (tests in `test-resolve.sh`).
+- [ ] 3.3 Real build: `/latest/docs/` (the landing) and `/latest/docs/start/` build from opm's bundle; every `v1.0` page under `/docs/` now comes from a bundle (assert no `docs/site` git mount for v1.0 in the generated `module.toml`).
+- [ ] 3.4 `AGENTS.md` (Purpose; Site versions, "Where pins come from") and `openspec/config.yaml` (context, Principle I): v1.0's docs come from bundles.
+- [ ] 3.5 `task check`, `task build`, `task test:site` and `task qa` green (the landing and start PNGs read), then commit `feat(site): read opm's docs from its docs bundle`.
+
+## 4. The Enhancements section from its bundle (GATED: G3.3)
+
+- [ ] 4.1 `site/Dockerfile` pins the release carrying `add-enhancements-bundle` (version and SHA-256, checksums line, second download), before the enhancements repository's `.opm-docs-version` moves past it; `task image`; copy docs-kit's `link-enhancements-graph` case and re-sync every changed case into `site/tests/lint/` (tag in `link-catalogs/SOURCE`); `lint-sources.sh` and its contract copy in `openspec/changes/deploy-site/orchestration.md` accept `/enhancements/graph/`.
+- [ ] 4.2 `site/bundles.cue` `sections.enhancements`; move the hand-written fixture into `site/tests/fixtures/bundles/enhancements/edge/`, re-pull with `--local enhancements@edge=...` offline, assert it equals the hand-written tree (a difference is reported to docs-kit), drop the layering.
+- [ ] 4.3 Delete the git path: `versions.conf` `[section "enhancements"]`, the `ENH_TREE` branch of `sections.sh`, the git block of `gen-mounts.sh`, `data/opm/enhancements.json`, `layouts/_partials/opm/enh-clean.html`, `layouts/enhancements/_markup/render-link.html`, the adapter's git branch, the enhancements archive in `materialise.sh` and `resolve-versions.sh`, `OPM_SRC_ENHANCEMENTS` and the enhancements checkout in `.github/workflows/site.yml` (the CI summary names the bundle); `task ci:lint` green.
+- [ ] 4.4 Real build: `task bundles:pull build`; `/enhancements/`, an entry, a document and `/enhancements/graph/` build from the bundle with their diagrams; View source names the bundle's commit; `diagrams.py` passes.
+- [ ] 4.5 Land the durable decisions: `AGENTS.md` (Site versions, "The Enhancements section"; Environment Notes, the enhancements root removed; Repository Layout), `README.md` ("The Enhancements section").
+- [ ] 4.6 `task check`, `task build`, `task test:site` and `task qa` green (Enhancements PNGs and diagram shots read), then commit `feat(site): build the Enhancements section from its docs bundle`.
+- [ ] 4.7 Verify with the `openspec-verify-change` skill (the diff touches only the files proposal.md's Impact names; every durable decision has landed), then archive with `openspec archive serve-docs-from-bundles --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive serve-docs-from-bundles` (the archive rides this section's PR).
