@@ -63,12 +63,14 @@
     t.finished.finally(function () { root.classList.remove(cls); });
     if (!at) return;
 
+    // ready rejects when the transition is skipped, as when a second switch
+    // starts before the first ends; the theme still changes, so it is ignored.
     var r = Math.hypot(Math.max(at.x, innerWidth - at.x), Math.max(at.y, innerHeight - at.y));
     t.ready.then(function () {
       root.animate(
         { clipPath: ["circle(0px at " + at.x + "px " + at.y + "px)", "circle(" + r + "px at " + at.x + "px " + at.y + "px)"] },
         { duration: 500, easing: "cubic-bezier(.4, 0, .2, 1)", pseudoElement: "::view-transition-new(root)" }
       );
-    });
+    }).catch(function () {});
   };
 })();
