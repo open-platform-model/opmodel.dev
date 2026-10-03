@@ -5,12 +5,14 @@
        /enhancements/ and /catalogs/ links at the unversioned sections
        (a /catalogs/<name>/<MAJOR>/ alias stays an alias), prints a
        figure's title in place of its {{< opm/<name> >}} line (the shortcode
-       means nothing outside the site), and shows an escaped shortcode as the
-       page shows it. */ -}}
+       means nothing outside the site), shows an escaped shortcode as the
+       page shows it, and drops the "opm:removed" title of a Catalogs
+       "Removed in" link (opm/history-removed.html). */ -}}
 {{- $body := .RawContent | replaceRE `(?s)<!--.*?-->\n?` "" -}}
 {{- $body = replaceRE `(\]\(|\]:[ \t]*)/docs/` (printf "${1}%sdocs/" .Site.Home.Permalink) $body -}}
 {{- $body = replaceRE `(\]\(|\]:[ \t]*)/enhancements/` (printf "${1}%s" (absURL "enhancements/")) $body -}}
 {{- $body = replaceRE `(\]\(|\]:[ \t]*)/catalogs/` (printf "${1}%s" (absURL "catalogs/")) $body -}}
+{{- $body = replaceRE `(\]\([^ )]*) "opm:removed"\)` "${1})" $body -}}
 {{- range $name, $title := partialCached "opm/figure-titles.html" . "opm-figure-titles" -}}
   {{- $body = replaceRE (printf `(?m)^[ \t]*\{\{<[ \t]*opm/%s[ \t]*>\}\}[ \t]*$` $name) (printf "_Figure: %s_" $title) $body -}}
 {{- end -}}

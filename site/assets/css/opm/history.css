@@ -1,10 +1,9 @@
 /* Catalogs version history (docs-kit C13): the badge row under a member's
-   title (type badge first, then origin, "Changed in", "Newer version"), and
-   the "Removed in" list on a kind index. Colours come from Hextra's badge. */
+   title (type badge first, then origin, "Changed in", "Newer version").
+   Colours come from Hextra's badge. */
 
 .opm-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 0.5rem; margin: -0.25rem 0 1.25rem; }
 .opm-badges .opm-type-badge { margin: 0; }
 .opm-history-link { display: inline-flex; border-radius: 9999px; text-decoration: none; }
 .opm-history-link:hover .hextra-badge > div { text-decoration: underline; text-underline-offset: 2px; }
 .opm-history-link:focus-visible { outline: 2px solid var(--hx-color-primary-600); outline-offset: 2px; }
-.opm-history-removed code { font-size: 0.875em; }

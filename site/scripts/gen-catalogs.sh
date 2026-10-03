@@ -12,7 +12,7 @@
 #
 #   { "lock": "sha256:<hex of lock.json>",
 #     "catalogs": [ { "project", "name", "root", "repo", "newest", "majors": {"4": "4.5"},
-#                     "history": {"path", "floor", "digest"} or null,
+#                     "history": {"path", "digest"} or null,
 #                     "segments": [ { "segment", "label", "major", "edge", "indexed",
 #                                     "version", "revision", "commit", "digest", "local",
 #                                     "dir" }, ... ] } ] }
@@ -28,7 +28,9 @@
 # whose entries disagree on root, a root that is not /catalogs/<name>/, or a
 # manifest whose placement is not that tab root; a segment that is not
 # MAJOR.MINOR of the version (or edge for an edge build); a segment listed
-# twice; two projects placed at one root.
+# twice; two projects placed at one root; a lock "history" that is not a list,
+# or an entry whose history.json is missing, at another digest, of another
+# schema or project, or holding a value C13 does not allow (below).
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$SITE_DIR"
@@ -89,8 +91,12 @@ dup=$(jq -r '"\(.project) \(.segment)"' "$tmp/rows" | sort | uniq -d)
 # (C7). The site reads it, never computes it. An entry needs its file at the
 # digest it records, of schema docs.opmodel.dev/history/v1 and its own
 # project; a file the lock does not record (left by an older pull) is
-# ignored, and its project gets no history.
-jq -c '.history // [] | .[]' "$L" > "$tmp/hentries" || die "$L: \"history\" is not a list"
+# ignored, and its project gets no history. Values the site words or links
+# by must be C13's: every compared mode full or paths, every member's first
+# one of the file's segments, every change op one of C13's seven, every
+# presence change between two different presences (regular, optional,
+# required), every removed lastIn one of the segments.
+jq -c '.history // [] | if type == "array" then .[] else error("not a list") end' "$L" > "$tmp/hentries" 2>/dev/null || die "$L: \"history\" is not a list"
 echo '{}' > "$tmp/history.json"
 while IFS= read -r e; do
   get() { printf '%s' "$e" | jq -r "$1"; }
@@ -106,9 +112,24 @@ while IFS= read -r e; do
   [ "$hs" = docs.opmodel.dev/history/v1 ] || die "$project: history.json schema is \"$hs\", not docs.opmodel.dev/history/v1"
   hp=$(jq -r '.project // ""' "$f")
   [ "$hp" = "$project" ] || die "$project: history.json is for project \"$hp\""
-  floor=$(jq -r '.floor // ""' "$f")
-  jq --arg p "$project" --arg path "$path" --arg floor "$floor" --arg digest "$have" \
-    '.[$p] = {path: $path, floor: $floor, digest: $digest}' "$tmp/history.json" > "$tmp/h" && mv "$tmp/h" "$tmp/history.json"
+  bad=$(jq -r '
+    def presence: . == "regular" or . == "optional" or . == "required";
+    (.segments // []) as $segs | def seg: . as $x | any($segs[]; . == $x);
+    [ ((.compared // [])[] | select(.mode != "full" and .mode != "paths")
+        | "compared \(.from) -> \(.to): mode \(.mode | tojson) is not full or paths"),
+      ((.members // {}) | to_entries[] | .key as $f | .value
+        | (select(.first | seg | not) | "member \($f): first \(.first | tojson) is not one of the segments \($segs | join(" "))"),
+          ((.changes // {}) | to_entries[] | .value[]
+            | (select(.op | IN("added", "removed", "presence", "type", "default", "ref", "spec") | not)
+                | "member \($f): change op \(.op | tojson) is not one of C13'"'"'s"),
+              (select(.op == "presence" and ((.from | presence | not) or (.to | presence | not) or .from == .to))
+                | "member \($f): presence change of \(.path) from \(.from | tojson) to \(.to | tojson) is not between two different presences"))),
+      ((.removed // {}) | to_entries[] | .value[] | select(.lastIn | seg | not)
+        | "removed \(.fqn): lastIn \(.lastIn | tojson) is not one of the segments")
+    ] | .[0] // empty' "$f") || die "$project: history.json is not C13's shape"
+  [ -z "$bad" ] || die "$project: history.json: $bad"
+  jq --arg p "$project" --arg path "$path" --arg digest "$have" \
+    '.[$p] = {path: $path, digest: $digest}' "$tmp/history.json" > "$tmp/h" && mv "$tmp/h" "$tmp/history.json"
 done < "$tmp/hentries"
 
 mkdir -p data/opm .gen/catalogs

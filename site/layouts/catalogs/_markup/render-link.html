@@ -15,6 +15,11 @@
        External, #fragment and mailto: links pass through. The anchor
        markup is upstream's. */ -}}
 {{- $dest := .Destination -}}
+{{- /* A "Removed in" entry (opm/history-removed.html) links its own catalog
+       at the segment that last had the member; its title "opm:removed"
+       marks it, and is not written out. */ -}}
+{{- $removed := eq .Title "opm:removed" -}}
+{{- $title := cond $removed "" .Title -}}
 {{- $u := urls.Parse $dest -}}
 {{- if and $dest (not $u.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
   {{- $c := .PageInner.Params.catalog -}}
@@ -29,11 +34,16 @@
     {{- if and $c (hasPrefix (printf "%s/" (strings.TrimSuffix "/" $path)) $c.root) -}}
       {{- $rest := split (strings.Trim (strings.TrimPrefix $c.root (printf "%s/" (strings.TrimSuffix "/" $path))) "/") "/" -}}
       {{- $s := index $rest 0 -}}
+      {{- if $removed -}}
+        {{- with $.PageInner.GetPage (path.Clean $path) -}}{{- $p = . -}}{{- end -}}
+        {{- if not $p -}}{{- errorf "catalogs: %s: removed member link %q names no page (C13 removed lastIn and page)" $at $dest -}}{{- end -}}
+      {{- else -}}
       {{- if ne $s $c.segment -}}
         {{- errorf "catalogs: %s: link %q names its own catalog at %q, not at its own segment %s" $at $dest (cond (eq $s "") "the tab root" $s) $c.segment -}}
       {{- end -}}
       {{- with $.PageInner.GetPage (path.Clean $path) -}}{{- $p = . -}}{{- end -}}
       {{- if not $p -}}{{- errorf "catalogs: %s: link %q names no page of segment %s" $at $dest $c.segment -}}{{- end -}}
+      {{- end -}}
     {{- else -}}
       {{- $r := partial "opm/catalog-resolve.html" (dict "path" $path) -}}
       {{- if not $r.page -}}{{- errorf "catalogs: %s: link %q: %s" $at $dest $r.err -}}{{- end -}}
@@ -58,7 +68,7 @@
 
 {{- with . -}}
   {{- $isExternal := strings.HasPrefix $dest "http" -}}
-  <a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>
+  <a href="{{ $dest | safeURL }}"{{ with $title }} title="{{ . }}"{{ end }}{{ if $isExternal }} target="_blank" rel="noopener"{{ end }}>
     {{- .Text | safeHTML -}}
     {{- if and .Page.Site.Params.externalLinkDecoration $isExternal -}}
       {{- partial "utils/icon.html" (dict "name" "arrow-up-right" "attributes" `class="hx:inline hx:rtl:rotate-270 hx:align-baseline" height="1em" aria-hidden="true"`) -}}

@@ -4,33 +4,6 @@
   "version": "edge",
   "members": [
     {
-      "kind": "blueprint",
-      "name": "stateless-workload",
-      "apiVersion": "v1",
-      "level": "stable",
-      "fqn": "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1",
-      "modulePath": "opmodel.dev/catalogs/opm/blueprints/v1",
-      "title": "Stateless workload",
-      "page": "blueprints/stateless-workload",
-      "description": "A replicated workload that keeps no state of its own",
-      "spec": {
-        "key": "statelessWorkload",
-        "cue": "spec: statelessWorkload: {\n\t// How many copies run.\n\treplicas: *1 | int\n}",
-        "fields": [
-          {
-            "path": "replicas",
-            "type": "*1 | int",
-            "presence": "regular",
-            "default": "1",
-            "doc": "How many copies run.",
-            "ref": null
-          }
-        ],
-        "linked": [],
-        "external": []
-      }
-    },
-    {
       "kind": "resource",
       "name": "volumes",
       "apiVersion": "v1beta1",

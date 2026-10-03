@@ -29,8 +29,7 @@
       "firstIsFloor": true,
       "in": [
         "4.4",
-        "4.5",
-        "edge"
+        "4.5"
       ],
       "changes": {}
     },
@@ -206,6 +205,16 @@
         "lastIn": "4.4",
         "page": "traits/backup-v1alpha1"
       }
+    ],
+    "edge": [
+      {
+        "fqn": "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1",
+        "kind": "blueprint",
+        "name": "stateless-workload",
+        "apiVersion": "v1",
+        "lastIn": "4.5",
+        "page": "blueprints/stateless-workload"
+      }
     ]
   },
   "lineage": {
@@ -214,9 +223,6 @@
         "v1"
       ],
       "4.5": [
-        "v1"
-      ],
-      "edge": [
         "v1"
       ]
     },

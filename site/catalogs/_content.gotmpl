@@ -121,7 +121,9 @@
              the mode of the pair ending at this segment, and on a member
              page its history by FQN, its kind/name lineage in this segment
              and its pages here by apiVersion; on a kind index the members
-             removed in this segment whose page was under it. It is a JSON
+             removed in this segment whose page was under it, and on the
+             segment's landing those whose kind has no index here (its last
+             member is gone). It is a JSON
              string ("" without history), which templates unmarshal: Hugo
              rewrites a page's params maps in place (lowercasing their keys),
              and the C13 maps are shared by every page of a member, so a map
@@ -137,16 +139,22 @@
             "lineage" (index (index $hist.lineage $kn | default dict) $seg.segment | default slice)
             "pages" (index $pagesOf $kn | default dict)) -}}
         {{- end -}}{{- end -}}
-        {{- if and (eq $kind "section") $p (not (strings.Contains $p "/")) -}}
+        {{- if and (eq $kind "section") (not (strings.Contains $p "/")) -}}
           {{- $gone := slice -}}
           {{- range index $hist.removed $seg.segment -}}
-            {{- if hasPrefix .page (printf "%s/" $p) -}}{{- $gone = $gone | append . -}}{{- end -}}
+            {{- $dir := index (split .page "/") 0 -}}
+            {{- if eq $dir $p -}}{{- $gone = $gone | append . -}}
+            {{- else if and (eq $p "") (not (index $listed (printf "%s/_index.md" $dir))) -}}{{- $gone = $gone | append . -}}
+            {{- end -}}
           {{- end -}}
           {{- $history = merge $history (dict "removed" $gone) -}}
         {{- end -}}
       {{- end -}}
-      {{- /* The page-end "Changes in <segment>" section, as Markdown. */ -}}
-      {{- $body = printf "%s%s" $body (partial "opm/history-changes.html" (dict "history" $history "segment" $seg.segment "label" $seg.label)) -}}
+      {{- /* The page-end "Changes in <segment>" and "Removed in <segment>"
+             sections, as Markdown, so the table of contents, the anchors and
+             the Markdown output carry them. */ -}}
+      {{- $hargs := dict "history" $history "segment" $seg.segment "label" $seg.label "root" $cat.root -}}
+      {{- $body = printf "%s%s%s" $body (partial "opm/history-changes.html" $hargs) (partial "opm/history-removed.html" $hargs) -}}
       {{- $path := printf "%s/%s" $cat.name $seg.segment -}}
       {{- $url := printf "%s%s/" $cat.root $seg.segment -}}
       {{- with $p -}}{{- $path = printf "%s/%s" $path . -}}{{- $url = printf "%s%s/" $url . -}}{{- end -}}

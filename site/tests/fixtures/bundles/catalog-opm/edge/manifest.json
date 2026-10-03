@@ -22,16 +22,6 @@
       "generated": false
     },
     {
-      "path": "blueprints/_index.md",
-      "generated": true
-    },
-    {
-      "path": "blueprints/stateless-workload.md",
-      "source": "opm/blueprints/v1/stateless_workload.cue",
-      "lastmod": "2026-10-01T16:45:00Z",
-      "generated": true
-    },
-    {
       "path": "policies/_index.md",
       "generated": true
     },

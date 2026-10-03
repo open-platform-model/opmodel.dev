@@ -1,3 +1,0 @@
-{{- /* Hextra hook (v0.13.0), after the page content. A Catalogs kind index
-       lists the members removed in its segment (opm/history-removed.html). */ -}}
-{{- if and (not .IsHome) .Params.catalog -}}{{- partial "opm/history-removed.html" . -}}{{- end -}}

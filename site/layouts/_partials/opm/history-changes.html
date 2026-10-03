@@ -20,8 +20,14 @@
       {{- if eq .op "added" -}}{{- $line = printf "%s added" $p -}}
       {{- else if eq .op "removed" -}}{{- $line = printf "%s removed" $p -}}
       {{- else if eq .op "presence" -}}
-        {{- if in (slice "regular" "optional" "required") .to -}}{{- $line = printf "%s made %s" $p .to -}}
-        {{- else -}}{{- errorf "catalogs: presence %q of %s %s is not regular, optional or required" .to $h.fqn .path -}}{{- end -}}
+        {{- /* C13's wording: by the target, and for a field becoming
+               regular by where it came from. */ -}}
+        {{- $ps := slice "regular" "optional" "required" -}}
+        {{- if or (not (in $ps .from)) (not (in $ps .to)) (eq .from .to) -}}
+          {{- errorf "catalogs: presence change of %s %s from %q to %q is not between two different presences" $h.fqn .path .from .to -}}
+        {{- else if eq .to "required" -}}{{- $line = printf "%s made required" $p -}}
+        {{- else if eq .to "optional" -}}{{- $line = printf "%s made optional" $p -}}
+        {{- else -}}{{- $line = printf "%s no longer %s" $p .from -}}{{- end -}}
       {{- else if eq .op "type" -}}{{- $line = printf "%s type changed from %s to %s" $p $from $to -}}
       {{- else if eq .op "default" -}}
         {{- if not $from -}}{{- $line = printf "%s now defaults to %s" $p $to -}}
