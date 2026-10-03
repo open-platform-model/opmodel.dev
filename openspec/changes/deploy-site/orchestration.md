@@ -209,7 +209,7 @@ Never write `> [!NOTE] Title`, a foldable `> [!NOTE]-`, or a Starlight `:::note[
 
 A NOTE whose bold title line is exactly **Direction** is a direction note (0018:D3): it names an enhancement, and A renders it labelled Direction, in a box of its own. Added 2026-10-02 by opmodel.dev's `add-enhancements-tab`.
 
-**Figures** are Hugo shortcodes. Write each on its own line, with a blank line before and after, no parameters and no closing tag. Exactly these seven names exist:
+**Figures** are Hugo shortcodes. Write each on its own line, with a blank line before and after, no parameters and no closing tag. Exactly these nine names exist:
 
 | Shortcode | Figure |
 |---|---|
@@ -220,6 +220,8 @@ A NOTE whose bold title line is exactly **Direction** is a direction note (0018:
 | `{{< opm/three-ways-to-deploy >}}` | Three ways to deploy |
 | `{{< opm/helm-and-opm >}}` | Helm and OPM |
 | `{{< opm/one-trait-any-provider >}}` | One trait, any provider |
+| `{{< opm/what-opm-models >}}` | What OPM models today |
+| `{{< opm/two-models-one-boundary >}}` | Two models, one boundary |
 
 No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, `cards` or anything else. Hugo expands shortcodes even inside code fences, so to show one in a code block, write `{{</* opm/name */>}}`.
 
@@ -249,7 +251,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `ddbc14d8e91e37a10afb437c3d82a2e3180dd30b5c6bfe3783a825fde7584ee9`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `9ade191f342910629759513fda68e57bc9d453eaa6c7761fe37106186f3e4c98`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -262,7 +264,7 @@ Two scripts. Write each block, byte for byte, with your file-writing tool, to a 
 # Every violation prints as "<file>:<line>: <message>".
 set -u
 export LC_ALL=C
-FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm one-trait-any-provider"
+FIGURES="module-to-cluster roles-and-artifacts component-to-objects where-things-live three-ways-to-deploy helm-and-opm one-trait-any-provider what-opm-models two-models-one-boundary"
 
 [ $# -ge 1 ] || { echo "usage: $0 DIR [DIR ...]" >&2; exit 2; }
 

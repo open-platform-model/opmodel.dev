@@ -1,6 +1,6 @@
 {
   "schema": "docs.opmodel.dev/lock/v1",
-  "tool": "0.2.0",
+  "tool": "0.2.2",
   "config": "sha256:115f584e334701254f0afa0fe67daad309d3a412b50b783e77c98613ce12d877",
   "bundles": [
     {

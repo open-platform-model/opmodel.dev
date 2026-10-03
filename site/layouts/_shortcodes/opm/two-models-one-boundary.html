@@ -1,0 +1,5 @@
+{{- /* Figure: two models, one boundary (core concepts, "The application model
+       and the platform model", after what-opm-models). The body is
+       _partials/opm/figures/two-models-one-boundary.html. */ -}}
+{{- $claim := `A module and a platform never import each other. Both depend on the contracts that catalogs publish: the module names resources and traits, and the platform admits the catalogs whose transformers render them. They meet only when an instance is rendered. So the module author releases 1.1 without the platform team, and the platform team adds a backup provider without a module release.` -}}
+{{- partial "opm/figure.html" (dict "id" "tmb" "title" "Two models, one boundary" "claim" $claim "width" 360 "height" 420 "body" (partial "opm/figures/two-models-one-boundary.html" .)) -}}

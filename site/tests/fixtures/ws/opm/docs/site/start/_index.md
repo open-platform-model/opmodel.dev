@@ -34,6 +34,14 @@ Each figure the site draws, one shortcode each.
 
 {{< opm/one-trait-any-provider >}}
 
+## What OPM models today
+
+{{< opm/what-opm-models >}}
+
+## Two models, one boundary
+
+{{< opm/two-models-one-boundary >}}
+
 ## Showing a shortcode as text
 
 A page escapes a shortcode it shows as an example, because Hugo expands shortcodes inside code fences too:

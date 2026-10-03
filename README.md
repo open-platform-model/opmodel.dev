@@ -303,7 +303,7 @@ The content adapter `site/enhancements/_content.gotmpl` is mounted into the defa
 - [x] Build checks: drift guard, lint, front matter, links, page set, stray files, placeholders that yield to source pages, planning comments, supply chain, redirects, git dates
 - [x] Per-version Pagefind search in Hextra's palette; `/latest/` and root redirects
 - [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
-- [x] All seven figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
+- [x] All nine figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] Generated reference pages, committed in each owning repository (cli, opm-operator, catalog_opm, core)
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
 - [x] `v1.0` follows its release lines (`cli-line`, `catalog-line`), with every resolved SHA recorded and a frozen manifest per build
