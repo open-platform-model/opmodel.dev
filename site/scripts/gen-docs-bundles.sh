@@ -29,7 +29,10 @@
 # build, a project the table does not know, one version and project twice, or
 # two projects that replace one repository; a dir that is missing or holds no
 # manifest.json; a manifest whose project, version, revision or source.commit
-# differs from its lock entry; a placement that is not docs at /docs/; a page
+# differs from its lock entry, or whose source.repo is not the repo
+# site/bundles.cue names for that project under docs (the repository the
+# pull verified the signature for; read from its quoted keys, as
+# run-in-image.sh reads them); a placement that is not docs at /docs/; a page
 # under content/ the manifest does not list, or a listed page that is missing
 # (C3 says they are equal; checked again because the site mounts content/
 # whole).
@@ -57,6 +60,14 @@ tree_of() {
     catalog-opm-docs) echo catalog_opm ;;
     *) return 1 ;;
   esac
+}
+
+# The repo site/bundles.cue allows to sign a docs project: the quoted key's
+# line in its docs block, {repo: "<owner>/<name>"}.
+repo_in_config() {
+  [ -f bundles.cue ] || return 0
+  awk -v p="$1" '/^docs:[[:space:]]*\{/ { on = 1; next } on && /^\}/ { on = 0 }
+    on && index($0, "\"" p "\"") && match($0, /repo:[[:space:]]*"[^"]+"/) { r = substr($0, RSTART, RLENGTH); sub(/^repo:[[:space:]]*"/, "", r); sub(/"$/, "", r); print r; exit }' bundles.cue
 }
 
 built=" "
@@ -95,6 +106,9 @@ if [ -n "$CAT_DIR" ]; then
     done
     a=$(get '.commit'); b=$(jq -r '.source.commit' "$m")
     [ "$a" = "$b" ] || die "$who: the lock says commit $a, $dir/manifest.json says source.commit $b"
+    want=$(repo_in_config "$project"); have=$(jq -r '.source.repo // ""' "$m")
+    [ -n "$want" ] || die "$who: site/bundles.cue names no docs project $project (docs: {\"$project\": {repo: ...}})"
+    [ "$want" = "$have" ] || die "$who: $dir/manifest.json says source.repo $have, site/bundles.cue allows only $want to sign $project"
     kind=$(jq -r '.placement.kind // ""' "$m"); proot=$(jq -r '.placement.root // ""' "$m")
     [ "$kind" = docs ] && [ "$proot" = /docs/ ] || die "$who: $dir/manifest.json places the bundle as $kind at \"$proot\", not as docs at /docs/"
     # content/ holds exactly the pages the manifest lists.

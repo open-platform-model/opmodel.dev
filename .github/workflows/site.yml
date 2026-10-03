@@ -203,7 +203,7 @@ jobs:
               echo
               echo '### Docs bundles'
               echo
-              echo '| Version | Project | Role | Tag | Version | Revision | Digest | Commit | Pins |'
+              echo '| Site version | Project | Role | Tag | Version | Revision | Digest | Commit | Pins |'
               echo '|---|---|---|---|---|---|---|---|---|'
               jq -r '.versions | to_entries[] | .key as $v | (.value.bundles // [])[]
                 | "| \($v) | \(.project) | \(.role) | \(.tag) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) | \(.pins | to_entries | map("\(.key) \(.value)") | join(", ")) |"' site/public/build-stamp.json
