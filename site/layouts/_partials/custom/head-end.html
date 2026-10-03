@@ -30,6 +30,12 @@
   {{- $css := . | resources.Concat "css/opm.css" | minify | fingerprint -}}
   <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
 {{- end -}}
+{{- /* The theme switch animation wraps Hextra's global setTheme, which its
+       js/head scripts define above, before the body's toggle script calls it:
+       a blocking script, here and not deferred. */ -}}
+{{- with resources.Get "js/opm-theme-transition.js" | minify | fingerprint -}}
+  <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>
+{{- end -}}
 {{- /* Hextra makes a code block keyboard-focusable (tabindex=0) only when it
        scrolls, and measures that at DOMContentLoaded; a web font that loads
        later can make a block scroll without it (axe:

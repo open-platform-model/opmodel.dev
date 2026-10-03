@@ -1,0 +1,8 @@
+/*
+ * Theme switch animation (assets/js/opm-theme-transition.js). The reveal
+ * replaces the browser's default cross-fade with a growing circle of the new
+ * theme over the old; the fade keeps the cross-fade, shortened.
+ */
+html.opm-theme-reveal::view-transition-old(root),
+html.opm-theme-reveal::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.opm-theme-fade::view-transition-group(root) { animation-duration: .3s; }

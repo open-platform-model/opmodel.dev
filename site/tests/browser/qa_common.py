@@ -1,4 +1,4 @@
-"""Shared helpers for the browser checks (shots.py, a11y.py, search.py).
+"""Shared helpers for the browser checks (shots.py, a11y.py, search.py, theme_reveal.py).
 
 They run in the QA image (site/tests/browser/Dockerfile) with the repo at
 /work/repo and no network: the built site/public/ is served on a loopback
