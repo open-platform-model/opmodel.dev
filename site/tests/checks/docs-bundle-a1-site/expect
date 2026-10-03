@@ -1,0 +1,3 @@
++ A1 FAIL v1.0: /docs/reference/ is published by:
++ cli 1.0.0-beta.9 (docs bundle) content/reference/_index.md
+- == hugo build

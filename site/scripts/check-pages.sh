@@ -7,7 +7,13 @@
 #
 # Lists the URL every page should publish at: the site-owned content/ at /,
 # a version's generated reference in .gen/<version>/ at /, and each source
-# repo's ROOT/<repo>/docs/site/ at /docs/ (x/_index.md is /x/, x.md is /x/).
+# repo's ROOT/<repo>/docs/site/ at /docs/ (x/_index.md is /x/, x.md is /x/),
+# or, for a repository the version reads from a docs bundle
+# (data/opm/docs-bundles.json), every page its manifest.json lists at /docs/
+# (docs-kit C8), labelled "<project> <version> (docs bundle) content/<path>"; A1 and
+# Q2 then cover bundle pages against site-owned and git pages alike, and the
+# link crawl below covers /docs/ links across bundles (C15 leaves them to the
+# site).
 # Then:
 #   A1     fails when two files publish one URL, x.md against x/_index.md
 #          included (Hugo lets the first mount win, silently);
@@ -92,12 +98,25 @@ urls() { # $1 dir, $2 URL prefix, $3 label
 # `placeholder: true` (see gen-mounts.sh).
 placeholders=$(grep -rlx 'placeholder: true' content 2>/dev/null | sed 's#^content/##' | sort | tr '\n' ' ' || true)
 
+DB=data/opm/docs-bundles.json
+[ -f "$DB" ] || { echo "check-pages: $DB is missing (gen-docs-bundles.sh runs first)"; exit 1; }
 for pair in "$@"; do
   v=${pair%%=*}; root=${pair#*=}
+  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' "$DB") "
   {
     urls content / site
     urls ".gen/$v" / generated
-    for r in $REPOS; do urls "$root/$r/docs/site" /docs/ "$r"; done
+    for r in $REPOS; do
+      case "$fromb" in *" $r "*) continue ;; esac
+      urls "$root/$r/docs/site" /docs/ "$r"
+    done
+    # Bundle pages: the manifest's pages, at /docs/<page URL>.
+    jq -r --arg v "$v" '.versions[$v] // {} | .[] | . as $b | .pages | keys[]
+      | "\(.)\t\($b.project) \($b.version) (docs bundle)"' "$DB" |
+      while IFS='	' read -r f lab; do
+        u=$(printf '%s' "$f" | sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#')
+        printf '/docs/%s\t%s content/%s\n' "$u" "$lab" "$f"
+      done
   } > "$tmp/$v.src"
   # A placeholder yields to a source page at its URL (gen-mounts.sh mounts it
   # only where none exists), so it takes no part in A1 there.

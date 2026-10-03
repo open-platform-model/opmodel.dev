@@ -190,6 +190,46 @@ run "$(manifest pins-flag "$good")" -- --pins v1.1.0
 expect pins-flag 0 "--pins v1.1.0 prints library v2.1.0, core v4.1.0, opm-operator v3.1.0" \
   "library${TAB}v2.1.0${TAB}" "core${TAB}v4.1.0${TAB}" "opm-operator${TAB}v3.1.0${TAB}"
 
+# from-bundles (openspec pull-reference-bundles): the repositories a version
+# reads from docs bundles get no row, and versions.tsv mirrors the set.
+FBL="# from-bundles${TAB}v2.0${TAB}"
+run "$(manifest fb-core "$good
+	from-bundles = core")" -- --check
+if [ "$rc" = 0 ] && ! printf '%s\n' "$out" | grep -q "^v2.0${TAB}.*${TAB}core${TAB}"; then
+  expect fb-core 0 "from-bundles = core: no core row, the mirror line; the cli pins still resolve library and opm-operator" \
+    "${FBL}core" "${TAB}library${TAB}v2.1.0${TAB}" "${TAB}opm-operator${TAB}v3.1.0${TAB}"
+else bad fb-core "exit $rc, or a core row is left"; fi
+fbcli="$v
+	from-bundles = cli core library opm-operator
+	catalog = opm-v1.1.0
+	opm = $OPM_SHA"
+run "$(manifest fb-cli "$fbcli")" -- --check
+if [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | grep -c "^v2.0${TAB}")" = 2 ]; then
+  expect fb-cli 0 "from-bundles naming cli and its pins: no cli anchor, only catalog_opm and opm resolve" \
+    "${FBL}cli core library opm-operator" "${TAB}anchored${TAB}catalog_opm${TAB}opm-v1.1.0${TAB}" "${TAB}anchored${TAB}opm${TAB}$OPM_SHA${TAB}"
+else bad fb-cli "exit $rc, or rows other than catalog_opm and opm"; fi
+# shellcheck disable=SC2046 # env assignments hold no spaces
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$T/manifests/fb-cli.conf" sh "$RESOLVE" --freeze > "$T/manifests/fb-cli-frozen.conf" 2>/dev/null
+run "$T/manifests/fb-cli-frozen.conf" -- --check
+if [ "$rc" = 0 ] && grep -qx '	from-bundles = cli core library opm-operator' "$T/manifests/fb-cli-frozen.conf" && ! grep -q '	cli = ' "$T/manifests/fb-cli-frozen.conf"; then
+  expect fb-cli-freeze 0 "the frozen copy keeps from-bundles, names no cli and resolves the same two rows" "${FBL}cli core library opm-operator" "${TAB}catalog_opm${TAB}opm-v1.1.0${TAB}"
+else bad fb-cli-freeze "exit $rc, or the frozen copy lost from-bundles or names a cli"; fi
+run "$(manifest fb-cli-anchor "$fbcli
+	cli = v1.1.0")" -- --check
+expect fb-cli-anchor 1 "from-bundles naming cli refuses a cli anchor" "version v2.0: from-bundles names cli, which excludes cli"
+run "$(manifest fb-cli-partial "$v
+	from-bundles = cli core
+	catalog = opm-v1.1.0
+	opm = $OPM_SHA")" -- --check
+expect fb-cli-partial 1 "from-bundles naming cli must name its pins too" "version v2.0: from-bundles names cli but not library" "version v2.0: from-bundles names cli but not opm-operator"
+run "$(manifest fb-unknown "$good
+	from-bundles = opm")" -- --check
+expect fb-unknown 1 "from-bundles names only the four docs-bundle repositories" "version v2.0: from-bundles names opm; only cli, core, library and opm-operator publish docs bundles"
+run "$(manifest fb-override "$good
+	from-bundles = core
+	override = core v4.2.0 a test")" -- --check
+expect fb-override 1 "a repository read from its bundle takes no override" "version v2.0: override \"core v4.2.0 a test\": from-bundles names core"
+
 run "$(manifest main "[version \"v1.0\"]
 	label = v1.0 (beta)
 	weight = 1
@@ -393,6 +433,20 @@ expect line 0 "cli v1.5.0-beta.10 beats beta.3 and beta.2, ignores v1.50.0 and v
   "${L}core${TAB}v4.2.0${TAB}$CORE_A${TAB}$CORE_HOW; docs: main head (no release/v4.2; main still releases v4.2)${TAB}main" \
   "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}line:newest opm-v1.* tag; docs: main head (no release/opm-v1.1; main still releases opm-v1.1)${TAB}main" \
   "${L}opm${TAB}main${TAB}$OPM_HEAD${TAB}line:main head${TAB}main"
+
+# A line version that reads cli and its pins from docs bundles: catalog-line
+# and from-bundles, no cli-line; only catalog_opm and opm resolve.
+run "$(manifest line-fb "$lv
+	catalog-line = opm-v1
+	from-bundles = cli core library opm-operator")" -- --check
+if [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | grep -c "^v2.0${TAB}")" = 2 ]; then
+  expect line-fb 0 "catalog-line with from-bundles naming cli: a line version of catalog_opm and opm only" \
+    "# from-bundles${TAB}v2.0${TAB}cli core library opm-operator" \
+    "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}" "${L}opm${TAB}main${TAB}$OPM_HEAD${TAB}line:main head${TAB}main"
+else bad line-fb "exit $rc, or rows other than catalog_opm and opm"; fi
+run "$(manifest line-fb-cli-line "$lgood
+	from-bundles = cli core library opm-operator")" -- --check
+expect line-fb-cli-line 1 "from-bundles naming cli and cli-line together are refused" "version v2.0: from-bundles names cli, which excludes cli-line"
 
 # cli v1.50.0 is the newest release on cli main, so main still releases v1.50:
 # the cli docs come from main's head, while the pins are read at the tag

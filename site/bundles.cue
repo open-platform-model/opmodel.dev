@@ -10,6 +10,14 @@
 // catalog adopted docs-kit (no backfill; docs-kit DESIGN decision 8,
 // 2026-10-03). run-in-image.sh reads the tab names from their quoted keys
 // ("catalog-opm": {...}); keep every tab key quoted.
+//
+// docs (docs-kit C16) names the projects that may be placed in a site
+// version's /docs/, each with the only repository allowed to sign it. A site
+// version reads a repository from its docs bundle exactly when versions names
+// its project for that version (the lock's "docs" entries; site/versions.conf
+// mirrors the set as from-bundles); docs without versions pulls nothing.
+// run-in-image.sh reads these keys the same way: keep every docs key and
+// every site-version key quoted.
 registry: "ghcr.io/open-platform-model/docs"
 signer: {
 	issuer:   "https://token.actions.githubusercontent.com"
@@ -18,4 +26,10 @@ signer: {
 }
 tabs: {
 	"catalog-opm": {repo: "open-platform-model/catalog_opm", root: "/catalogs/opm/", from: "4.5"}
+}
+docs: {
+	"cli":          {repo: "open-platform-model/cli"}
+	"core":         {repo: "open-platform-model/core"}
+	"library":      {repo: "open-platform-model/library"}
+	"opm-operator": {repo: "open-platform-model/opm-operator"}
 }

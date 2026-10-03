@@ -15,10 +15,11 @@ Most pages do not live here. Each of six repositories (opm, core, catalog_opm, c
 ```text
 <repo>/docs/site/**/*.md  (six source repos, archived at the resolved refs into site/.versions/<v>/)
 site/content/             (landing and section overviews)
-site/.bundles/            (signed docs bundles, task bundles:pull from ghcr.io/open-platform-model/docs)
+site/.bundles/            (signed docs bundles, task bundles:pull from ghcr.io/open-platform-model/docs:
+                           the Catalogs tab, and per site version the docs bundles that replace a repo's git tree)
         |
         v
-  drift guard -> source lint -> git dates, mounts, page-set checks
+  drift guard -> docs bundles -> source lint (git trees) -> git dates, mounts, page-set checks
         -> hugo build (Hextra, vendored) -> output checks -> Pagefind per version and catalog minor
         |
         v
@@ -77,7 +78,7 @@ OPM_VERSIONS=v1.0=/src OPM_SRC_CLI=/path/to/cli-worktree task serve
 opmodel.dev/
 ├── site/
 │   ├── Dockerfile              # Build image: Hugo, Pagefind, opm-docs, git, jq
-│   ├── bundles.cue             # The Catalogs tab's docs bundles (task bundles:pull; see The Catalogs section)
+│   ├── bundles.cue             # The docs bundles: the Catalogs tab, and the docs projects of the site versions (task bundles:pull)
 │   ├── NOTICE                  # Third-party licences
 │   ├── overrides.sha256        # Theme files behind every override copy (drift guard)
 │   ├── vendored.sha256         # Vendored third-party files (Mermaid), with version and source
@@ -291,6 +292,16 @@ An author previews a local catalog build with `OPM_BUNDLES_LOCAL="catalog-opm@4.
 The tab replaced catalog_opm's Reference copies of the members (`reference/catalog-members/` and `reference/catalog-contract.md`), which catalog_opm deleted on 2026-10-03; their old URLs get no redirects. A version whose catalog_opm tree is older still holds them, and they publish in that version like any page, so its own links to `/docs/reference/catalog-contract/` and `/docs/reference/catalog-members/` resolve there; the build neither hides them nor maps those links to the tab.
 
 The fixtures in `site/tests/fixtures/bundles/` are three bundle trees (`catalog-opm` 4.4, 4.5 and `edge`) plus the `history.json` and the lock an all-local pull writes over them. `task test:site` first re-pulls them with the pinned `opm-docs`, offline (`--local`), and fails unless the result is byte-identical, lock included; every fixture build then reads that pulled copy. A fixture edit regenerates `lock.json` with the same pull.
+
+### Docs bundles in a site version
+
+A site version can read a source repository's pages from that repository's signed docs bundle instead of from git (docs-kit contracts C15, C16): the generated reference and the authored `docs/site/` pages together, as the repository published them for a release. `site/bundles.cue` names the docs projects under `docs` (`cli`, `core`, `library`, `opm-operator`, each with the only repository allowed to sign it) and, under `versions`, what each site version pulls: an `anchor` project at a tag (`cli` at `1.0`, its newest release in that minor) and the `pinned` projects at exactly the versions the anchor's `manifest.json` pins, so a version shows the docs of what its cli pins (docs-kit DESIGN decision 10). `opm-docs pull` resolves and verifies them like the tab bundles, refuses two bundles that publish one page or own nested paths, and unpacks them to `site/.bundles/_versions/<v>/<project>/` with `docs` entries in the lock; the site never resolves a pin itself. `docs` without `versions` pulls nothing.
+
+The lock decides, per site version: a repository whose project the lock's `docs` entries name for that version is read from its bundle, every other one from git as before. `gen-docs-bundles.sh` writes `data/opm/docs-bundles.json` from the lock and the manifests, and fails the build on a lock or manifest that disagree, a placement other than `docs`, or a page under `content/` the manifest does not list. For such a repository and version the bundle's `content/` is mounted at `content/docs` and its `docs/site/` is not: the source lint skips it (the pull already linted the bundle), `gen-lastmod.sh` skips it, and the page-set checks (A1, Q2) and the link crawl cover the bundle pages with everything else, which is where a `/docs/` link from one bundle into another is checked (C15 leaves it to the site). `resolve-versions.sh` runs on the host and cannot read the lock, so `site/versions.conf` mirrors the set on the version as `from-bundles = <repo> ...`; a mirror that names other repositories than the lock fails the build ("run task bundles:pull, or fix versions.conf"). A version whose `from-bundles` names cli has no `cli-line` and no `cli` (the resolver refuses either) and names library, core and opm-operator too, since the cli bundle's pins choose them; those four get no row in `versions.tsv`, no archive and no override.
+
+A bundle page's links come from its manifest (docs-kit C8): "Edit this page" goes to `https://github.com/<source.repo>/edit/main/<edit>` when the page has an `edit` path (an authored page whose file `main` still has), on every version, because it names `main`, where a fix lands (docs-kit DESIGN decision 19); a generated page has none. "View source at <release>" goes to the page's `source` at the bundle's commit. "Last updated" and the sitemap's `lastmod` are the manifest's `lastmod`; a page without one shows no date. The footer names each bundle's version ("docs bundles cli 1.0.0-beta.6, ..."), and `build-stamp.json` lists them under `versions.<v>.bundles` with roles, tags, digests and the anchor's pins; the CI summary prints them. A docs fix reaches a bundle-backed version through that repository's next release or a docs revision (`mode: revision` in its `Docs` workflow, docs-kit DESIGN decision 9), never at the next site build.
+
+A local preview names a site version's project as `<project>@v<M>.<m>`: `OPM_BUNDLES_LOCAL="cli@v1.0=<cli>/out/cli ..." task bundles:pull build`; a pull runs with no network only when every tab and every docs project of every site version is local. The fixtures in `site/tests/fixtures/bundles/_versions/v1.0/` are the four docs bundles of v1.0 (cli the anchor with pins), pulled offline with the tab fixtures; only the fixture builds that ask for them keep their lock entries, so the other fixture builds still read all six repositories from git.
 
 ### The Enhancements section
 

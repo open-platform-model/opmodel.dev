@@ -1,0 +1,53 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "core",
+  "version": "2.0.0-beta.3",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/core",
+    "commit": "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0",
+    "ref": "v2.0.0-beta.3"
+  },
+  "created": "2026-09-30T12:00:00Z",
+  "tool": "0.4.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/",
+    "owns": [
+      "reference/definitions/"
+    ]
+  },
+  "pages": [
+    {
+      "path": "concepts/brief-only.md",
+      "source": "docs/site/concepts/brief-only.md",
+      "lastmod": "2026-09-22T10:00:00Z",
+      "generated": false
+    },
+    {
+      "path": "concepts/catalog-links.md",
+      "source": "docs/site/concepts/catalog-links.md",
+      "lastmod": "2026-09-22T11:00:00Z",
+      "generated": false,
+      "edit": "docs/site/concepts/catalog-links.md"
+    },
+    {
+      "path": "concepts/fixture-concept.md",
+      "source": "docs/site/concepts/fixture-concept.md",
+      "lastmod": "2026-09-23T12:30:00Z",
+      "generated": false,
+      "edit": "docs/site/concepts/fixture-concept.md"
+    },
+    {
+      "path": "reference/definitions/_index.md",
+      "generated": true
+    },
+    {
+      "path": "reference/definitions/module.md",
+      "source": "v2/module.cue",
+      "generated": true
+    }
+  ],
+  "data": []
+}

@@ -91,6 +91,11 @@ while IFS="$(printf '\t')" read -r v kind; do
     rows="$rows
 $(dates "$tree" "$root" "$sha" docs/site "$r/docs/site" "$v")"
   done
+  # A repository the version no longer reads from git (from-bundles: its docs
+  # bundle replaces it) keeps no archive.
+  for r in opm core catalog_opm cli library opm-operator; do
+    awk -F'\t' -v v="$v" -v r="$r" '!/^#/ && $1 == v && $6 == r { f = 1 } END { exit !f }' "$TSV" || rm -rf "${V:?}/$v/$r"
+  done
   printf '%s\n' "$rows" | sed '/^$/d' > "$V/$v/lastmod.tsv.tmp"
   mv "$V/$v/lastmod.tsv.tmp" "$V/$v/lastmod.tsv"
   echo "materialise: $v ($kind): $(grep -c . "$V/$v/lastmod.tsv" | tr -d ' ') dated pages -> .versions/$v/lastmod.tsv"

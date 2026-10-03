@@ -38,7 +38,12 @@
 # digest, commit, local}], "history": [{project, digest}]}, digest "" for a
 # local bundle, history one entry per project whose history.json the lock
 # records (docs-kit C13), the key absent when none does; "sections" is absent
-# without either section. layouts/_partials/opm/build-stamp.html shows it in the
+# without either section. "versions.<v>.bundles" lists the docs bundles the
+# version reads instead of git (data/opm/docs-bundles.json, gen-docs-bundles.sh,
+# which runs first; docs-kit C16): [{project, role, tag, version, revision,
+# digest, commit, local, pins}] in the lock's order, digest "" for a local
+# bundle, pins {} but on an anchor; the key is absent for a version that reads
+# every repository from git. layouts/_partials/opm/build-stamp.html shows it in the
 # footer, opm/source.html builds "View source" and "Edit" links from the
 # refs, and build-all.sh publishes it as public/build-stamp.json.
 set -eu
@@ -105,6 +110,13 @@ fi
     END { if (cur != "") printf "}}\n  " }'
   printf '}\n}\n'
 } > data/opm/build.json
+# The docs bundles of each version (see the header).
+if [ -f data/opm/docs-bundles.json ] && jq -e '.versions | length > 0' data/opm/docs-bundles.json >/dev/null; then
+  jq --slurpfile d data/opm/docs-bundles.json '.versions |= with_entries(
+      ($d[0].versions[.key] // {}) as $b
+      | if ($b | length) > 0 then .value.bundles = [$b[] | {project, role, tag, version, revision, digest, commit, local, pins}] else . end)' \
+    data/opm/build.json > data/opm/build.json.tmp && mv data/opm/build.json.tmp data/opm/build.json
+fi
 echo "gen-stamp: data/opm/build.json ($(grep -c '^    "[a-z_-]*": "' data/opm/build.json | tr -d ' ') sources, ${site:+site $site, }versions $(awk -F'\t' 'NF >= 5 && !s[$1]++ { printf "%s%s", (n++ ? " " : ""), $1 }' <<ROWS
 $rows
 ROWS

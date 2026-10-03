@@ -5,7 +5,8 @@ Every page of the default version that draws a figure (a <figure> holding an
 site/.shots/<page>/<n>-<variant>.png, where <n> counts only drawn figures in
 page order (a figure that is not drawn yet takes no number). The extras (the
 landing, a docs page, the 404 page, the open search palette and two section
-pages with their child cards, the Enhancements section's page, graph, a
+pages with their child cards, the generated Reference pages the version has
+(cli, a cli command, definitions, operator resources, Go API), the Enhancements section's page, graph, a
 draft entry, its decisions and an archived entry, and the Catalogs section's
 page, newest landing, a member with a spec block, a kind index, the edge
 landing and, with a version history, the members with the most badges and the
@@ -182,6 +183,11 @@ def main():
         (f"/{version}/docs/operating/", "section cards", None),
         (f"/{version}/docs/reference/", "reference tab", None),
     ]
+    # The generated Reference, one page per producing repository, where the
+    # version has it: from git, or from a docs bundle (pull-reference-bundles).
+    for ref in ("cli/", "cli/opm-module/", "definitions/", "operator-resources/", "go-api/"):
+        if (PUBLIC / version / "docs" / "reference" / ref / "index.html").is_file():
+            extras.append((f"/{version}/docs/reference/{ref}", "reference page", None))
     # The Enhancements section, outside every version: its page, the graph, a
     # draft entry with its decisions and an archived entry.
     extras += [(url, "enhancements page", None) for url in enhancement_pages()]

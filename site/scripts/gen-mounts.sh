@@ -14,10 +14,19 @@
 # SITE_DIR/.gen/<version>/ exists, is mounted at content for that version (its
 # tree starts at docs/reference/...).
 #
+# A repository a version reads from a docs bundle (data/opm/docs-bundles.json,
+# written by gen-docs-bundles.sh from the lock's "docs" key; docs-kit C16) is
+# mounted from the bundle instead: <CAT_DIR>/<dir>/content at content/docs
+# for that version, read-only, and that repository's docs/site/ is not
+# mounted for that version. The catalogs mount below matches only
+# <project>/<segment>/ (a * does not cross /), so the tab adapter never sees
+# _versions/<v>/<project>/.
+#
 # A site-owned page whose front matter holds `placeholder: true` (a page under
 # content/docs/ a source repo is expected to publish later) yields to a source
 # page at the same path: in a version where some repo's docs/site/ holds that
-# file, the site's copy is not mounted. check-pages.sh applies the same rule.
+# file, or a docs bundle of that version holds it under content/, the site's
+# copy is not mounted. check-pages.sh applies the same rule.
 #
 # Beside OUT (config/<env>/module.toml) it writes config/<env>/hugo.toml: the
 # default version, each version's weight and its label (params.opm.versions,
@@ -120,6 +129,14 @@ if [ -n "$ENH_TREE" ]; then
   echo "gen-mounts: wrote .gen/enhancements/_index.md and data/opm/enhancements.json ($(grep -c '": "' data/opm/enhancements.json | tr -d ' ') paths) for the enhancements section"
 fi
 
+# The docs bundles of a version: "<tree>\t<dir>" per bundle-backed repository.
+DB=data/opm/docs-bundles.json
+[ -f "$DB" ] || { echo "gen-mounts: $DB is missing (gen-docs-bundles.sh runs first)" >&2; exit 1; }
+bundles_of() { jq -r --arg v "$1" '.versions[$v] // {} | .[] | "\(.tree)\t\(.dir)"' "$DB"; }
+if jq -e '.versions | length > 0' "$DB" >/dev/null && [ -z "${CAT_DIR:-}" ]; then
+  echo "gen-mounts: $DB names docs bundles, but CAT_DIR is not set" >&2; exit 1
+fi
+
 # Placeholders (see the header): each one's path under content/, and the
 # versions in which a source page takes its place.
 placeholders=$(grep -rlx 'placeholder: true' content 2>/dev/null | sed 's#^content/##' | grep '^docs/' | sort || true)
@@ -128,7 +145,12 @@ for ph in $placeholders; do
   in="" out_v=""
   for pair in "$@"; do
     v=${pair%%=*}; root=${pair#*=}; hit=""
-    for r in $REPOS; do [ -f "$root/$r/docs/site/${ph#docs/}" ] && hit=1; done
+    fromb=$(bundles_of "$v")
+    for r in $REPOS; do
+      if printf '%s\n' "$fromb" | cut -f1 | grep -qxF "$r"; then continue; fi
+      [ -f "$root/$r/docs/site/${ph#docs/}" ] && hit=1
+    done
+    for d in $(printf '%s\n' "$fromb" | cut -f2); do [ -f "$CAT_DIR/$d/content/${ph#docs/}" ] && hit=1; done
     if [ -n "$hit" ]; then in="$in $v"; else out_v="$out_v${out_v:+, }\"$v\""; fi
   done
   [ -n "$in" ] || continue
@@ -175,7 +197,14 @@ mkdir -p "$(dirname "$out")"
     if [ -d ".gen/$v" ]; then
       printf '[[mounts]]\n  source = ".gen/%s"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$v" "$v"
     fi
+    fromb=$(bundles_of "$v")
     for r in $REPOS; do
+      d=$(printf '%s\n' "$fromb" | awk -F'\t' -v r="$r" '$1 == r { print $2 }')
+      if [ -n "$d" ]; then
+        [ -d "$CAT_DIR/$d/content" ] || { echo "gen-mounts: $CAT_DIR/$d/content is missing (version $v, $r from its docs bundle)" >&2; exit 1; }
+        printf '[[mounts]]\n  source = "%s/%s/content"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$CAT_DIR" "$d" "$v"
+        continue
+      fi
       [ -d "$root/$r/docs/site" ] || { echo "gen-mounts: $root/$r/docs/site is missing (version $v)" >&2; exit 1; }
       printf '[[mounts]]\n  source = "%s/%s/docs/site"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$root" "$r" "$v"
     done

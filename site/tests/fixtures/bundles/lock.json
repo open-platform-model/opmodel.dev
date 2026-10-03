@@ -1,7 +1,7 @@
 {
   "schema": "docs.opmodel.dev/lock/v1",
   "tool": "0.5.0",
-  "config": "sha256:115f584e334701254f0afa0fe67daad309d3a412b50b783e77c98613ce12d877",
+  "config": "sha256:618e882b02de6b03b49eec74253915c39e7157a2bed270e478f4833049cedae4",
   "bundles": [
     {
       "project": "catalog-opm",
@@ -45,6 +45,61 @@
       "project": "catalog-opm",
       "digest": "sha256:9dcf1b0a4911cef8aa1285fcb033b168b28f56438fc9b658db0b603d32ac2bea",
       "path": "catalog-opm/history.json"
+    }
+  ],
+  "docs": [
+    {
+      "site": "v1.0",
+      "project": "cli",
+      "role": "anchor",
+      "local": true,
+      "version": "1.0.0-beta.9",
+      "revision": 0,
+      "commit": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+      "dialect": 1,
+      "builtBy": "0.4.0",
+      "pins": {
+        "core": "2.0.0-beta.3",
+        "library": "1.0.0-beta.3",
+        "opm-operator": "1.0.0-beta.7"
+      },
+      "dir": "_versions/v1.0/cli"
+    },
+    {
+      "site": "v1.0",
+      "project": "core",
+      "role": "pinned",
+      "local": true,
+      "version": "2.0.0-beta.3",
+      "revision": 0,
+      "commit": "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0",
+      "dialect": 1,
+      "builtBy": "0.4.0",
+      "dir": "_versions/v1.0/core"
+    },
+    {
+      "site": "v1.0",
+      "project": "library",
+      "role": "pinned",
+      "local": true,
+      "version": "1.0.0-beta.3",
+      "revision": 0,
+      "commit": "1111111111111111111111111111111111111111",
+      "dialect": 1,
+      "builtBy": "0.4.0",
+      "dir": "_versions/v1.0/library"
+    },
+    {
+      "site": "v1.0",
+      "project": "opm-operator",
+      "role": "pinned",
+      "local": true,
+      "version": "1.0.0-beta.7",
+      "revision": 0,
+      "commit": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
+      "dialect": 1,
+      "builtBy": "0.4.0",
+      "dir": "_versions/v1.0/opm-operator"
     }
   ]
 }
