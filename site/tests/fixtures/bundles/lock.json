@@ -1,6 +1,6 @@
 {
   "schema": "docs.opmodel.dev/lock/v1",
-  "tool": "0.2.2",
+  "tool": "0.4.0",
   "config": "sha256:115f584e334701254f0afa0fe67daad309d3a412b50b783e77c98613ce12d877",
   "bundles": [
     {
@@ -38,6 +38,13 @@
       "dialect": 1,
       "builtBy": "0.2.0",
       "dir": "catalog-opm/edge"
+    }
+  ],
+  "history": [
+    {
+      "project": "catalog-opm",
+      "digest": "sha256:76f80fa009b91201da6942e753a403b9ae2f5331c1760af23e5ba2d4a7f8d6ce",
+      "path": "catalog-opm/history.json"
     }
   ]
 }

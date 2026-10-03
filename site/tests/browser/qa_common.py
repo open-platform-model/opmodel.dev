@@ -136,6 +136,12 @@ def catalog_pages():
     texts = [(h, h.read_text(errors="ignore")) for h in found]
     with_badges = [(t.count("opm-history-badge"), h) for h, t in texts if "opm-history-badge" in t]
     with_list = [(t.count("<li><code>"), h) for h, t in texts if "Changes in" in t and "opm-history-link" in t]
+    # A build whose stamp records a history must show it: a member page
+    # without a single badge then fails the browser checks (CI's QA job runs
+    # on the bundles that deploy).
+    stamp = json.loads((PUBLIC / "build-stamp.json").read_text())
+    if stamp.get("sections", {}).get("catalogs", {}).get("history") and not with_badges:
+        raise SystemExit("qa: build-stamp.json records a catalog version history, but no catalog page shows a version badge")
     for picked in (max(with_badges, key=lambda x: x[0], default=None), max(with_list, key=lambda x: x[0], default=None)):
         if picked:
             url = "/" + picked[1].parent.relative_to(PUBLIC).as_posix() + "/"
