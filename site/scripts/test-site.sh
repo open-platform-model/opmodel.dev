@@ -11,16 +11,14 @@
 # /tmp (mktemp), never to a host path.
 #
 #   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
-#   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge) and
+#   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge), the
+#                                              version history (catalog-opm/history.json) and
 #                                              the lock an all-local opm-docs pull writes over
 #                                              them; the tests first re-pull them offline with
 #                                              the pinned opm-docs and fail unless the result is
 #                                              byte-identical, then every site copy holds that
 #                                              pulled tree as .bundles/, with
 #                                              tests/fixtures/bundles.cue as bundles.cue
-#   site/tests/fixtures/history/               a hand-written history.json (docs-kit C13)
-#                                              that layer.sh lays onto the pulled copy, with
-#                                              its lock entry, until opm-docs writes it
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), read in place as explicit mode
@@ -172,15 +170,6 @@ elif grep -qF 'lock.json' "$OUT/cat-fixture-drift/pulled.log"; then
   ok "checks/cat-fixture-drift" "a fixture that is not what opm-docs pull writes fails, naming the file"
 else
   bad "checks/cat-fixture-drift" "the pull failed, but not on the edited lock.json" "$OUT/cat-fixture-drift/pulled.log"
-fi
-# The version history (docs-kit C13): until the pinned opm-docs writes it,
-# the hand-written tests/fixtures/history/catalog-opm/history.json is laid
-# onto a copy of the pulled fixtures, with the lock entry a pull records, so
-# every later build has it.
-if sh "$TESTS/fixtures/history/layer.sh" "$BUNDLES" "$OUT/bundles-history" > "$OUT/bundles-history.log" 2>&1; then
-  BUNDLES=$OUT/bundles-history
-else
-  bad "catalogs/history-layer" "laying history.json onto the fixture bundles failed" "$OUT/bundles-history.log"
 fi
 
 # ---------------------------------------------------------------------------
