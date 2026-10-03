@@ -180,7 +180,7 @@ tasks:
       - sh site/scripts/run-in-image.sh shots
 
   qa:
-    desc: Build the site, then the screenshots, the axe accessibility and the search smoke tests (no network, no port)
+    desc: Build the site, then the screenshots, the axe accessibility, the search and the theme switch smoke tests (no network, no port)
     deps: [qa:image]
     cmds:
       # The browser checks serve site/public/ at the root, so QA always builds
