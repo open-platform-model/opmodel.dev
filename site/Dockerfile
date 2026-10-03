@@ -21,8 +21,8 @@ ARG PAGEFIND_SHA256=afb824a9e7f64905a934900481cea5be679c03975e527329e0e5e6cc70f5
 # download (docs-kit contract C12, build-image pattern). A bump re-syncs the
 # /catalogs/ lint fixtures from docs-kit's conformance set at the same tag
 # (site/tests/lint/link-catalogs/SOURCE).
-ARG OPM_DOCS_VERSION=0.2.0
-ARG OPM_DOCS_SHA256=c656e8d56dfcefb3bcfa599bd8cbe722f1a791a8040bf173423b8842a17b9802
+ARG OPM_DOCS_VERSION=0.2.1
+ARG OPM_DOCS_SHA256=f553e3d7055c4f53e0a8865d2c860f9fdabcb72cc0b496c030c8b85271116bee
 WORKDIR /dl
 RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz" -O hugo.tgz \
  && echo "${HUGO_SHA256}  hugo.tgz" | sha256sum -c - \

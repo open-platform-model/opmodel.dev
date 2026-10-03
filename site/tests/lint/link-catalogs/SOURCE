@@ -1,14 +1,14 @@
 The /catalogs/ link forms of page dialect 1 (docs-kit C11, docs mode). docs-kit
-is the source of this case and of lint/clean/: both are byte-identical to
-docs-kit internal/dialect/testdata/conformance/{link-catalogs,clean}/ at the
-tag v0.2.0, the opm-docs release site/Dockerfile pins (expect here equals
+is the source of this case, of lint/clean/ and of lint/link-slashless-minor/,
+lint/link-slashless-edge/ and lint/link-slashless-root/: each is byte-identical
+to its docs-kit internal/dialect/testdata/conformance/<case>/ at the tag
+v0.2.1, the opm-docs release site/Dockerfile pins (expect here equals
 shell.out there). The accepted /catalogs/ forms are this case's line 7 and its
 reference definition; docs-kit's clean case carries none. A bump of the
 opm-docs pin re-syncs every case that changed in the conformance set at the
 new tag, in the same PR, and names that tag here.
 
-test-site.sh runs both linters over every case. Known divergence outside the
-set (2026-10-03, opm-docs 0.2.0): a slashless minor or edge link
-(/catalogs/opm/4.4/traits/backup, /catalogs/opm/edge) is rejected by both on
-the same line, but the shell lint names the minor/edge rule and opm-docs the
-trailing-slash rule. docs-kit adds the fixture; re-sync it with the next pin.
+test-site.sh runs both linters over every case. The divergence noted at
+opm-docs 0.2.0 (a slashless minor or edge link named by the trailing-slash
+rule in opm-docs, by the minor/edge rule in the shell lint) closed in 0.2.1:
+the three link-slashless-* cases pin the rule each form reports.
