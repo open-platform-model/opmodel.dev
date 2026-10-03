@@ -8,23 +8,25 @@ This repository contains:
 
 - **`site/`** - the Hugo site: configuration, the site-owned pages (the landing and the section overviews), layouts and theme overrides, styles, the vendored theme, build scripts, the build image and the tests.
 
-Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them. Reference pages generated from source (the CLI's commands, the operator's resources, the catalog's members, core's definitions) are generated and committed in the repository that owns the source; the site builds them like any other page. The enhancements repository, OPM's design record, is built in the same run as one unversioned section at `/enhancements/` (see "The Enhancements section" under Site versions).
+Most pages do not live here. Each of six repositories (opm, core, catalog_opm, cli, library, opm-operator) keeps its pages in `docs/site/`, and the build assembles them. Reference pages generated from source (the CLI's commands, the operator's resources, core's definitions) are generated and committed in the repository that owns the source; the site builds them like any other page. The catalog's members are not committed: catalog_opm publishes them as signed docs bundles, one per release and one for `main`, which the site pulls and builds as the unversioned Catalogs tab at `/catalogs/` (see "The Catalogs section" under Site versions). The enhancements repository, OPM's design record, is built in the same run as one unversioned section at `/enhancements/` (see "The Enhancements section" under Site versions).
 
 ## Architecture
 
 ```text
 <repo>/docs/site/**/*.md  (six source repos, archived at the resolved refs into site/.versions/<v>/)
 site/content/             (landing and section overviews)
+site/.bundles/            (signed docs bundles, task bundles:pull from ghcr.io/open-platform-model/docs)
         |
         v
   drift guard -> source lint -> git dates, mounts, page-set checks
-        -> hugo build (Hextra, vendored) -> output checks -> Pagefind per version
+        -> hugo build (Hextra, vendored) -> output checks -> Pagefind per version and catalog minor
         |
         v
   site/public/   /v1.0/...   /latest/ -> /v1.0/   / -> /latest/   /enhancements/...
+                 /catalogs/opm/<MAJOR.MINOR>/...   /catalogs/opm/edge/...   /catalogs/opm/<MAJOR>/ -> newest minor
 ```
 
-Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2 and git, each pinned; a build runs with no network. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
+Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2, opm-docs 0.2.0 (docs-kit), git and jq, each pinned; a build runs with no network, and only `task bundles:pull` runs `opm-docs` with it. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
 
 There is one version, `v1.0` (beta), built from its release lines: the newest cli `v1.0` tag and exactly what it pins, the newest `opm-v4` catalog tag and opm's `main`, resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
 
@@ -44,8 +46,10 @@ There is one version, `v1.0` (beta), built from its release lines: the newest cl
 # resolved versions' archives)
 OPM_VERSIONS=v1.0=/src task serve
 
-# Full build with every check into site/public/, then serve it; after a new release,
-# fetch the roots' tags and branches first (task versions:fetch build)
+# Full build with every check into site/public/, then serve it; the first time, pull
+# the Catalogs tab's docs bundles; after a new release, fetch the roots' tags and
+# branches and pull the bundles again first (task versions:fetch build)
+task bundles:pull
 task build
 task preview
 ```
@@ -72,12 +76,15 @@ OPM_VERSIONS=v1.0=/src OPM_SRC_CLI=/path/to/cli-worktree task serve
 ```text
 opmodel.dev/
 ├── site/
-│   ├── Dockerfile              # Build image: Hugo, Pagefind, git, jq
+│   ├── Dockerfile              # Build image: Hugo, Pagefind, opm-docs, git, jq
+│   ├── bundles.cue             # The Catalogs tab's docs bundles (task bundles:pull; see The Catalogs section)
 │   ├── NOTICE                  # Third-party licences
 │   ├── overrides.sha256        # Theme files behind every override copy (drift guard)
 │   ├── vendored.sha256         # Vendored third-party files (Mermaid), with version and source
 │   ├── config/_default/        # hugo.toml
 │   ├── content/                # Site-owned pages: _index.md landing, docs/**/_index.md overviews
+│   ├── enhancements/           # Content adapter of the unversioned Enhancements section
+│   ├── catalogs/               # Content adapter of the unversioned Catalogs section (docs bundles)
 │   ├── layouts/                # Theme overrides, OPM partials, figure shortcodes
 │   ├── assets/css/opm/         # One CSS file per owner, concatenated in file-name order
 │   ├── assets/js/              # Pagefind adapter for Hextra's search palette
@@ -111,7 +118,8 @@ task brand:favicons    # Regenerate the favicon PNGs and favicon.ico from the dr
 task brand:og          # Regenerate the Open Graph card, site/static/images/og-default.png
 task versions:prepare  # Resolve site/versions.conf on the host, offline: refs, archives, git dates, frozen.conf (build and serve run it)
 task versions:check    # Print every version's resolved refs, SHAs and rules; writes nothing
-task versions:fetch    # Fetch every tag and branch of the six roots and enhancements from origin; never moves or deletes a tag
+task versions:fetch    # Fetch every tag and branch of the six roots and enhancements from origin; never moves or deletes a tag; then bundles:pull
+task bundles:pull      # Pull, verify and unpack the Catalogs tab's docs bundles into site/.bundles/ (network)
 task versions:test     # Resolver tests and a two-version build into site/.check/versions-test/
 task clean             # Remove generated files
 ```
@@ -123,6 +131,7 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 | CI step | Local equivalent |
 |---|---|
 | Lint the workflows | `task ci:lint`: actionlint, with its bundled shellcheck, from a digest-pinned image (`task ci:lint -- -verbose` names each file) |
+| Pull the docs bundles | `task bundles:pull`: anonymous, no token; the `browser` and `sources-main` jobs wait for `build` and pull its lock frozen: `OPM_BUNDLES_FROZEN=<lock> task bundles:pull` |
 | Check, build and test the site | `task ci`: `check`, `image`, `build`, `test:site` |
 | The build leaves the tree clean | `task ci`, then `git status --porcelain` |
 | Source pages on main (the `sources-main` job, not published) | `OPM_VERSIONS=v1.0=/src task build` with the six roots at `main` |
@@ -131,8 +140,8 @@ The `Site` workflow (`.github/workflows/site.yml`) builds and tests the site on 
 - **Clean tree.** CI fails when `task ci` leaves the tree dirty, `.task/` excluded (Task's checksum files; one of them is tracked). Two examples: `go fmt` rewrote unformatted Go (`task check` formats but never fails), or a build step wrote a file that is not gitignored.
 - **Checkout layout.** Every repository is checked out with `path:` under `$GITHUB_WORKSPACE`, opmodel.dev included, so `OPM_WS` is `$GITHUB_WORKSPACE` and the six source repositories and enhancements sit beside opmodel.dev as they do in the workspace (the `sources-main` job checks enhancements out too, shallow, and builds its `main` in explicit mode). opmodel.dev is at the event's ref and the sources are at `main`, though a line version builds its trees from the tags and branches it resolves, not from the checkouts. Every checkout has full history, every tag and every branch as `refs/remotes/origin/*` (`fetch-depth: 0`, which the version resolver, the git dates and the resolver tests of `task versions:test` need; the resolver refuses a shallow checkout) and `persist-credentials: false`: no step pushes, so no clone keeps a token that the build containers could read.
 - **Dates.** The workflow sets `OPM_REQUIRE_DATES=1`, so a page without a git date fails the build. `task versions:prepare` computes every date on the host, so a local build passes the same check, from worktrees too: `OPM_REQUIRE_DATES=1 task build`. `task test:site` sets it back to 0 for its fixtures; the two-version build of `task versions:test` keeps it.
-- **Summary and artifacts.** The job summary lists every version's resolved refs from `site/public/build-stamp.json` (repository, ref, where its docs came from, the commit and the rule that chose it) and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days, and `build-manifest` holds `frozen.conf`, the build as an anchored manifest (Site versions), for 90 days. `build-manifest` is uploaded on every run but pull requests: a pull request run builds GitHub's temporary merge commit (`refs/pull/<n>/merge`), which would be the commit its header names and which goes away, so only runs of a real branch, `main` above all, can be rebuilt from their `frozen.conf`. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
-- **Browser job.** The `browser` job runs `task qa`, as you do locally, in parallel with `build`: it builds the site itself (with the same eight checkouts, since that build reads every source repository and enhancements), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
+- **Summary and artifacts.** The job summary lists every version's resolved refs from `site/public/build-stamp.json` (repository, ref, where its docs came from, the commit and the rule that chose it), a Catalogs table of every docs bundle built (project, segment, version, revision, digest, commit), and the number of files in `site/public/`. The `site-public` artifact holds the whole `site/public/` for 14 days; `build-stamp` holds the stamp for 90 days, and `build-manifest` holds `.versions/frozen.conf`, the build as an anchored manifest (Site versions), and `.bundles/lock.json`, the docs bundles it read (The Catalogs section), for 90 days. `build-manifest` is uploaded on every run but pull requests: a pull request run builds GitHub's temporary merge commit (`refs/pull/<n>/merge`), which would be the commit its header names and which goes away, so only runs of a real branch, `main` above all, can be rebuilt from their `frozen.conf`. After those uploads, the GitHub Pages build adds one summary line with its file count and uploads its tree as the `github-pages` artifact, kept for one day; a deploy adds a summary naming the deployed URL.
+- **Browser job.** The `browser` job runs `task qa`, as you do locally, after `build`, on exactly the docs bundles `build` read (its `bundles-lock` artifact, pulled `--frozen`), so QA checks what deploys: it builds the site itself (with the same eight checkouts, since that build reads every source repository and enhancements), takes the screenshots in six variants, fails when figure text drops below 9 px at phone width, and runs the axe WCAG 2.1 A and AA smoke test and the search smoke test, all in the QA image with no network. The `site-shots` artifact holds `site/.shots/` for 7 days from every run that got as far as taking screenshots, a failed run's included: when an accessibility or search test fails in CI, the screenshots show why. Its upload sets `include-hidden-files: true`, because `actions/upload-artifact` skips every file under a directory whose name starts with a dot, and `.shots` is one.
 - **Pins.** Every action is pinned by full commit SHA, with its version in a comment. Task is pinned to an exact version (3.52.0), the openspec CLI to 1.12.0, and the `ci:lint` task pins actionlint by image digest. Nothing floats: bump each on purpose.
 - **Concurrency.** It is set per job, one group per job (`<workflow>-<ref>-<job>`), and a newer run cancels the older run's job. It is never set at workflow level, which would cancel a deploy job with the rest of a run; and two jobs never share one cancelling group, because they would cancel each other. A deploy job uses its own group, without `cancel-in-progress`. The `opmodel.dev` working directory is a per-job `defaults` entry for the same reason, never workflow-level: a deploy job runs a step before its checkout.
 - **Source repositories.** A line version resolves its release lines on every build, so the nightly run of `main` publishes what moved upstream within about a day, and `gh workflow run Site --ref main` publishes it at once; no source repository dispatches a run. What reaches the published build: new releases (a cli release with the library, core and opm-operator releases it pins, and every `opm-v4.*` catalog tag), opm's `main`, and the `main` or release-branch head of cli, library, opm-operator, core and catalog_opm while their docs rule reads it. The `sources-main` job keeps the early warning for all six: it builds every repository's `main` in explicit mode (`OPM_VERSIONS=v1.0=/src task build`: the source lint, every build check and the link crawl), uploads nothing, and `pages-deploy` does not wait for it. A source page that breaks the lint or a link on a branch head the line reads (today `main` of all six) also fails `build`, turning every run red and holding the deploy until it is fixed upstream or the version is recovered (Site versions, "When the resolution fails"); `sources-main` alone catches a `main` the line does not read. A new release that fails resolution or the build turns every run red and holds the deploy until it is recovered (Site versions, "When the resolution fails"). GitHub disables a scheduled workflow after 60 days without repository activity (re-enable it on the Actions tab), and it mails a scheduled run's failure to whoever last edited the cron line.
@@ -256,7 +265,7 @@ task versions:fetch build
 - the footer stamp, for example `core v2.0.0-beta.1 (docs main f5c4463)`, and every page's "View source at <ref>" link to the archived SHA;
 - the CI job summary.
 
-`site/.versions/frozen.conf` is the same build as an anchored manifest: a tree read at its tag by the tag name, every other tree by its SHA, every derived repository overridden, so nothing is derived again. A cli whose docs came from a branch head is frozen as `cli = <that SHA>` under a `; cli <tag>, docs <branch>` comment naming the release; with library, core and opm-operator all overridden, no pin is read at that SHA. CI keeps it for 90 days as the `build-manifest` artifact of every run but pull requests (CI below). To rebuild the same trees, check out opmodel.dev at the commit its header names, copy the file outside `site/.versions/` (the resolver refuses the generated file itself, because a run rewrites it) and run `OPM_VERSIONS_MANIFEST=<the copy> task build`.
+`site/.versions/frozen.conf` is the same build as an anchored manifest: a tree read at its tag by the tag name, every other tree by its SHA, every derived repository overridden, so nothing is derived again. A cli whose docs came from a branch head is frozen as `cli = <that SHA>` under a `; cli <tag>, docs <branch>` comment naming the release; with library, core and opm-operator all overridden, no pin is read at that SHA. CI keeps it for 90 days as the `build-manifest` artifact of every run but pull requests (CI below). To rebuild the same trees, check out opmodel.dev at the commit its header names, copy the file outside `site/.versions/` (the resolver refuses the generated file itself, because a run rewrites it), copy the same artifact's `.bundles/lock.json` to `site/bundles.frozen.json` and run `task bundles:pull` (the same docs bundles), then run `OPM_VERSIONS_MANIFEST=<the copy> task build`.
 
 **When the resolution fails.** A new upstream release or head that fails a check turns every run red, pushes, pull requests and the nightly alike, until it is recovered; the whole manifest fails, never one version, and the deployed site stays at the last good deploy. A resolver error names the version, the repository, the ref and the rule that chose it; a build error names the page. Recover by the kind of failure:
 
@@ -266,6 +275,18 @@ task versions:fetch build
 Every repository has a dialect floor in the manifest: the commit that moved its `docs/site/` pages to the page dialect. No ref older than its floor builds: the resolver fails first, naming the repository and the ref (in a line version also the rule), and it never skips back to an older tag.
 
 The site-owned pages (`site/content/`) are built into every version, so every link on them must resolve in every version, older ones included; a link to a page that exists only in a newer version fails that version's build.
+
+### The Catalogs section
+
+The catalog reference is a tab of its own, outside the site versions: `/catalogs/opm/<MAJOR.MINOR>/` for every opm minor from 4.5 on (the first release after catalog_opm adopted docs-kit; there is no backfill) and `/catalogs/opm/edge/`, labelled "main (unreleased)". Each comes from one signed OCI docs bundle that catalog_opm's CI publishes through docs-kit's reusable `publish.yml` (`ghcr.io/open-platform-model/docs/catalog-opm`). `site/bundles.cue` names the tab (docs-kit contract C7): its `repo`, its `root` and `from`, the oldest minor shown. `task bundles:pull` runs `opm-docs pull` in the build image, the one step besides the image builds and `versions:fetch` that reaches the network: it resolves every minor tag at or above `from`, and `edge`, and accepts a bundle only when its Sigstore signature names docs-kit's `publish.yml` at a `refs/tags/v[0-9]*` ref as the signer and `open-platform-model/catalog_opm` at `refs/heads/main` as the source (C9); it unpacks into `site/.bundles/` and writes `site/.bundles/lock.json`. A new minor or a new `edge` build reaches the site at the next build, with no commit here. The lock is never committed; the build stamp (`sections.catalogs`) records it and every bundle's digest and commit. `task build` never pulls: in manifest mode it fails without a lock pulled for the current `bundles.cue` (naming `task bundles:pull`); an explicit build (`OPM_VERSIONS`) has the section only when `site/.bundles/` holds a lock; `OPM_BUNDLES=<dir>` builds from a saved unpacked tree instead. `opm-docs` is pinned by version and by the SHA-256 of its `linux_amd64` archive in `site/Dockerfile` (the line in that release's `checksums.txt`, checked against a second download); a bump re-syncs the lint fixtures (Page dialect).
+
+Every minor and `edge` has its own sidebar, its own Pagefind index, and a switcher on every page (newest first, `edge` last) that keeps the reader on the same page, else its nearest parent, else the landing. The landing of each minor is catalog_opm's contract page followed by the generated `## Catalog members` block (`#catalog-members`). `/catalogs/opm/` and `/catalogs/opm/<MAJOR>/...` are aliases of the newest minor (of that major), as `_redirects` lines and as `noindex` meta-refresh stubs; `edge` has none. Only the newest minor of each major is indexed and listed in `llms.txt` and the sitemap; older minors and `edge` are `noindex`.
+
+An author previews a local catalog build with `OPM_BUNDLES_LOCAL="catalog-opm@4.5=<release build> catalog-opm@edge=<catalog_opm>/out/catalog-opm" task bundles:pull build` (`opm-docs build` outputs, `--release opm-v4.5.1` and the default edge; one pair per segment, space-separated). A local project skips the registry entirely, so name a release minor of every major the docs link (`/catalogs/opm/4/`), or those links fail the build. A pull whose every tab is local runs with no network, and the stamp marks those bundles `local`. When a newly published bundle breaks the build (it fails `pull`'s lint or a site check), commit the last good `build-manifest` artifact's `.bundles/lock.json` as `site/bundles.frozen.json`: `task bundles:pull` then pulls exactly those digests (`--frozen`, signatures still checked) until the file is deleted, and the stamp and the CI summary say the bundles are frozen. `opm-docs` refuses a frozen lock once `site/bundles.cue` has changed (the lock's `config` digest must match), so take a lock pulled for the current file. A frozen pull still fetches the blobs and the Sigstore trusted root, so it is no way around a GHCR or Sigstore outage: an outage fails `task bundles:pull` and every site build, and is waited out.
+
+The tab replaced catalog_opm's Reference copies of the members (`reference/catalog-members/` and `reference/catalog-contract.md`), which catalog_opm deleted on 2026-10-03; their old URLs get no redirects. A version whose catalog_opm tree is older still holds them, and they publish in that version like any page, so its own links to `/docs/reference/catalog-contract/` and `/docs/reference/catalog-members/` resolve there; the build neither hides them nor maps those links to the tab.
+
+The fixtures in `site/tests/fixtures/bundles/` are three bundle trees (`catalog-opm` 4.4, 4.5 and `edge`) plus the lock an all-local pull writes over them. `task test:site` first re-pulls them with the pinned `opm-docs`, offline (`--local`), and fails unless the result is byte-identical, lock included; every fixture build then reads that pulled copy. A fixture edit regenerates `lock.json` with the same pull.
 
 ### The Enhancements section
 
@@ -286,6 +307,7 @@ The content adapter `site/enhancements/_content.gotmpl` is mounted into the defa
 - [ ] Generated reference pages, committed in each owning repository (cli, opm-operator, catalog_opm, core)
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
 - [x] `v1.0` follows its release lines (`cli-line`, `catalog-line`), with every resolved SHA recorded and a frozen manifest per build
+- [x] The Catalogs tab, built from signed docs bundles per opm minor and `edge`
 - [ ] CI and deployment
 
 ## Contributing
@@ -296,9 +318,11 @@ Run `OPM_VERSIONS=v1.0=/src task serve` and open http://127.0.0.1:1313/. In that
 
 ### Page dialect
 
-Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`, or, into the Enhancements section, `/enhancements/`, `/enhancements/<NNNN>/` and `/enhancements/<NNNN>/<document>/` (one of the seven document slugs), each with an optional `#fragment` (`/enhancements/0021/decisions/#d3`); nothing else under `/enhancements`. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract (the embedded copy in `openspec/changes/deploy-site/orchestration.md`, with its SHA-256): fix the page, never the lint, and change both together when the contract changes.
+Pages in a source repository's `docs/site/` follow the site page rules in the workspace `STYLE.md` ("Site Pages"): front matter with `title`, `description` and, on a leaf page, `type`; a section page is `_index.md` and declares no type; order is `weight`, then title; callouts are GitHub alerts with a bold title line; figures are `{{< opm/<name> >}}` shortcodes; internal links are `/docs/<section>/<page>/`, or, into the Enhancements section, `/enhancements/`, `/enhancements/<NNNN>/` and `/enhancements/<NNNN>/<document>/` (one of the seven document slugs), each with an optional `#fragment` (`/enhancements/0021/decisions/#d3`); nothing else under `/enhancements`; or, into the Catalogs tab, the bare tab root `/catalogs/<name>/` or the major alias `/catalogs/<name>/<MAJOR>/` and below (`/catalogs/opm/4/traits/backup/#spec`), never a minor, `edge` or `/catalogs/` alone, and the site writes the URL of the newest minor of that major. `task lint:sources` checks every page and names the file and line of each problem. The lint (`site/scripts/lint-sources.sh`) is byte-identical to the workspace dialect contract (the embedded copy in `openspec/changes/deploy-site/orchestration.md`, with its SHA-256): fix the page, never the lint, and change both together when the contract changes.
 
-The link hook (`site/layouts/_markup/render-link.html`) resolves a `/enhancements/` link to the one unversioned section from every version (the section's pages live only in the default version's page tree), and fails the build when the section has no such page or the build has no section.
+`site/tests/lint/` and docs-kit's conformance set (`internal/dialect/testdata/conformance/`) are kept identical, so the shell lint and `opm-docs lint`, which lints every bundle, agree until docs-kit's phase 3 retires the shell lint. docs-kit is the source of new rules and their fixtures (the `/catalogs/` forms first): a rule lands there first, in a release, and this repository copies the changed cases and updates the lint in the same pull request that bumps the `opm-docs` pin in `site/Dockerfile`. `site/tests/lint/link-catalogs/SOURCE` names the tag the fixtures were last synced from.
+
+The link hook (`site/layouts/_markup/render-link.html`) resolves a `/enhancements/` link to the one unversioned section from every version (the section's pages live only in the default version's page tree), and fails the build when the section has no such page or the build has no section; a `/catalogs/` link resolves the same way through the newest minor of its major, and fails naming `task bundles:pull` when the build has no Catalogs section.
 
 A direction note is a NOTE alert whose bold title line is **Direction**:
 

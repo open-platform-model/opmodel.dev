@@ -1,5 +1,5 @@
 # Build image for the opmodel.dev Hugo site: the static (non-extended) Hugo
-# binary, Pagefind (musl) and git on Alpine. Hextra ships precompiled CSS, so
+# binary, Pagefind (musl), opm-docs (docs-kit, static) and git on Alpine. Hextra ships precompiled CSS, so
 # Hugo "extended" is not needed; Node and Go are not needed either (the theme
 # is vendored as files, not a Hugo module). Every download is checked against
 # a pinned SHA-256, and the base image is pinned by digest.
@@ -14,6 +14,15 @@ ARG HUGO_VERSION=0.167.0
 ARG HUGO_SHA256=4d84519b9f619e6d4c3fb45a50157abeabeb724f859c60605f44c23def6e1169
 ARG PAGEFIND_VERSION=1.5.2
 ARG PAGEFIND_SHA256=afb824a9e7f64905a934900481cea5be679c03975e527329e0e5e6cc70f5feda
+# opm-docs pulls the signed docs bundles of the Catalogs tab (task
+# bundles:pull, the only step that runs it with network) and re-pulls the test
+# fixtures offline (test-site.sh). The SHA-256 is the linux_amd64 archive's
+# line in the release's checksums.txt, checked by hand against a second
+# download (docs-kit contract C12, build-image pattern). A bump re-syncs the
+# /catalogs/ lint fixtures from docs-kit's conformance set at the same tag
+# (site/tests/lint/link-catalogs/SOURCE).
+ARG OPM_DOCS_VERSION=0.2.0
+ARG OPM_DOCS_SHA256=c656e8d56dfcefb3bcfa599bd8cbe722f1a791a8040bf173423b8842a17b9802
 WORKDIR /dl
 RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz" -O hugo.tgz \
  && echo "${HUGO_SHA256}  hugo.tgz" | sha256sum -c - \
@@ -21,7 +30,10 @@ RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}
  && wget -q "https://github.com/Pagefind/pagefind/releases/download/v${PAGEFIND_VERSION}/pagefind-v${PAGEFIND_VERSION}-x86_64-unknown-linux-musl.tar.gz" -O pagefind.tgz \
  && echo "${PAGEFIND_SHA256}  pagefind.tgz" | sha256sum -c - \
  && tar -xzf pagefind.tgz pagefind \
- && ./hugo version && ./pagefind --version
+ && wget -q "https://github.com/open-platform-model/docs-kit/releases/download/v${OPM_DOCS_VERSION}/opm-docs_${OPM_DOCS_VERSION}_linux_amd64.tar.gz" -O opm-docs.tgz \
+ && echo "${OPM_DOCS_SHA256}  opm-docs.tgz" | sha256sum -c - \
+ && tar -xzf opm-docs.tgz opm-docs \
+ && ./hugo version && ./pagefind --version && ./opm-docs version
 
 # git dates the pages (scripts/gen-lastmod.sh). busybox-extras brings the
 # static httpd that serves site/public/ for preview; it is pinned to the
@@ -33,5 +45,5 @@ RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}
 FROM ${ALPINE}
 RUN apk add --no-cache git busybox-extras=1.37.0-r31 jq=1.8.2-r0 \
  && git config --system --add safe.directory '*'
-COPY --from=fetch /dl/hugo /dl/pagefind /usr/local/bin/
+COPY --from=fetch /dl/hugo /dl/pagefind /dl/opm-docs /usr/local/bin/
 ENTRYPOINT ["hugo"]

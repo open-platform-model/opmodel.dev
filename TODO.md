@@ -30,7 +30,8 @@ Since 2026-10-02 the site generates nothing: each repository generates its refer
 
 - [ ] cli: every `opm` command and flag, at `/docs/reference/cli/`
 - [ ] opm-operator: the four operator resources, at `/docs/reference/operator-resources/`
-- [ ] catalog_opm: one page per abstraction member
+- [x] catalog_opm: one page per abstraction member, now the Catalogs tab, built from signed docs bundles (openspec `add-catalogs-tab`)
+- [x] Remove the Catalogs transition (the mount exclusion of catalog_opm's Reference copies of the members, the two-entry legacy link map and the build's listing), 2026-10-03, after catalog_opm#127 deleted the pages and cli#280 and opm#20 replaced the last old links
 - [ ] core: the definitions, at `/docs/reference/definitions/`
 - [ ] Delete the site's `placeholder: true` pages once every version has its source page
 

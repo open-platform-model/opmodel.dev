@@ -228,6 +228,19 @@ for r in $REPOS; do
   done
 done
 rm -f "$OUT/.want"
+# An older tree is self-consistent with the catalog-opm tab: v0.9's
+# catalog_opm (its floor) still holds the Reference copies of the members,
+# which publish in v0.9 like any page, and v0.9's cli links one of them,
+# resolved in v0.9; no build-side map or exclusion stands between them.
+why=""
+if git -C "$(root_of catalog_opm)" cat-file -e "$(sha_of catalog_opm):docs/site/reference/catalog-contract.md" 2>/dev/null; then
+  [ -f "$P/v0.9/docs/reference/catalog-contract/index.html" ] || why="/v0.9/docs/reference/catalog-contract/ is not published"
+  if git -C "$(root_of cli)" grep -qF '](/docs/reference/catalog-contract/)' "$(sha_of cli)" -- docs/site/reference/registry-namespaces.md 2>/dev/null; then
+    tr -d '"' < "$P/v0.9/docs/reference/registry-namespaces/index.html" | grep -qF 'href=/v0.9/docs/reference/catalog-contract/>' ||
+      why="${why:+$why; }v0.9's registry-namespaces does not link /v0.9/docs/reference/catalog-contract/"
+  fi
+  check "v0.9's own Reference copy of the catalog contract publishes in v0.9, and v0.9's links to it resolve there" [ -z "$why" ]
+fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"

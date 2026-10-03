@@ -14,3 +14,7 @@ config/development/
 # Check output and test-site.sh's copies (.check/), screenshots (.shots/).
 .check/
 .shots/
+# The pulled docs bundles and their lock (task bundles:pull; never
+# committed, the build stamp records the lock) and opm-docs' blob cache.
+.bundles/
+.cache/
