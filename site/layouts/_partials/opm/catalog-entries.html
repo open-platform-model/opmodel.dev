@@ -1,0 +1,69 @@
+{{- /* Every catalog of the Catalogs section, for the /catalogs/ cards
+       (opm/catalog-picker.html) and its sidebar (sidebar.html), in
+       data/opm/catalogs.json's order. Returns a slice of dicts:
+         name        the tab name, as written (opm)
+         title       "<name> catalog"
+         href        the newest minor's landing, else edge's (no release yet)
+         release     the newest minor's version (4.5.1), "" with no release
+         edgeHref    edge's landing when there is a release and an edge, else ""
+         repo        the bundle's source repository (owner/name)
+         modulePath  data/catalog.json's modulePath in the linked segment, or ""
+         description data/catalog.json's description there, or "" (docs-kit's
+                     cue-catalog extractor does not write it yet)
+         kinds       [{title, href, count}] the linked landing's child
+                     sections, weight then title; count is the number of
+                     distinct member names data/catalog.json places in that
+                     section, 0 when the bundle carries no catalog data or
+                     none for that kind (no warning: the build runs with
+                     --panicOnWarning, and a gap in a bundle's data must
+                     not fail the site)
+       Only facts the bundles carry: no bundle names a catalog or describes
+       it, so the title is built from the tab name. Called with any page of
+       the default version (where the adapter adds the section). */ -}}
+{{- $out := slice -}}
+{{- with hugo.Data.opm.catalogs -}}
+{{- range .catalogs -}}
+  {{- $cat := . -}}
+  {{- $seg := dict -}}
+  {{- $edge := dict -}}
+  {{- range .segments -}}
+    {{- if eq .segment $cat.newest -}}{{- $seg = . -}}{{- end -}}
+    {{- if .edge -}}{{- $edge = . -}}{{- end -}}
+  {{- end -}}
+  {{- if not $cat.newest -}}{{- $seg = $edge -}}{{- end -}}
+  {{- $landing := site.GetPage (printf "/catalogs/%s/%s" $cat.name $seg.segment) -}}
+  {{- if not $landing -}}{{- errorf "catalogs: %s %s has no landing page" $cat.project $seg.segment -}}{{- end -}}
+  {{- $edgeHref := "" -}}
+  {{- if and $cat.newest $edge -}}
+    {{- with site.GetPage (printf "/catalogs/%s/edge" $cat.name) -}}{{- $edgeHref = .RelPermalink -}}{{- end -}}
+  {{- end -}}
+  {{- $members := slice -}}
+  {{- $modulePath := "" -}}
+  {{- $description := "" -}}
+  {{- with resources.Get (printf "bundles/%s/data/catalog.json" $seg.dir) -}}
+    {{- $d := . | transform.Unmarshal -}}
+    {{- $modulePath = $d.modulePath | default "" -}}
+    {{- $description = $d.description | default "" -}}
+    {{- $members = $d.members | default slice -}}
+  {{- end -}}
+  {{- $keyed := slice -}}
+  {{- range $landing.Sections -}}
+    {{- $keyed = $keyed | append (dict "k" (printf "%07d %s" (cond (gt .Weight 0) .Weight 1000000) (lower .LinkTitle)) "p" .) -}}
+  {{- end -}}
+  {{- $kinds := slice -}}
+  {{- range sort $keyed "k" -}}
+    {{- $p := .p -}}
+    {{- $prefix := printf "%s/" (path.Base $p.Path) -}}
+    {{- $names := slice -}}
+    {{- range $members -}}
+      {{- if and (hasPrefix (.page | default "") $prefix) (not (in $names .name)) -}}{{- $names = $names | append .name -}}{{- end -}}
+    {{- end -}}
+    {{- $kinds = $kinds | append (dict "title" (partial "utils/title" $p) "href" $p.RelPermalink "count" (len $names)) -}}
+  {{- end -}}
+  {{- $out = $out | append (dict
+      "name" $cat.name "title" (printf "%s catalog" $cat.name) "href" $landing.RelPermalink
+      "release" (cond (ne $cat.newest "") $seg.version "") "edgeHref" $edgeHref
+      "repo" $cat.repo "modulePath" $modulePath "description" $description "kinds" $kinds) -}}
+{{- end -}}
+{{- end -}}
+{{- return $out -}}
