@@ -512,6 +512,31 @@ if [ $rc -eq 0 ]; then
   if [ -z "$why" ]; then ok "catalogs/aliases" "/catalogs/opm/ and /catalogs/opm/4/... go to 4.5 as _redirects lines and noindex stubs; nothing goes to edge"
   else bad "catalogs/aliases" "$why"; fi
 
+  # The picker: /catalogs/ shows one card per catalog in catalogs.json, its
+  # title linking the newest release (edge with no release) and its main
+  # link edge; the sidebar lists the same links; the body is the cards, not
+  # the Markdown list, which only the page's index.md carries.
+  why=""
+  r=$(dq "$K/index.html")
+  cards=$(printf '%s' "$r" | grep -oE 'class=opm-catpick-link href=[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
+  want=$(jq -r '[.catalogs[] | "\(.root)\(if .newest != "" then .newest else "edge" end)/"] | join(" ") + " "' "$OUT/$name/site/data/opm/catalogs.json")
+  [ -n "$cards" ] && [ "$cards" = "$want" ] || why="card links \"$cards\", want \"$want\""
+  side=$(printf '%s' "$r" | grep -oE 'class=opm-sb-link href=/catalogs/[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
+  [ "$side" = "$want" ] || why="${why:+$why; }sidebar catalog links \"$side\", want \"$want\""
+  printf '%s' "$r" | grep -qF '<a class=opm-sb-link href=/catalogs/opm/4.5/>opm catalog</a>' || why="${why:+$why; }no sidebar entry titled opm catalog"
+  printf '%s' "$r" | grep -qF '<a class=opm-catpick-edge href=/catalogs/opm/edge/>main (unreleased)</a>' || why="${why:+$why; }the opm card does not link main"
+  printf '%s' "$r" | grep -qF 'Newest release 4.5.0<svg' || why="${why:+$why; }the opm card does not name release 4.5.0"
+  for k in '<span class=opm-catpick-count>1</span> Blueprints' '<span class=opm-catpick-count>1</span> Resources' '<span class=opm-catpick-count>2</span> Traits'; do
+    printf '%s' "$r" | grep -qF "$k" || why="${why:+$why; }the opm card lacks: $k"
+  done
+  printf '%s' "$r" | grep -qF '<code>open-platform-model/catalog_opm</code>' || why="${why:+$why; }the opm card does not name its repository"
+  printf '%s' "$r" | grep -qF 'Pick a catalog to read the reference of its newest release.' || why="${why:+$why; }no one-sentence lead"
+  ! printf '%s' "$r" | grep -qE 'Each catalog documents|<li><a href=/catalogs/opm/4.5/>opm' || why="${why:+$why; }the Markdown list or the old prose renders in HTML"
+  grep -qF -e '- [opm catalog](https://opmodel.dev/catalogs/opm/): newest release 4.5.0 ([main, unreleased](https://opmodel.dev/catalogs/opm/edge/))' "$K/index.md" ||
+    why="${why:+$why; }index.md lacks the opm line with both links"
+  if [ -z "$why" ]; then ok "catalogs/picker" "/catalogs/ shows a card per catalog linking its newest release and main, with its kinds, release and repository; the sidebar lists the same links; index.md keeps the list"
+  else bad "catalogs/picker" "$why"; fi
+
   # Search: each segment has its own Pagefind bundle, and a catalog page's
   # adapter loads its segment's.
   why=""

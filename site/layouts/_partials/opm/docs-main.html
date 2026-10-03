@@ -7,7 +7,10 @@
        addition: a section page lists its children (opm/section-children.html),
        so layouts/docs/list.html renders sections through this body too,
        unless its front matter sets cards: false (the Enhancements section
-       page, whose INDEX table is the list). */ -}}
+       page, whose INDEX table is the list). On /catalogs/ (the one Catalogs
+       section page without params.catalog) the catalog cards,
+       opm/catalog-picker.html, take the place of .Content, whose Markdown
+       list only feeds the page's Markdown twin. */ -}}
   <div class="hx:mx-auto hx:flex hextra-max-page-width">
     {{ partial "sidebar.html" (dict "context" .) }}
     {{ partial "toc.html" . }}
@@ -23,7 +26,7 @@
             </div>
           {{ end }}
           {{ partial "custom/content-begin.html" . }}
-          {{ .Content }}
+          {{- if and (eq .Section "catalogs") .IsSection (not .Params.catalog) }}{{ partial "opm/catalog-picker.html" . }}{{ else }}{{ .Content }}{{ end }}
           {{- if and .IsSection (ne .Params.cards false) }}{{ partial "opm/section-children.html" . }}{{ end }}
           {{ partial "custom/content-end.html" . }}
         </div>
