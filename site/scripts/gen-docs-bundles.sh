@@ -23,7 +23,11 @@
 # (opm/source.html).
 #
 # Without CAT_DIR, or with a lock that has no "docs" key, every version reads
-# git and the file holds no version. Every refusal fails the build naming the
+# git and the file holds no version. Explicit mode (OPM_VERSIONS set, or no
+# .versions/versions.tsv) ignores the lock's "docs" entries too, unless
+# OPM_DOCS_BUNDLES=1: an author previewing their docs/site in place
+# (OPM_VERSIONS=v1.0=/src task serve) sees their own tree, and CI's
+# sources-main job checks every repository's main. Every refusal fails the build naming the
 # site version, the project and the digest (or "local"): a lock that is not
 # docs.opmodel.dev/lock/v1; an entry for a site version this build does not
 # build, a project the table does not know, one version and project twice, or
@@ -76,7 +80,13 @@ for pair in "$@"; do built="$built${pair%%=*} "; done
 echo '{}' > "$tmp/versions.json"
 lockd=""
 L=""
-if [ -n "$CAT_DIR" ]; then
+explicit=""
+if [ -n "${OPM_VERSIONS:-}" ] || [ ! -f .versions/versions.tsv ]; then explicit=yes; fi
+if [ -n "$explicit" ] && [ "${OPM_DOCS_BUNDLES:-}" != 1 ]; then
+  if [ -n "$CAT_DIR" ] && jq -e '(.docs // []) | length > 0' "$CAT_DIR/lock.json" >/dev/null 2>&1; then
+    echo "gen-docs-bundles: explicit mode reads every repository from git and ignores the lock's docs bundles (OPM_DOCS_BUNDLES=1 reads them)"
+  fi
+elif [ -n "$CAT_DIR" ]; then
   L=$CAT_DIR/lock.json
   [ -f "$L" ] || die "$L is missing"
   schema=$(jq -r '.schema // ""' "$L") || die "$L is not JSON"

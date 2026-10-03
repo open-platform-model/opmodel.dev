@@ -39,6 +39,9 @@
 #                      a path (https://example.org/docs/). Passed into the container in build
 #                      mode only, and only when set; unset, the build uses hugo.toml's baseURL.
 #                      serve, test, lint and the two-version test never see it.
+#   OPM_DOCS_BUNDLES   1: an explicit build (OPM_VERSIONS) reads the lock's docs bundles too
+#                      (gen-docs-bundles.sh); unset, explicit mode reads every repository from git.
+#                      Passed into the container in build and serve mode.
 #   OPM_BUNDLES        a directory of unpacked docs bundles with their lock.json (what opm-docs
 #                      pull writes; the test fixtures site/tests/fixtures/bundles), relative to the
 #                      repo or absolute. Build and serve mount it read-only at /bundles and pass
@@ -151,6 +154,7 @@ run() {
   set -- --rm --init --user "$(id -u):$(id -g)" \
     --env HOME=/tmp \
     --env "OPM_REQUIRE_DATES=$(envval OPM_REQUIRE_DATES)" \
+    --env "OPM_DOCS_BUNDLES=$(envval OPM_DOCS_BUNDLES)" \
     --volume "$repo:/work/repo" \
     "$@"
   if [ -n "$versions" ]; then set -- --env "OPM_VERSIONS=$versions" "$@"; fi

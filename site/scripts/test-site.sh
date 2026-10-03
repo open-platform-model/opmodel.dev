@@ -123,6 +123,8 @@ build() {
     # CASE_MANIFEST=1 (a case's env file) builds in manifest mode, without
     # OPM_VERSIONS; its setup.sh writes the site copy's .versions/.
     v=v1.0=$2; [ -z "${CASE_MANIFEST:-}" ] || v=""
+    # A case with the docs bundles reads them in explicit mode too.
+    [ -z "${CASE_DOCS_BUNDLES:-}" ] || export OPM_DOCS_BUNDLES=1
     SITE_DIR=$OUT/$1/site OPM_VERSIONS=$v sh "$SCRIPTS/build-all.sh"
   ) > "$OUT/$1/log" 2>&1
 }
@@ -793,7 +795,8 @@ fi
 # bundle's commit, the manifest's lastmod; a generated page has no Edit.
 name=docs-bundles
 copy_site "$name" docs; copy_ws "$name"
-build "$name" "$OUT/$name/ws"; rc=$?
+echo CASE_DOCS_BUNDLES=1 > "$OUT/$name/env"
+build "$name" "$OUT/$name/ws" "$OUT/$name/env"; rc=$?
 P=$OUT/$name/site/public/v1.0
 log=$OUT/$name/log
 if [ $rc -ne 0 ]; then bad "$name" "the build with docs bundles failed (exit $rc)" "$log"
@@ -847,6 +850,19 @@ else
   if [ -z "$why" ]; then ok "$name/stamp" "build-stamp.json records v1.0's docs bundles (roles, versions, local) and cli's pins; the footer names them"
   else bad "$name/stamp" "$why" "$st"; fi
 fi
+
+# Explicit mode without OPM_DOCS_BUNDLES=1: the lock names v1.0's docs
+# bundles, but an author previewing docs/site in place sees the git trees.
+name=docs-bundles/explicit-git
+copy_site "$name" docs; copy_ws "$name"
+build "$name" "$OUT/$name/ws"; rc=$?
+if [ $rc -ne 0 ]; then bad "$name" "the explicit build that ignores the docs bundles failed (exit $rc)" "$OUT/$name/log"
+elif grep -qF "explicit mode reads every repository from git and ignores the lock's docs bundles" "$OUT/$name/log" &&
+     [ ! -e "$OUT/$name/site/public/v1.0/docs/reference/go-api" ] &&
+     grep -qF "$OUT/$name/ws/cli/docs/site" "$OUT/$name/site/config/production/module.toml" &&
+     ! grep -qF '_versions/' "$OUT/$name/site/config/production/module.toml"; then
+  ok "$name" "explicit mode mounts every git tree and no docs bundle unless OPM_DOCS_BUNDLES=1"
+else bad "$name" "explicit mode read the docs bundles without OPM_DOCS_BUNDLES=1" "$OUT/$name/log"; fi
 
 # Manifest mode with two versions: v0.9 (default) reads all six repositories
 # from git; v1.0 (not the default) mirrors the lock in from-bundles and
