@@ -68,6 +68,8 @@ task build:edge
 
 Its own output directory, so a local `task build:edge` never replaces the lock `task build` reads. `site/.edge/` is gitignored.
 
+`OPM_BUNDLES_LOCAL` passes through to the pull as it does for `bundles:pull`, so a product checks a branch against every other `main` before merging it: `OPM_BUNDLES_LOCAL="core@v1.0=<core>/out/core" task build:edge`. The step-8 retire sections in core, cli and opm-operator use exactly this as their pre-merge check.
+
 ### 4. `sources-main`
 
 ```yaml
