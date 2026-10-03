@@ -17,9 +17,12 @@
 {{- $dest := .Destination -}}
 {{- /* A "Removed in" entry (opm/history-removed.html) links its own catalog
        at the segment that last had the member; its title "opm:removed"
-       marks it, and is not written out. */ -}}
-{{- $removed := eq .Title "opm:removed" -}}
-{{- $title := cond $removed "" .Title -}}
+       marks it, and is not written out. The mark is no bypass: such a link
+       may name another segment only when it is <root><lastIn>/<page>/ of an
+       entry of this page's own removed history (params.catalog.history);
+       any other marked link gets the own-segment check like any link. */ -}}
+{{- $marked := eq .Title "opm:removed" -}}
+{{- $title := cond $marked "" .Title -}}
 {{- $u := urls.Parse $dest -}}
 {{- if and $dest (not $u.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
   {{- $c := .PageInner.Params.catalog -}}
@@ -34,6 +37,12 @@
     {{- if and $c (hasPrefix (printf "%s/" (strings.TrimSuffix "/" $path)) $c.root) -}}
       {{- $rest := split (strings.Trim (strings.TrimPrefix $c.root (printf "%s/" (strings.TrimSuffix "/" $path))) "/") "/" -}}
       {{- $s := index $rest 0 -}}
+      {{- $removed := false -}}
+      {{- if and $marked $c.history -}}
+        {{- range (transform.Unmarshal $c.history).removed -}}
+          {{- if eq (path.Clean $path) (path.Clean (printf "%s%s/%s" $c.root .lastIn .page)) -}}{{- $removed = true -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
       {{- if $removed -}}
         {{- with $.PageInner.GetPage (path.Clean $path) -}}{{- $p = . -}}{{- end -}}
         {{- if not $p -}}{{- errorf "catalogs: %s: removed member link %q names no page (C13 removed lastIn and page)" $at $dest -}}{{- end -}}

@@ -14,7 +14,7 @@
 {{- if and $h $h.removed -}}
   {{- $lines := slice -}}
   {{- range $h.removed -}}
-    {{- $lines = $lines | append (printf "- [%s](%s%s/%s/ \"opm:removed\") %s, last in %s" .name $.root .lastIn .page (partial "opm/history-code.html" .apiVersion) .lastIn) -}}
+    {{- $lines = $lines | append (printf "- [%s](%s%s/%s/ \"opm:removed\") %s, last in %s" (replace (replace .name "[" "\\[") "]" "\\]") $.root .lastIn .page (partial "opm/history-code.html" .apiVersion) .lastIn) -}}
   {{- end -}}
   {{- $out = printf "\n\n## Removed in %s\n\n%s\n" .label (delimit $lines "\n") -}}
 {{- end -}}

@@ -632,6 +632,8 @@ else
   grep -qF -- '- [backup](https://opmodel.dev/catalogs/opm/4.4/traits/backup-v1alpha1/) `v1alpha1`, last in 4.4' "$C/4.5/traits/index.md" || why="${why:+$why; }4.5/traits/index.md lacks the Removed entry"
   has edge/ '<h2 data-hextra-search-id=removed-in-main-unreleased>Removed in main (unreleased)<span'
   has edge/ '<li><a href=/catalogs/opm/4.5/blueprints/stateless-workload/>stateless-workload</a> <code>v1</code>, last in 4.5</li>'
+  hasnt edge/ 'opm:removed'
+  grep -qF -- '- [stateless-workload](https://opmodel.dev/catalogs/opm/4.5/blueprints/stateless-workload/) `v1`, last in 4.5' "$C/edge/index.md" || why="${why:+$why; }edge/index.md lacks the Removed entry"
   hasnt 4.4/traits/ 'Removed in'; hasnt edge/traits/ 'Removed in'; hasnt 4.5/ 'Removed in'
   grep -qF '## Changes in 4.5' "$C/4.5/traits/backup/index.md" || why="${why:+$why; }the .md output lacks the Changes section"
   inpre=$(find "$C" -name index.html | while IFS= read -r f; do
