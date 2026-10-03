@@ -14,15 +14,6 @@
   var dark = window.matchMedia("(prefers-color-scheme: dark)");
   var point = null;
 
-  // EXPERIMENT: ?themefx=reveal|fade|none picks the effect, and is remembered
-  // for this browser. Remove before shipping, keeping the chosen effect.
-  var fx = "reveal";
-  try {
-    var asked = new URLSearchParams(location.search).get("themefx");
-    if (asked) localStorage.setItem("opm-themefx", asked);
-    fx = localStorage.getItem("opm-themefx") || fx;
-  } catch (e) {}
-
   document.addEventListener("pointerdown", function (e) { point = { x: e.clientX, y: e.clientY }; }, true);
   document.addEventListener("keydown", function () { point = null; }, true);
 
@@ -31,15 +22,44 @@
     return dark.matches ? "dark" : "light";
   }
 
+  // The toggle's icon is chosen by data-theme on each button's parent.
+  function icons() {
+    return Array.prototype.map.call(document.querySelectorAll(".hextra-theme-toggle"), function (b) { return b.parentElement; });
+  }
+
+  function put(parents, values) {
+    parents.forEach(function (p, i) {
+      if (values[i] === undefined) delete p.dataset.theme;
+      else p.dataset.theme = values[i];
+    });
+  }
+
   window.setTheme = function (theme) {
     var from = root.classList.contains("dark") ? "dark" : "light";
-    if (fx === "none" || reduce.matches || resolved(theme) === from) return setThemeNow(theme);
+    if (reduce.matches || resolved(theme) === from) return setThemeNow(theme);
 
-    var at = fx === "reveal" ? point : null;
+    var at = point;
     point = null;
     var cls = at ? "opm-theme-reveal" : "opm-theme-fade";
     root.classList.add(cls);
-    var t = document.startViewTransition(function () { setThemeNow(theme); });
+
+    // Hextra's switchTheme flips the toggle's icon right after setTheme
+    // returns, before the browser takes the old snapshot, so the old theme
+    // would show the new icon. A microtask runs after that flip and before
+    // the snapshot: put the old icon back there, and set the new one when
+    // the page updates.
+    var parents = icons();
+    var was = parents.map(function (p) { return p.dataset.theme; });
+    var now = was;
+    queueMicrotask(function () {
+      now = parents.map(function (p) { return p.dataset.theme; });
+      put(parents, was);
+    });
+
+    var t = document.startViewTransition(function () {
+      setThemeNow(theme);
+      put(parents, now);
+    });
     t.finished.finally(function () { root.classList.remove(cls); });
     if (!at) return;
 
