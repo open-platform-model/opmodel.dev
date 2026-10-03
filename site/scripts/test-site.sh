@@ -132,7 +132,10 @@ fixture_pull() {
     set -e
     set -- "$1" "$2" $(jq -r '.bundles[] | "--local \(.project)@\(.segment)='"$1"'/\(.dir)"' "$1/lock.json")
     src=$1; dst=$2; shift 2
-    XDG_CACHE_HOME=$(mktemp -d) opm-docs pull --config "$TESTS/fixtures/bundles.cue" --out "$dst" --lock "$dst/lock.json" "$@"
+    cache=$(mktemp -d)
+    rc=0; XDG_CACHE_HOME=$cache opm-docs pull --config "$TESTS/fixtures/bundles.cue" --out "$dst" --lock "$dst/lock.json" "$@" || rc=$?
+    rm -rf "$cache"
+    [ $rc -eq 0 ]
     diff -r "$src" "$dst"
   ) > "$2.log" 2>&1
 }
@@ -188,9 +191,27 @@ for c in "$TESTS"/lint/*/; do
       awk -v w="$OUT/$name/ws/$e" 'index($0, w) == 1 { f = 1 } END { exit !f }' "$log" || why="${why:+$why; }missing: $e"
     done < "$c/expect"
   fi
+  # Parity with docs-kit (C11): the pinned opm-docs lint over the same
+  # roots, paths relative to the workspace copy, must report the same
+  # violations: as many lines, each starting with one expect line (the
+  # expect lines are prefixes, as for the shell lint), and exit 2 (0 clean).
+  # shellcheck disable=SC2046 # repo names hold no spaces
+  (cd "$OUT/$name/ws" && opm-docs lint $(for r in $REPOS; do printf ' %s/docs/site' "$r"; done)) > "$OUT/$name/opm-docs.log" 2>&1; drc=$?
+  grep -E '^[^ ]+:[0-9]+: ' "$OUT/$name/opm-docs.log" > "$OUT/$name/opm-docs.out"
+  if [ "$n" -eq 0 ]; then
+    [ $drc -eq 0 ] && [ ! -s "$OUT/$name/opm-docs.out" ] || why="${why:+$why; }opm-docs lint: expected a clean tree (exit $drc)"
+  else
+    [ $drc -eq 2 ] || why="${why:+$why; }opm-docs lint: expected exit 2 (exit $drc)"
+    awk 'NR == FNR { if ($0 != "") e[++ne] = $0; next } { o[++no] = $0 }
+      END { if (ne != no) { print "count " no " != " ne; bad = 1 }
+            for (i = 1; i <= ne; i++) { f = 0; for (j = 1; j <= no; j++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "missing: " e[i]; bad = 1 } }
+            for (j = 1; j <= no; j++) { f = 0; for (i = 1; i <= ne; i++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "extra: " o[j]; bad = 1 } }
+            exit bad }' "$c/expect" "$OUT/$name/opm-docs.out" > "$OUT/$name/opm-docs.diff" ||
+      why="${why:+$why; }opm-docs lint differs: $(head -n 2 "$OUT/$name/opm-docs.diff" | tr '\n' ' ')"
+  fi
   if [ "$n" -eq 0 ]; then first=clean; else first=$(head -n 1 "$c/expect"); fi
   if [ "$n" -gt 1 ]; then first="$first (+$((n - 1)) more)"; fi
-  if [ -z "$why" ]; then ok "$name" "$first"; else bad "$name" "$why" "$log"; fi
+  if [ -z "$why" ]; then ok "$name" "$first (shell lint and opm-docs lint)"; else bad "$name" "$why" "$log"; fi
 done
 
 # ---------------------------------------------------------------------------
@@ -529,10 +550,10 @@ if [ $rc -eq 0 ]; then
   else bad "catalogs/transition" "$why" "$log"; fi
 
   st=$OUT/$name/site/public/build-stamp.json
-  got=$(jq -r '.sections.catalogs | "\(.from) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
-  if [ "$got" = "explicit true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
+  got=$(jq -r '.sections.catalogs | "\(.from) \(.frozen) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
+  if [ "$got" = "explicit false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
      [ "$(jq -r '.sections.enhancements.ref' "$st")" = worktree ]; then
-    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, the lock digest and every bundle (local); sections.enhancements kept"
+    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest and every bundle (local); sections.enhancements kept"
   else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi
 
@@ -546,11 +567,13 @@ mkdir -p "$OUT/$name/site/.versions/v1.0"
 cp -R "$WS/." "$OUT/$name/site/.versions/v1.0/"
 rm -rf "$OUT/$name/site/.versions/v1.0/enhancements"
 printf 'v1.0\tv1.0 (manifest)\t1\ttrue\tanchored\n' > "$OUT/$name/site/.versions/versions.tsv"
+# As a frozen pull leaves it: the marker run-in-image.sh writes.
+echo site/bundles.frozen.json > "$OUT/$name/site/.bundles/frozen"
 (SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
 st=$OUT/$name/site/public/build-stamp.json
 if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (manifest)" "$OUT/$name/log" &&
-   [ "$(jq -r '.sections.catalogs.from' "$st")" = manifest ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
-  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest)"
+   [ "$(jq -r '.sections.catalogs | "\(.from) \(.frozen)"' "$st")" = "manifest true" ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
+  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest); a frozen pull's marker shows as "frozen": true"
 else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------

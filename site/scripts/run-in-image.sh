@@ -48,6 +48,8 @@
 #                      local bundle tree (an opm-docs build output) pull takes instead of the
 #                      registry (docs-kit C7 --local). Each is mounted read-only. A pull whose every
 #                      tab of site/bundles.cue is named here runs with --network none.
+#   OPM_BUNDLES_FROZEN pull mode only: a lock to pull exactly (opm-docs pull --frozen), e.g. the
+#                      build job's lock in CI; default site/bundles.frozen.json when it exists.
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
@@ -220,20 +222,36 @@ case "$mode" in
       set -- "$@" --local "$key=/local/$proj/$seg"
       localproj="$localproj$proj "
     done
-    if [ -f site/bundles.frozen.json ]; then
-      echo "run-in-image: site/bundles.frozen.json exists: pulling exactly the digests it names (delete it to resolve tags again)"
-      vols="$vols --volume $repo/site/bundles.frozen.json:/in/frozen.json:ro"
+    # A frozen pull: exactly the digests of a lock (OPM_BUNDLES_FROZEN, else a
+    # committed site/bundles.frozen.json), signatures and lint still checked.
+    # It still fetches blobs and the Sigstore trusted root, so it does not
+    # help through a GHCR or Sigstore outage; it pins what a build reads.
+    frozen=$(envval OPM_BUNDLES_FROZEN)
+    [ -n "$frozen" ] || { [ ! -f site/bundles.frozen.json ] || frozen=site/bundles.frozen.json; }
+    if [ -n "$frozen" ]; then
+      [ -f "$frozen" ] || die "OPM_BUNDLES_FROZEN: $frozen is not a file"
+      abs=$(cd "$(dirname "$frozen")" && pwd -P)/$(basename "$frozen")
+      case "$abs" in *[:,\ ]*) die "the frozen lock $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+      echo "run-in-image: frozen pull: exactly the digests $frozen names (remove it to resolve tags again)"
+      vols="$vols --volume $abs:/in/frozen.json:ro"
       set -- "$@" --frozen /in/frozen.json
     fi
-    # The tabs of bundles.cue, by their quoted project keys ("catalog-opm": {).
-    net=none
-    for proj in $(grep -oE '^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:[[:space:]]*\{' site/bundles.cue | tr -d ' \t"{:'); do
+    # The tabs of bundles.cue: the quoted keys of its tabs block
+    # ("catalog-opm": {...}; bundles.cue says to keep them quoted). Network
+    # only when some tab is not local; when no key is found, network too, so
+    # a misread never turns into an offline pull that cannot resolve.
+    net=none; tabs=$(awk '/^tabs:[[:space:]]*\{/ { in_tabs = 1; next } in_tabs && /^\}/ { in_tabs = 0 } in_tabs && match($0, /^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue)
+    [ -n "$tabs" ] || net=bridge
+    for proj in $tabs; do
       case "$localproj" in *" $proj "*) ;; *) net=bridge ;; esac
     done
+    # The frozen marker: gen-stamp.sh records "frozen": true while it exists.
+    rm -f site/.bundles/frozen
     echo "run-in-image: pull of site/bundles.cue into site/.bundles/ (network: $net)"
     # shellcheck disable=SC2086 # vols is a list of --volume flags without spaces inside paths
-    exec docker run --rm --init --user "$(id -u):$(id -g)" --network "$net" \
+    docker run --rm --init --user "$(id -u):$(id -g)" --network "$net" \
       --env HOME=/tmp --env XDG_CACHE_HOME=/cache $vols \
-      --entrypoint opm-docs "$(tag)" "$@" ;;
+      --entrypoint opm-docs "$(tag)" "$@"
+    if [ -n "$frozen" ]; then echo "$frozen" > site/.bundles/frozen; fi ;;
   *) sed -n '2,18p' "$0" >&2; exit 2 ;;
 esac
