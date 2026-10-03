@@ -109,7 +109,7 @@ task preview           # Serve the built site/public/ on SITE_PORT
 task lint:sources      # Lint the six source repos' docs/site pages
 task test:site         # Prove every check fails when it should (fixtures), then task versions:test
 task shots             # Build, then screenshot every figure page and the extras, and check every Enhancements diagram, into site/.shots/
-task qa                # shots, the axe accessibility and the search smoke tests
+task qa                # shots, the axe accessibility, search and theme switch smoke tests
 task ci                # check, image, build, test:site
 task check             # Go fmt, vet and test, and openspec validate
 task image             # Build the site's image if its tag is missing
@@ -302,7 +302,8 @@ The content adapter `site/enhancements/_content.gotmpl` is mounted into the defa
 - [x] Pages assembled from six source repositories, in one page dialect, with a source lint
 - [x] Build checks: drift guard, lint, front matter, links, page set, stray files, placeholders that yield to source pages, planning comments, supply chain, redirects, git dates
 - [x] Per-version Pagefind search in Hextra's palette; `/latest/` and root redirects
-- [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test
+- [x] Browser QA: screenshots in six variants, WCAG 2.1 A and AA smoke test, search smoke test, theme switch smoke test
+- [x] The theme switch animates with the View Transitions API: a circular reveal from the pointer, a short cross-fade for the keyboard and the OS, nothing under reduced motion (`site/assets/js/opm-theme-transition.js` wraps Hextra's `setTheme`; `site/tests/browser/theme_reveal.py` guards it)
 - [x] All nine figures of the page dialect, drawn as inline SVG that follows the site's theme toggle
 - [ ] Generated reference pages, committed in each owning repository (cli, opm-operator, catalog_opm, core)
 - [x] Versions from a manifest of source refs (`site/versions.conf`), with dialect floors and a two-version regression test
