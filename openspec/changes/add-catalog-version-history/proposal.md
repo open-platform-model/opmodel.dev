@@ -7,7 +7,7 @@ A module author on the Catalogs tab cannot tell whether a member or a field is n
 Named as in docs-kit's `docs/orchestration.md` (PR #13, `plan/phases-1b-2-3`).
 
 - **Sections 1 and 2: no gate.** They build and test against fixture bundles and a hand-written `history.json` that follows C13 as `add-version-history` `design.md` D4 shows it. The real build is unchanged: the real lock has no `history` entry, so no page gets a badge.
-- **Section 3: G1b**, `add-version-history` released (expected docs-kit `v0.3.0`: its release-please PR merged by the owner, binaries and `checksums.txt` on the GitHub release). Section 3 also needs the immediate `chore(site)` PR pinning opm-docs `v0.2.1` merged first (it touches the same Dockerfile lines and lint fixtures).
+- **Section 3: G1b**, `add-version-history` released (expected docs-kit `v0.3.0`: its release-please PR merged by the owner, binaries and `checksums.txt` on the GitHub release). The site already pins opm-docs `0.2.2` with the `link-slashless-*` conformance cases (opmodel.dev#25, merged).
 
 ## What Changes
 
@@ -27,7 +27,7 @@ lock.json                      {schema, tool, config, bundles}
 params.catalog                 {project, name, root, segment, label, version, revision, edge, indexed, newest, commit, repo, source, generated}
 member page                    title · At a glance · Spec · Notes · Served by · Enforcement
 kind index                     the kind's members in this segment
-site/Dockerfile                OPM_DOCS_VERSION=0.2.1
+site/Dockerfile                OPM_DOCS_VERSION=0.2.2
 ```
 
 **After**
@@ -50,7 +50,7 @@ site/Dockerfile                OPM_DOCS_VERSION=<release with add-version-histor
 - **Build inputs.** Gained: one file per tab project, `history.json`, at the digest the lock records. The pinned `opm-docs` moves to the release carrying `add-version-history`. No theme file is newly overridden.
 - **Published URLs.** None added or removed. The version set is unchanged; catalog minors are not site versions and 0021:OQ15 is not touched.
 - **Source repos.** None. catalog_opm's bundles already carry every field the history reads (C10 `fqn`, `spec.fields`).
-- **Depends on.** The immediate `chore(site)` PR (opm-docs `v0.2.1` and the `link-slashless-*` conformance fixtures). docs-kit `add-version-history` released (G1b) for section 3.
+- **Depends on.** docs-kit `add-version-history` released (G1b) for section 3; nothing else (opm-docs `0.2.2` is already pinned, opmodel.dev#25).
 - **Delivery.** Two PRs, as `add-catalogs-tab` did: sections 1 and 2 may merge before G1b (no real output changes without a lock `history` entry); section 3 merges after G1b and carries the archive.
 
 ## Enhancement

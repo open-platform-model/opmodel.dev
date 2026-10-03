@@ -47,7 +47,7 @@ For each site version, a repository whose project the lock names for that versio
       "cli": {
         "project": "cli", "role": "anchor", "tag": "1.0", "version": "1.0.0-beta.6", "revision": 0,
         "commit": "<sha>", "digest": "sha256:...", "local": false, "repo": "open-platform-model/cli",
-        "dir": "_versions/v1.0/cli", "pins": {"core": "2.0.0-beta.2", "library": "1.0.0-beta.2", "opm-operator": "1.0.0-beta.5"},
+        "dir": "_versions/v1.0/cli", "pins": {"core": "2.0.0-beta.1", "library": "1.0.0-beta.1", "opm-operator": "1.0.0-beta.4"},
         "pages": {"reference/cli/opm-module.md": {"source": "", "lastmod": "...", "edit": "", "generated": true}}
       }
     }
@@ -112,7 +112,7 @@ Two-version test (`site/tests/versions/`): `v1.0` bundle-backed for the four, an
 
 ### 8. The pin of `opm-docs` (forward compatibility)
 
-docs-kit validates every `manifest.json` against the closed `#Manifest` of the tool that pulls it (`internal/bundle/manifest.go` `Parse`, docs-kit `main`): a field added by a newer docs-kit (`pins`, `owns`, `pages[].edit`) is refused by an older pull. So the site's pin is bumped to a release no older than any producer's `.opm-docs-version`, before or with that producer's bump. Section 2's bump is to the first release carrying `pull-docs-placement` and `add-authored-docs`; catalog_opm's next bump past that release waits for the site's.
+docs-kit validates every `manifest.json` against the closed `#Manifest` of the tool that pulls it (`internal/bundle/manifest.go` `Parse`, docs-kit `main`): a field added by a newer docs-kit (`pins`, `owns`, `pages[].edit`) is refused by an older pull. So the site's pin is bumped to a release no older than any producer's `.opm-docs-version`, and the site bumps first: docs-kit C12 records this rule (docs-kit#13 review). docs-kit also writes `pages[].edit` only for docs placements, so a tab bundle such as `catalog-opm` gains no new field; the rule still holds for every future manifest field. Section 2's bump is to the first release carrying `pull-docs-placement` and `add-authored-docs`; G3.0 for catalog_opm includes this pin being at least that release.
 
 ### 9. Section 3: the switch
 
@@ -143,7 +143,7 @@ versions: "v1.0": {
 ## Risks / Trade-offs
 
 - [The cli releases before every pin has a bundle] -> the site's next pull fails for every version (C16 D2); G2-pins is checked before the cli release PR merges, and a committed `site/bundles.frozen.json` is the recovery.
-- [A producer bumps docs-kit ahead of the site] -> the pull refuses its manifests (Decision 8); the site bumps first, and docs-kit is asked to make that ordering a C12 rule.
+- [A producer bumps docs-kit ahead of the site] -> the pull refuses its manifests (Decision 8); the site bumps first (docs-kit C12).
 - [Docs-only fixes no longer reach v1.0 at the next build] -> a docs revision dispatch per repository; named in each product repository's `AGENTS.md` "Docs bundles" paragraph by its own change.
 - [Generated pages without `lastmod`] -> shown without a date rather than failing CI.
 

@@ -4,12 +4,12 @@ After `pull-reference-bundles`, `v1.0` still reads two repositories from git (ca
 
 ## Gates
 
-Named as in docs-kit's `docs/orchestration.md` (PR #13, `plan/phases-1b-2-3`), where this change's sections 2, 3 and 4 are "section 1, 2, 3"; section 1 here is fixture work that docs-kit's plan folds into each.
+Named as in docs-kit's `docs/orchestration.md` gates table (PR #13, `plan/phases-1b-2-3`). Section 1 here is fixture work that needs no producer.
 
 - **Section 1: no producer gate.** Needs `pull-reference-bundles` section 2 merged (the pinned tool pulls docs bundles). Fixtures for `catalog-opm-docs` and `opm` pull through that tool; the enhancements fixture is hand-written to C21 (`add-enhancements-bundle` design D1 to D5) and layered by `test-site.sh`, because the pinned tool does not know sections yet.
-- **Section 2: G3.1**, catalog_opm's `catalog-opm-docs` published: `publish-site-docs-bundle` section 1 merged and its section 2 (owner) done, so `ghcr.io/open-platform-model/docs/catalog-opm-docs` is public and its major tag `4` resolves and verifies anonymously.
-- **Section 3: opm's first release bundle.** opm's release-please PR and docs PR merged (owner: release App, secrets, rulesets), its first release (`1.0.0-beta.1`) published `docs/opm`, public, and the tag `1.0` verifies. docs-kit names no gate for this; this change calls it **G3.2** and asks docs-kit to add it.
-- **Section 4: `add-enhancements-bundle` released, and the enhancements bundle published.** The enhancements repository's spike fixes and its `ci(docs)` PR merged, `docs/enhancements` public and `edge` verifying. This change calls it **G3.3**. The site's pin moves to the release carrying `add-enhancements-bundle` in this section, and before the enhancements repository pins it (`pull-reference-bundles` design.md Decision 8).
+- **Section 2: G3.1**, the first `catalog-opm-docs` release bundle published, from the next opm release after catalog_opm adopts it (no backfill dispatch: an older `opm-v4.*` tree's config has no `catalog-opm-docs`), so `ghcr.io/open-platform-model/docs/catalog-opm-docs` is public and its major tag `4` resolves and verifies anonymously.
+- **Section 3: opm's first release bundle.** opm's release-please PR and docs PR merged (owner: release App, secrets, rulesets), its first release (`1.0.0-beta.1`) published `docs/opm`, public, and the tag `1.0` verifies. This is docs-kit's **G3.2**.
+- **Section 4: `add-enhancements-bundle` released, and the enhancements bundle published.** The enhancements repository's spike fixes and its `ci(docs)` PR merged, `docs/enhancements` public and `edge` verifying. This is docs-kit's **G3.3**. The site's pin moves to the release carrying `add-enhancements-bundle` in this section, and before the enhancements repository pins it (`pull-reference-bundles` design.md Decision 8).
 
 Merging section 4 with sections 2 and 3 merged is docs-kit's **G3.4** (the opm and enhancements bundles are published and v1.0 reads them), which starts `retire-git-pipeline`.
 
@@ -51,7 +51,7 @@ site/tests/lint/     + link-enhancements-graph/
 - **Build inputs.** Gained: `catalog-opm-docs` and `opm` docs bundles per site version, the `enhancements` section bundle (edge). Lost: the git archives of catalog_opm and opm for `v1.0`, and the enhancements repository's git archive. The pinned `opm-docs` moves in section 4. The theme override set loses nothing it did not add (`render-link.html` under `layouts/enhancements/_markup/` is site-owned, not an override copy).
 - **Published URLs.** None added or removed: `/docs/` pages of catalog_opm and opm keep their paths; `/enhancements/`, `/enhancements/<NNNN>/`, `/enhancements/<NNNN>/<slug>/` and `/enhancements/graph/` keep theirs. The version set is unchanged; 0021:OQ15 is not touched.
 - **Behaviour change.** A docs-only merge to opm or catalog_opm reaches `v1.0` through a docs revision or a release, no longer at the next build; an enhancements merge reaches the site after its `edge` publish, not at the next site build from git.
-- **Source repos (follow-ups, never edited from here).** catalog_opm `publish-site-docs-bundle` (before section 2); opm's two PRs and first release (before section 3), keeping `start/_index.md` and the `/docs/` landing `_index.md` (C16 D4: no other bundle may ship them); enhancements: the spike fixes and its `ci(docs)` PR (before section 4).
+- **Source repos (follow-ups, never edited from here).** catalog_opm `publish-site-docs-bundle` (G3.1); opm's two PRs and first release (G3.2), keeping `start/_index.md` and the `/docs/` landing `_index.md` (C16 D4: no other bundle may ship them); enhancements: the spike fixes and its `ci(docs)` PR, enhancements#86 (G3.3).
 - **Depends on.** `pull-reference-bundles` section 2 merged (section 1 here); section 3 of it (the v1.0 switch) merged before section 2 here, so `v1.0` has a `versions` entry to add `tags` to.
 
 Delivery: one PR per section (retire-git-pipeline needs all four merged; each section waits on its own producer's first bundle)

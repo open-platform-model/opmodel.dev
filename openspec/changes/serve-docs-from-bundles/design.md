@@ -88,7 +88,7 @@ Section 4 copies docs-kit's `link-enhancements-graph` conformance case into `sit
 
 ## Risks / Trade-offs
 
-- [The enhancements bundle's lint refuses what the repository's own link check accepts] -> blocks the enhancements repository's `main`, not the site; the spike in `add-enhancements-bundle` section 1 sizes it first.
+- [The enhancements bundle's lint refuses what the repository's own link check accepts] -> blocks the enhancements repository's `main`, not the site; docs-kit `add-enhancements-bundle`'s spike sizes it first, and enhancements#86 fixes the sources.
 - [opm has no release before the owner sets up release-please] -> section 3 waits; opm's pages keep coming from git (head of `main`) until then, as today.
 - [The site loses the per-build enhancements SHA from git] -> the bundle's `source.commit` names it, in the stamp and on every page's View source.
 

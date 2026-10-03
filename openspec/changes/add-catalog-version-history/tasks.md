@@ -1,4 +1,4 @@
-> **Gate (section 3 only).** Sections 1 and 2 need nothing from docs-kit or the registry and may merge as their own PR before the gate (the real lock has no `history` entry, so the real build is unchanged). Section 3 starts at **G1b**: docs-kit `add-version-history` released (expected `v0.3.0`), and the immediate `chore(site)` PR pinning opm-docs `v0.2.1` merged. Re-read docs-kit's `docs/contracts.md` C13 at that release before starting it.
+> **Gate (section 3 only).** Sections 1 and 2 need nothing from docs-kit or the registry and may merge as their own PR before the gate (the real lock has no `history` entry, so the real build is unchanged). Section 3 starts at **G1b**: docs-kit `add-version-history` released (expected `v0.3.0`) (the current pin, opm-docs `0.2.2` from opmodel.dev#25, is the base). Re-read docs-kit's `docs/contracts.md` C13 at that release before starting it.
 
 ## 1. History input from fixtures
 
@@ -24,3 +24,4 @@
 - [ ] 3.3 Real build: `task bundles:pull build`; `catalog-opm/history.json` exists for `4.5` and `edge`, the stamp names its digest, a 4.5 member shows "In 4.5 or earlier", an edge-only member "Unreleased".
 - [ ] 3.4 Land the durable decisions: `AGENTS.md` (Site versions, "The Catalogs section": the site reads history, never computes it; Technology stack opm-docs version), `README.md` ("The Catalogs section": badges, the list, the digest check and its recovery).
 - [ ] 3.5 `task check`, `task build`, `task test:site` and `task qa` green on the real bundles, the real member PNGs read, then commit `feat(site): pull catalog version history with opm-docs <version>`.
+- [ ] 3.6 Verify with the `openspec-verify-change` skill (the diff touches only the files proposal.md's Impact names; every durable decision has landed), then archive with `openspec archive add-catalog-version-history --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive add-catalog-version-history` (the archive rides this section's PR).
