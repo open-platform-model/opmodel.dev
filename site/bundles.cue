@@ -33,3 +33,10 @@ docs: {
 	"library":      {repo: "open-platform-model/library"}
 	"opm-operator": {repo: "open-platform-model/opm-operator"}
 }
+// v1.0 follows the cli 1.0 line through its docs bundle: the anchor is the
+// newest cli release in 1.0, and library, core and opm-operator are exactly
+// what that release pins (docs-kit C16, DESIGN decisions 9 and 10).
+versions: "v1.0": {
+	anchor: {project: "cli", tag: "1.0"}
+	pinned: ["library", "core", "opm-operator"]
+}

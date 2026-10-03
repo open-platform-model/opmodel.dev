@@ -12,12 +12,12 @@ on:
   schedule:
     # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
     # every build, so the nightly run of main publishes what moved upstream:
-    # new releases (cli, and the library, core and opm-operator releases a
-    # cli release pins; catalog_opm opm-v4.* tags), opm main, and the main or
-    # release-branch heads of cli, library, opm-operator, core and catalog_opm
-    # while their docs rule reads them. The sources-main job checks every source
-    # repository's main in explicit mode (lint, build checks, links) and
-    # publishes nothing. No source repository dispatches here; gh workflow
+    # new releases and docs revisions (the docs bundles of the newest cli 1.0
+    # release and of the library, core and opm-operator releases it pins;
+    # catalog_opm opm-v4.* tags), opm main, and the main or release-branch
+    # head of catalog_opm while its docs rule reads it. The sources-main job
+    # checks every source repository's main in explicit mode (lint, build
+    # checks, links) and publishes nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because
     # GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
@@ -185,7 +185,7 @@ jobs:
               | "| (unversioned) | \(.key) | \(.value.ref) | | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
             if jq -e '.sections.catalogs' site/public/build-stamp.json >/dev/null; then
               if jq -e '.sections.catalogs.frozen' site/public/build-stamp.json >/dev/null; then
-                echo '::warning::The docs bundles were pulled frozen (site/bundles.frozen.json): the Catalogs tab shows pinned digests, not the newest tags. Delete the file once upstream is fixed.'
+                echo '::warning::The docs bundles were pulled frozen (site/bundles.frozen.json): the Catalogs tab and the docs bundles of the site versions show pinned digests, not the newest tags. Delete the file once upstream is fixed.'
                 echo
                 echo '> [!WARNING]'
                 echo '> The docs bundles were pulled frozen (site/bundles.frozen.json); delete it once upstream is fixed.'
@@ -374,11 +374,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The source pages on every source repository's main, which the published
-  # line version no longer reads for cli, library and opm-operator: an
-  # explicit-mode build (OPM_VERSIONS=v1.0=/src) runs the source lint, every
-  # build check and the link crawl over the main checkouts, so a page broken
-  # on main fails here before it is tagged. It uploads nothing and
+  # The source pages on every source repository's main: an explicit-mode
+  # build (OPM_VERSIONS=v1.0=/src) runs the source lint, every build check
+  # and the link crawl over the six main checkouts, the four whose released
+  # docs v1.0 reads from bundles included, so a page broken on main fails
+  # here before it is released. It uploads nothing and
   # pages-deploy does not need it, so it cannot change what is published.
   # Dates are not its subject: shallow checkouts, OPM_REQUIRE_DATES off.
   sources-main:
@@ -465,6 +465,15 @@ jobs:
         env:
           OPM_BUNDLES_FROZEN: ${{ runner.temp }}/bundles-lock/lock.json
         run: task bundles:pull
+      - name: Read every repository from its main checkout
+        # The frozen lock names v1.0's docs bundles; without its docs entries
+        # this build reads all six main checkouts, so their pages are linted
+        # and link-checked against each other before any of them is released.
+        # (Explicit mode also ignores them unless OPM_DOCS_BUNDLES=1.)
+        run: |
+          jq 'del(.docs)' site/.bundles/lock.json > site/.bundles/lock.json.tmp
+          mv site/.bundles/lock.json.tmp site/.bundles/lock.json
+          rm -rf site/.bundles/_versions
       - name: Build the main checkouts in explicit mode
         env:
           OPM_VERSIONS: v1.0=/src

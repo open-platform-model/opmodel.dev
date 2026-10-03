@@ -136,6 +136,7 @@ tasks:
       OPM_REQUIRE_DATES: '{{.OPM_REQUIRE_DATES}}'
       OPM_VERSIONS: '{{.OPM_VERSIONS}}'
       OPM_BUNDLES: '{{.OPM_BUNDLES}}'
+      OPM_DOCS_BUNDLES: '{{.OPM_DOCS_BUNDLES}}'
       SITE_PORT: '{{.SITE_PORT}}'
     cmds:
       - OPM_BASE_URL={{shellQuote (.OPM_BASE_URL | default "")}} sh site/scripts/run-in-image.sh build
