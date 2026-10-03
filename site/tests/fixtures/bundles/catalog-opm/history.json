@@ -1,7 +1,7 @@
 {
   "schema": "docs.opmodel.dev/history/v1",
   "project": "catalog-opm",
-  "tool": "0.5.0",
+  "tool": "0.6.0",
   "floor": "4.4",
   "segments": [
     "4.4",
