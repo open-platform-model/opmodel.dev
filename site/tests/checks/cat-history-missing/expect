@@ -1,0 +1,3 @@
++ gen-catalogs: catalog-opm: the lock records history.json, but
++ /.bundles/catalog-opm has none
+- == hugo build

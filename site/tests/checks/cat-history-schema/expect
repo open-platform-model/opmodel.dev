@@ -1,0 +1,2 @@
++ gen-catalogs: catalog-opm: history.json schema is "docs.opmodel.dev/history/v2", not docs.opmodel.dev/history/v1
+- == hugo build

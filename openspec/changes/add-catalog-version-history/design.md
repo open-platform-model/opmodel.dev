@@ -49,7 +49,9 @@ history: {
 }
 ```
 
-The adapter never derives anything; templates apply C13's derivation table.
+The adapter never derives anything; templates apply C13's derivation table. Besides the keys above it adds `fqn` (the page's member) and `pages` (that member's pages in this segment by apiVersion, from `data/catalog.json`), which the "Newer version" link resolves through.
+
+The value is a JSON string (`""` without history) that templates unmarshal, not a map (implementation finding): Hugo rewrites a page's params maps in place, lowercasing their keys, and the C13 maps are shared by every page of a member, so a map param raced between pages (`fatal error: concurrent map writes` in a fixture build) and lost C13's camel-case keys.
 
 ### 3. Badges, list, removed entries
 
@@ -70,16 +72,16 @@ At page end (`history-changes.html`), only when `member.changes[<segment>]` exis
 ```text
 added      `retention.weekly` added
 removed    `retention.monthly` removed
-presence   `retention.daily` made required          (optional -> required; the reverse: "made optional")
+presence   `retention.daily` made required          (C13's table: to required "made required", to optional "made optional", optional -> regular "no longer optional", required -> regular "no longer required")
 type       `retention.daily` type changed from `int` to `int & >0`
 default    `schedule` default changed from `"0 2 * * *"` to `"0 3 * * *"`
 ref        `target` now refers to `#BackupTarget`
 spec       The spec changed in a way the field list does not show.
 ```
 
-When `mode == "paths"`, the list opens with one sentence: "Compared by field paths only: the two minors were built by different docs-kit minors, so type and default changes are not shown." On a kind index (`history-removed.html`), a "Removed in `<segment label>`" list linking `<root><lastIn>/<page>/`.
+When `mode == "paths"`, the list opens with one sentence: "Compared by field paths only: these two builds were made by different docs-kit minors, so type, default and reference changes are not shown." (as built: edge is no minor, and `ref` is skipped too). A `default` or `ref` change with one side `null` reads "now defaults to", "no longer has a default (was ...)", "now refers to", "no longer refers to". On a kind index (`history-removed.html`), a "Removed in `<segment label>`" list linking `<root><lastIn>/<page>/`; a member whose kind has no index left in the segment (its last member is gone) is listed on the segment's landing instead; the build fails, naming the link, when that page is missing. `gen-catalogs.sh` refuses a history holding a value the site would word or link by that C13 does not allow: a `compared` mode other than `full` or `paths`, a `first` or `lastIn` that is not one of `segments`, a change op outside C13's seven, a presence change that is not between two different presences.
 
-The heading `Changes in ...` is a page heading written by the site layout, not page content, so it does not pass the page dialect; it uses the same heading partial as the generated sections so the right-hand TOC lists it.
+As built (Hextra's TOC reads only the rendered content, so a heading a layout writes would need an override copy of `toc.html`): the adapter appends both sections to the page body as Markdown that `history-changes.html` and `history-removed.html` return (the derivations stay in those templates; the adapter only calls them), so the TOC, the heading anchor and scroll offset, search and the `.md` output carry them. A Removed link names another segment of the page's own catalog, which the catalogs link hook refuses for bundle text; it carries the title `opm:removed`, which the hook accepts only when the link is `<root><lastIn>/<page>/` of an entry of the page's own removed history (any other marked link gets the own-segment check; case `cat-history-removed-mark`), still failing when the page is missing and does not write out, and which the `.md` outputs drop. On a kind index the Removed section therefore comes before the child cards. The badges render from Hextra's `custom/content-begin.html` hook (beside the type badge, in one `.opm-badges` row), not from `layouts/catalogs/{list,single}.html`: both catalogs layouts delegate to `opm/docs-main.html`, whose title area that hook already sits in, so no layout or override copy changes. "Changed in X" shows only the page's own segment (docs-kit orchestration); C13's derivation table says "every key of `changes`", reported to docs-kit.
 
 ### 4. Fixtures before the gate
 
@@ -91,11 +93,11 @@ site/tests/fixtures/history/catalog-opm/history.json    hand-written to C13 D4, 
 
 `test-site.sh` layers it onto its copy of the fixture bundles and adds the matching `history` entry to that copy's lock with `jq`, so every badge test runs. Section 3 deletes the hand-written file and asserts the pinned tool's output equals it byte for byte before deleting; any difference is a contract mismatch, reported to docs-kit, never fixed by editing the site's expectation silently.
 
-The fixture segments stay `4.4`, `4.5` and `edge` (docs-kit's orchestration names `4.5`, `4.6`, `edge`; the site keeps the segments its existing tests use). Content: `backup@v1alpha1` in all three; `backup@v1beta1` added in 4.5 (lineage, "Newer version"); a field made required and a default change for `backup@v1alpha1` between 4.4 and 4.5; a member removed in edge; a member first seen in edge ("Unreleased"); a `paths`-mode pair by giving `edge`'s manifest a different `tool` minor.
+The fixture segments stay `4.4`, `4.5` and `edge` (docs-kit's orchestration names `4.5`, `4.6`, `edge`; the site keeps the segments its existing tests use). Content (as built; the planned `v1beta1` member became edge's `expose@v1alpha2`, so the existing switch and link tests keep their pages): `backup@v1alpha2` in all three, changed in 4.5 by one of each field op (`ref`, `type`, `default`, `presence`, `added`, `removed`) and in edge by four `presence` changes and an `added` (with 4.5's two, every transition C13 words); `volumes@v1beta1` changed in 4.5 by its spec text only (`spec`); `backup@v1alpha1` in 4.4 only ("Newer version" there, removed in 4.5); `stateless-workload@v1` removed in edge, whose blueprints index goes with it, so edge's landing lists it; `expose@v1alpha1` added in 4.5 and changed in edge, where `expose@v1alpha2` is new ("Unreleased") and takes the bare page, so edge's `traits/expose-v1alpha1` shows all three badges; a `paths`-mode pair by giving edge's manifest `tool` `0.2.0`. History values avoid `<`, `>` and `&`, which Go's encoder escapes unless told not to, so section 3's byte comparison tests the contract, not an escaping choice.
 
 ### 5. Files under `site/`
 
-`Dockerfile`; `scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh` (`gen-stamp.sh` records `sections.catalogs.history: [{project, digest}]`); `catalogs/_content.gotmpl`; `layouts/catalogs/{list,single}.html`; `layouts/_partials/opm/history-{badge,changes,removed}.html`; `assets/css/opm/history.css`; `tests/fixtures/{bundles,history}/`; `tests/checks/` cases; `tests/browser/` shot list.
+`Dockerfile`; `scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh` (`gen-stamp.sh` records `sections.catalogs.history: [{project, digest}]`); `catalogs/_content.gotmpl`; `layouts/_partials/custom/content-begin.html` (a Hextra hook, not an override copy); `layouts/catalogs/_markup/render-link.html` and `layouts/{page,section}.markdown.md` (the `opm:removed` link mark); `layouts/_partials/opm/history-{badge,changes,code,removed}.html`; `assets/css/opm/history.css`; `tests/checks/cat-q2/` (it now drops edge's retention page, since 4.4's `backup-v1alpha1` is linked by the Removed list); `tests/fixtures/{bundles,history}/`; `tests/checks/` cases; `tests/browser/` shot list.
 
 ## Research & Decisions
 

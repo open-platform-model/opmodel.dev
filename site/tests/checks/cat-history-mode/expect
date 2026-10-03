@@ -1,0 +1,2 @@
++ gen-catalogs: catalog-opm: history.json: compared 4.4 -> 4.5: mode "tokens" is not full or paths
+- == hugo build

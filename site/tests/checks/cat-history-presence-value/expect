@@ -1,0 +1,2 @@
++ gen-catalogs: catalog-opm: history.json: member opmodel.dev/catalogs/opm/traits/backup@v1alpha2: presence change of schedule from "required" to "mandatory" is not between two different presences
+- == hugo build

@@ -25,6 +25,5 @@ A member whose fulfilment is `provider` is implemented by your platform, not by 
 
 `opmodel.dev/catalogs/opm@v4` at `main` (commit `940725124ea6`), unreleased.
 
-- [Blueprints](/catalogs/opm/edge/blueprints/): 1
 - [Resources](/catalogs/opm/edge/resources/): 1
 - [Traits](/catalogs/opm/edge/traits/): 2

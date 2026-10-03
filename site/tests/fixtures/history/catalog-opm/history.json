@@ -1,0 +1,262 @@
+{
+  "schema": "docs.opmodel.dev/history/v1",
+  "project": "catalog-opm",
+  "tool": "0.3.0",
+  "floor": "4.4",
+  "segments": [
+    "4.4",
+    "4.5",
+    "edge"
+  ],
+  "compared": [
+    {
+      "from": "4.4",
+      "to": "4.5",
+      "mode": "full"
+    },
+    {
+      "from": "4.5",
+      "to": "edge",
+      "mode": "paths"
+    }
+  ],
+  "members": {
+    "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1": {
+      "kind": "blueprint",
+      "name": "stateless-workload",
+      "apiVersion": "v1",
+      "first": "4.4",
+      "firstIsFloor": true,
+      "in": [
+        "4.4",
+        "4.5"
+      ],
+      "changes": {}
+    },
+    "opmodel.dev/catalogs/opm/resources/volumes@v1beta1": {
+      "kind": "resource",
+      "name": "volumes",
+      "apiVersion": "v1beta1",
+      "first": "4.4",
+      "firstIsFloor": true,
+      "in": [
+        "4.4",
+        "4.5",
+        "edge"
+      ],
+      "changes": {
+        "4.5": [
+          {
+            "op": "spec",
+            "path": "",
+            "from": null,
+            "to": null
+          }
+        ]
+      }
+    },
+    "opmodel.dev/catalogs/opm/traits/backup@v1alpha1": {
+      "kind": "trait",
+      "name": "backup",
+      "apiVersion": "v1alpha1",
+      "first": "4.4",
+      "firstIsFloor": true,
+      "in": [
+        "4.4"
+      ],
+      "changes": {}
+    },
+    "opmodel.dev/catalogs/opm/traits/backup@v1alpha2": {
+      "kind": "trait",
+      "name": "backup",
+      "apiVersion": "v1alpha2",
+      "first": "4.4",
+      "firstIsFloor": true,
+      "in": [
+        "4.4",
+        "4.5",
+        "edge"
+      ],
+      "changes": {
+        "4.5": [
+          {
+            "op": "ref",
+            "path": "schedule",
+            "from": null,
+            "to": "opmodel.dev/catalogs/opm/schemas.#CronSchema"
+          },
+          {
+            "op": "type",
+            "path": "keep",
+            "from": "*7 | int",
+            "to": "*14 | int"
+          },
+          {
+            "op": "default",
+            "path": "keep",
+            "from": "7",
+            "to": "14"
+          },
+          {
+            "op": "presence",
+            "path": "target",
+            "from": "optional",
+            "to": "required"
+          },
+          {
+            "op": "presence",
+            "path": "window",
+            "from": "regular",
+            "to": "optional"
+          },
+          {
+            "op": "presence",
+            "path": "label",
+            "from": "optional",
+            "to": "regular"
+          },
+          {
+            "op": "added",
+            "path": "volumes",
+            "from": null,
+            "to": "list"
+          },
+          {
+            "op": "removed",
+            "path": "legacy",
+            "from": "bool",
+            "to": null
+          }
+        ],
+        "edge": [
+          {
+            "op": "presence",
+            "path": "schedule",
+            "from": "required",
+            "to": "regular"
+          },
+          {
+            "op": "presence",
+            "path": "keep",
+            "from": "regular",
+            "to": "required"
+          },
+          {
+            "op": "presence",
+            "path": "target",
+            "from": "required",
+            "to": "optional"
+          },
+          {
+            "op": "presence",
+            "path": "volumes",
+            "from": "optional",
+            "to": "required"
+          },
+          {
+            "op": "added",
+            "path": "compress",
+            "from": null,
+            "to": "bool"
+          }
+        ]
+      }
+    },
+    "opmodel.dev/catalogs/opm/traits/expose@v1alpha1": {
+      "kind": "trait",
+      "name": "expose",
+      "apiVersion": "v1alpha1",
+      "first": "4.5",
+      "firstIsFloor": false,
+      "in": [
+        "4.5",
+        "edge"
+      ],
+      "changes": {
+        "edge": [
+          {
+            "op": "added",
+            "path": "host",
+            "from": null,
+            "to": "string"
+          }
+        ]
+      }
+    },
+    "opmodel.dev/catalogs/opm/traits/expose@v1alpha2": {
+      "kind": "trait",
+      "name": "expose",
+      "apiVersion": "v1alpha2",
+      "first": "edge",
+      "firstIsFloor": false,
+      "in": [
+        "edge"
+      ],
+      "changes": {}
+    }
+  },
+  "removed": {
+    "4.5": [
+      {
+        "fqn": "opmodel.dev/catalogs/opm/traits/backup@v1alpha1",
+        "kind": "trait",
+        "name": "backup",
+        "apiVersion": "v1alpha1",
+        "lastIn": "4.4",
+        "page": "traits/backup-v1alpha1"
+      }
+    ],
+    "edge": [
+      {
+        "fqn": "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1",
+        "kind": "blueprint",
+        "name": "stateless-workload",
+        "apiVersion": "v1",
+        "lastIn": "4.5",
+        "page": "blueprints/stateless-workload"
+      }
+    ]
+  },
+  "lineage": {
+    "blueprint/stateless-workload": {
+      "4.4": [
+        "v1"
+      ],
+      "4.5": [
+        "v1"
+      ]
+    },
+    "resource/volumes": {
+      "4.4": [
+        "v1beta1"
+      ],
+      "4.5": [
+        "v1beta1"
+      ],
+      "edge": [
+        "v1beta1"
+      ]
+    },
+    "trait/backup": {
+      "4.4": [
+        "v1alpha2",
+        "v1alpha1"
+      ],
+      "4.5": [
+        "v1alpha2"
+      ],
+      "edge": [
+        "v1alpha2"
+      ]
+    },
+    "trait/expose": {
+      "4.5": [
+        "v1alpha1"
+      ],
+      "edge": [
+        "v1alpha2",
+        "v1alpha1"
+      ]
+    }
+  }
+}

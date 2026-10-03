@@ -26,6 +26,10 @@ spec: backup: #BackupSchema
 	schedule!: string
 	// How many copies to keep.
 	keep: *7 | int
+	// Where the copies go.
+	target?: {...}
+	// Use the pre-4.5 copy format.
+	legacy?: bool
 }
 ```
 

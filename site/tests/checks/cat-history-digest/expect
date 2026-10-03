@@ -1,0 +1,4 @@
++ gen-catalogs: catalog-opm: history.json is sha256:
++ the lock records sha256:
++ run task bundles:pull
+- == hugo build

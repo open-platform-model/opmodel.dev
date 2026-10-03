@@ -1,0 +1,2 @@
++ gen-catalogs: catalog-opm: history.json: member opmodel.dev/catalogs/opm/traits/backup@v1alpha2: change op "renamed" is not one of C13's
+- == hugo build

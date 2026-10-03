@@ -1,0 +1,9 @@
+{{- /* A value of a history change as a Markdown code span: the fence is one
+       backtick longer than the value's longest backtick run, padded with a
+       space when the value starts or ends with a backtick (CommonMark). */ -}}
+{{- $v := printf "%v" . -}}
+{{- $n := 0 -}}
+{{- range findRE "`+" $v -}}{{- $n = math.Max $n (len .) -}}{{- end -}}
+{{- $fence := strings.Repeat (add (int $n) 1) "`" -}}
+{{- $pad := cond (or (hasPrefix $v "`") (hasSuffix $v "`")) " " "" -}}
+{{- return printf "%s%s%s%s%s" $fence $pad $v $pad $fence -}}
