@@ -19,15 +19,21 @@ type: reference
 A component writes this trait's fields under `spec.backup`.
 
 ```cue
+import "opmodel.dev/catalogs/opm/schemas"
+
 spec: backup: #BackupSchema
 
 #BackupSchema: {
 	// How often the work runs, as a cron expression.
-	schedule!: string
+	schedule!: schemas.#CronSchema
 	// How many copies to keep.
-	keep: *7 | int
-	// Which volumes to capture, by name. Absent: all of them.
-	volumes?: [...string]
+	keep: *14 | int
+	// Where the copies go.
+	target!: {...}
+	// Which volumes to capture, by name.
+	volumes!: [...string]
+	// Compress each copy.
+	compress?: bool
 }
 ```
 

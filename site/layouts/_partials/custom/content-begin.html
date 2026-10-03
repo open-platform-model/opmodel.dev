@@ -6,7 +6,8 @@
          the lead and the search sub-line cannot drift apart;
        - the page-type badge, with Hextra's own badge partial (a Catalogs
          section page keeps its dialect type as params.docType, since its
-         Hugo type is the section's);
+         Hugo type is the section's), and on a Catalogs member page its
+         version badges in the same row (opm/history-badge.html);
        - Pagefind metadata: the breadcrumb, shown in the search palette. */ -}}
 {{- if not .IsHome }}{{ with .Description -}}
   <p class="opm-lead" data-pagefind-meta="description">{{ . }}</p>
@@ -17,8 +18,16 @@
   "explanation" (dict "label" "Explanation" "color" "purple" "icon" "light-bulb")
   "reference" (dict "label" "Reference" "color" "gray" "icon" "book-open")
 -}}
+{{- $type := "" -}}
 {{- with index $types (.Params.docType | default .Type) -}}
-  {{- partial "shortcodes/badge" (dict "content" .label "color" .color "icon" .icon "border" true "class" "opm-type-badge") -}}
+  {{- $type = partial "shortcodes/badge" (dict "content" .label "color" .color "icon" .icon "border" true "class" "opm-type-badge") -}}
+{{- end -}}
+{{- $history := "" -}}
+{{- if and (not .IsHome) .Params.catalog -}}{{- $history = partial "opm/history-badge.html" . | strings.TrimSpace -}}{{- end -}}
+{{- if $history -}}
+  <div class="opm-badges">{{ $type }}{{ $history | safeHTML }}</div>
+{{- else -}}
+  {{- $type -}}
 {{- end -}}
 {{- /* The crumbs start below the docs root (the page's first section), so
        a result reads "Start here", not "Documentation / Start here"; a page

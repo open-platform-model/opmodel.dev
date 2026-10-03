@@ -1,0 +1,43 @@
+{{- /* The version badges of a Catalogs member page, from the page's C13
+       history (docs-kit add-version-history D4; params.catalog.history,
+       catalogs/_content.gotmpl), applying C13's derivations only:
+       - origin, exactly one: "Unreleased" (first is edge), "In <floor> or
+         earlier" (firstIsFloor), else "Added in <first>";
+       - "Changed in <segment label>" when the member changed in this page's
+         segment, linking the page-end "Changes in" list;
+       - "Newer version" when this segment's lineage starts with another
+         apiVersion, linking that apiVersion's page in this segment; the
+         build fails, naming the FQN, when that page does not exist.
+       Takes the page; prints nothing without a member history. */ -}}
+{{- $c := .Params.catalog -}}
+{{- with $c.history -}}
+  {{- $h := . | transform.Unmarshal -}}
+  {{- with $h.member -}}
+    {{- $m := . -}}
+    {{- if eq .first "edge" -}}
+      {{- partial "shortcodes/badge" (dict "content" "Unreleased" "color" "amber" "border" true "class" "opm-history-badge") -}}
+    {{- else if .firstIsFloor -}}
+      {{- partial "shortcodes/badge" (dict "content" (printf "In %s or earlier" $h.floor) "color" "gray" "border" true "class" "opm-history-badge") -}}
+    {{- else -}}
+      {{- partial "shortcodes/badge" (dict "content" (printf "Added in %s" .first) "color" "green" "border" true "class" "opm-history-badge") -}}
+    {{- end -}}
+    {{- if index .changes $c.segment -}}
+      {{- $title := printf "Changes in %s" $c.label -}}
+      <a class="opm-history-link" href="#{{ anchorize $title }}">
+        {{- partial "shortcodes/badge" (dict "content" (printf "Changed in %s" $c.label) "color" "blue" "border" true "class" "opm-history-badge") -}}
+      </a>
+    {{- end -}}
+    {{- with $h.lineage -}}{{- with index . 0 -}}
+      {{- if ne . $m.apiVersion -}}
+        {{- $at := printf "catalogs: %s %s page of %s" $c.project $c.segment $h.fqn -}}
+        {{- $pg := index $h.pages . -}}
+        {{- if not $pg -}}{{- errorf "%s: the newer version %s has no page in %s (data/catalog.json)" $at . $c.segment -}}{{- end -}}
+        {{- $p := site.GetPage (printf "/catalogs/%s/%s/%s" $c.name $c.segment $pg) -}}
+        {{- if not $p -}}{{- errorf "%s: the newer version %s has no page %s in %s" $at . $pg $c.segment -}}{{- end -}}
+        <a class="opm-history-link" href="{{ $p.RelPermalink }}">
+          {{- partial "shortcodes/badge" (dict "content" (printf "Newer version: %s" .) "color" "purple" "border" true "class" "opm-history-badge") -}}
+        </a>
+      {{- end -}}
+    {{- end -}}{{- end -}}
+  {{- end -}}
+{{- end -}}

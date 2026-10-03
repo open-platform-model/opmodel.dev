@@ -8,9 +8,9 @@ type: reference
 
 | Field | Value |
 | --- | --- |
-| FQN | `opmodel.dev/catalogs/opm/traits/expose@v1alpha1` |
-| API version | `v1alpha1`, alpha ([contract levels](/catalogs/opm/edge/#contract-levels)) |
-| Module path | `opmodel.dev/catalogs/opm/traits/v1alpha1` |
+| FQN | `opmodel.dev/catalogs/opm/traits/expose@v1alpha2` |
+| API version | `v1alpha2`, alpha ([contract levels](/catalogs/opm/edge/#contract-levels)) |
+| Module path | `opmodel.dev/catalogs/opm/traits/v1alpha2` |
 | Catalog | `opmodel.dev/catalogs/opm@v4` at `main` (commit `940725124ea6`), unreleased |
 | Applies to (declared) | [Volumes](/catalogs/opm/edge/resources/volumes/) |
 
@@ -22,10 +22,11 @@ A component writes this trait's fields under `spec.expose`.
 spec: expose: #ExposeSchema
 
 #ExposeSchema: {
-	// How often the work runs, as a cron expression.
-	schedule!: string
-	// The ports to publish, by name.
-	ports!: [...string]
+	// The ports to publish.
+	ports!: [...{
+		// The port number.
+		port!: int
+	}]
 }
 ```
 

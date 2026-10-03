@@ -1,0 +1,21 @@
+{{- /* The "Removed in <segment label>" section of a Catalogs kind index (or
+       of the segment's landing, for a kind with no index left there), as
+       Markdown the adapter (catalogs/_content.gotmpl) appends to the page
+       body: the members C13 records as removed in this segment
+       (removed[<segment>]), each linking its page in the last segment that
+       had it, <root><lastIn>/<page>/. Takes {history, segment, label, root};
+       returns "" when there is none. The link carries the title
+       "opm:removed", the one mark that lets a catalog page link its own
+       catalog at another segment; the link hook
+       (layouts/catalogs/_markup/render-link.html) drops it and fails the
+       build, naming the link, when the page does not exist. */ -}}
+{{- $out := "" -}}
+{{- $h := .history -}}
+{{- if and $h $h.removed -}}
+  {{- $lines := slice -}}
+  {{- range $h.removed -}}
+    {{- $lines = $lines | append (printf "- [%s](%s%s/%s/ \"opm:removed\") %s, last in %s" (replace (replace .name "[" "\\[") "]" "\\]") $.root .lastIn .page (partial "opm/history-code.html" .apiVersion) .lastIn) -}}
+  {{- end -}}
+  {{- $out = printf "\n\n## Removed in %s\n\n%s\n" .label (delimit $lines "\n") -}}
+{{- end -}}
+{{- return $out -}}
