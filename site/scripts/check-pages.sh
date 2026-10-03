@@ -92,20 +92,13 @@ urls() { # $1 dir, $2 URL prefix, $3 label
 # `placeholder: true` (see gen-mounts.sh).
 placeholders=$(grep -rlx 'placeholder: true' content 2>/dev/null | sed 's#^content/##' | sort | tr '\n' ' ' || true)
 
-# The transition (gen-mounts.sh): with the catalog-opm tab, catalog_opm's
-# Reference copies of the members are not mounted, so they publish nothing.
-catexcl=""
-if [ -n "${CAT_DIR:-}" ] && [ -f data/opm/catalogs.json ] && jq -e '[.catalogs[] | select(.project == "catalog-opm")] | length > 0' data/opm/catalogs.json >/dev/null; then
-  catexcl=1
-fi
-
 for pair in "$@"; do
   v=${pair%%=*}; root=${pair#*=}
   {
     urls content / site
     urls ".gen/$v" / generated
     for r in $REPOS; do urls "$root/$r/docs/site" /docs/ "$r"; done
-  } | awk -F'\t' -v X="$catexcl" '!(X && $2 ~ /^catalog_opm\/reference\/(catalog-members\/|catalog-members\.md$|catalog-contract\.md$)/)' > "$tmp/$v.src"
+  } > "$tmp/$v.src"
   # A placeholder yields to a source page at its URL (gen-mounts.sh mounts it
   # only where none exists), so it takes no part in A1 there.
   awk -F'\t' -v ph="$placeholders" '
