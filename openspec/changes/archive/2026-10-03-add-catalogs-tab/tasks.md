@@ -51,5 +51,5 @@
 
 ## 6. Verify and archive
 
-- [ ] 6.1 Follow `.claude/skills/openspec-verify-change/SKILL.md`; check that the diff touches only the files in proposal.md's Impact and that every durable decision has landed.
-- [ ] 6.2 Archive with `openspec archive add-catalogs-tab --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, commit `chore(openspec): archive add-catalogs-tab`.
+- [x] 6.1 Follow `.claude/skills/openspec-verify-change/SKILL.md`; check that the diff touches only the files in proposal.md's Impact and that every durable decision has landed.
+- [x] 6.2 Archive with `openspec archive add-catalogs-tab --yes --skip-specs`, run `openspec validate --all --strict --no-interactive`, commit `chore(openspec): archive add-catalogs-tab`.
