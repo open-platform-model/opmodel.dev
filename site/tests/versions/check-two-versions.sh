@@ -46,15 +46,23 @@ mkdir -p "$OUT"
 rm -rf "$P" "$C"
 marker=$OUT/.started; : > "$marker"
 unset OPM_VERSIONS
-# The fixture docs bundles give the build its Catalogs section (sources()
-# mounts OPM_BUNDLES and sets CAT); a copy without their site-version docs
-# bundles (the lock's "docs" key and _versions/), which document fixture
-# repositories, not the real ones this test builds: both versions read all
-# six repositories from git, as two-versions.conf says.
+# The bundles the build reads (sources() mounts OPM_BUNDLES and sets CAT): the
+# fixture tab bundles give it a Catalogs section that does not move with
+# catalog_opm's releases, and v1.0's docs bundles are the real ones, the
+# _versions/ tree and the lock's "docs" entries of the last task bundles:pull
+# (site/.bundles/), since the fixture docs bundles document fixture
+# repositories, not the real ones this test builds. v0.9 reads all six
+# repositories from git.
+RB=$SITE/.bundles
+[ -f "$RB/lock.json" ] && [ -d "$RB/_versions/v1.0" ] && jq -e '[.docs // [] | .[] | select(.site == "v1.0")] | length > 0' "$RB/lock.json" >/dev/null || {
+  echo "check-two-versions: $RB holds no docs bundles for v1.0; run task bundles:pull first" >&2
+  exit 1
+}
 rm -rf "$OUT/bundles"
 cp -R "$SITE/tests/fixtures/bundles" "$OUT/bundles"
 rm -rf "$OUT/bundles/_versions"
-jq 'del(.docs)' "$SITE/tests/fixtures/bundles/lock.json" > "$OUT/bundles/lock.json"
+cp -R "$RB/_versions" "$OUT/bundles/_versions"
+jq --slurpfile r "$RB/lock.json" '.docs = $r[0].docs' "$SITE/tests/fixtures/bundles/lock.json" > "$OUT/bundles/lock.json"
 OPM_BUNDLES=$OUT/bundles; export OPM_BUNDLES
 if ! sh -c '. "$0" >/dev/null
   sources; image >/dev/null
@@ -164,12 +172,17 @@ check "the v0.9 stamp names the six test SHAs" [ -z "$stamp_bad" -a -n "$stamp" 
 why="no View source link at the test SHA for:$view_bad"
 check "v0.9 View source links carry the test SHAs" [ -z "$view_bad" ]
 
-# v1.0 is a line version: every expected ref, SHA and docs source is read
-# from versions.tsv, never written here, since the lines move.
+# v1.0 is a line version for opm and catalog_opm: every expected ref, SHA and
+# docs source is read from versions.tsv, never written here, since the lines
+# move. cli, core, library and opm-operator come from their docs bundles
+# (from-bundles): their versions, commits and pages are read from
+# data/opm/docs-bundles.json, which the build wrote from the lock.
+GIT10="opm catalog_opm"; BUN10="cli core library opm-operator"
+DB=$SITE/data/opm/docs-bundles.json
 row10() { awk -F'\t' -v r="$1" -v c="$2" '!/^#/ && $1 == "v1.0" && $6 == r { print $c }' "$TSV"; }
 stamp10=$(tr '\n' ' ' < "$P/v1.0/docs/index.html" | grep -o '<div class="\{0,1\}opm-build-stamp.*' | sed 's#</footer>.*##')
 kind_bad=""; stamp10_bad=""; view10_bad=""; edit10_bad=""
-for r in $REPOS; do
+for r in $GIT10; do
   [ "$(row10 "$r" 5)" = line ] || kind_bad="$kind_bad $r"
   s=$(row10 "$r" 8); ref=$(row10 "$r" 7); docs=$(row10 "$r" 10)
   case "$docs" in tag) text=$ref ;; *) text=$(printf '%.7s' "$s") ;; esac
@@ -179,21 +192,62 @@ for r in $REPOS; do
   got=$(grep -rhoE "open-platform-model/$r/edit/[^ \"'>]*/docs/site/" "$P/v1.0" | sed "s#.*/$r/edit/##; s#/docs/site/##" | sort -u | tr '\n' ' ')
   [ "$got" = "$want " ] || edit10_bad="$edit10_bad $r(edit/$got, want edit/$want)"
 done
-why="not kind line:$kind_bad"
-check "versions.tsv resolves v1.0 as a line version for all six repositories" [ -z "$kind_bad" -a -n "$(row10 cli 8)" ]
+fb=$(awk -F'\t' '$1 == "# from-bundles" && $2 == "v1.0" { print $3 }' "$TSV")
+for r in $BUN10; do [ -z "$(row10 "$r" 8)" ] || kind_bad="$kind_bad $r(a git row)"; done
+why="not kind line, or a git row for a bundle repository:$kind_bad; from-bundles \"$fb\""
+check "versions.tsv resolves v1.0's opm and catalog_opm as a line, mirrors from-bundles, and gives the four bundle repositories no row" [ -z "$kind_bad" -a -n "$(row10 opm 8)" -a "$fb" = "cli core library opm-operator" ]
 why="the stamp misses:$stamp10_bad"
-check "the v1.0 stamp links all six resolved SHAs" [ -z "$stamp10_bad" -a -n "$stamp10" ]
+check "the v1.0 stamp links opm's and catalog_opm's resolved SHAs" [ -z "$stamp10_bad" -a -n "$stamp10" ]
 why="no View source link at the resolved SHA for:$view10_bad"
-check "v1.0 View source links carry blob/<resolved SHA>/docs/site/ per repository" [ -z "$view10_bad" ]
+check "v1.0 View source links of git pages carry blob/<resolved SHA>/docs/site/" [ -z "$view10_bad" ]
 why="wrong edit target:$edit10_bad"
-check "v1.0 edit links go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
+check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
+
+# The four docs bundles: named in the stamp and the footer, no archive, every
+# manifest page published in v1.0, Edit to main at the manifest's edit path
+# (generated pages none), View source at the bundle commit.
+bstamp_bad=""; bpage_bad=""; bedit_bad=""; bview_bad=""
+for r in $BUN10; do
+  b=$(jq -c --arg r "$r" '.versions["v1.0"] // {} | .[] | select(.tree == $r)' "$DB")
+  if [ -z "$b" ]; then bstamp_bad="$bstamp_bad $r(no bundle)"; continue; fi
+  bv=$(printf '%s' "$b" | jq -r .version); bc=$(printf '%s' "$b" | jq -r .commit); brepo=$(printf '%s' "$b" | jq -r .repo)
+  printf '%s' "$stamp10" | grep -q "github.com/$brepo/commit/$bc" && printf '%s' "$stamp10" | grep -qF "<code>$bv</code>" || bstamp_bad="$bstamp_bad $r"
+  [ "$(jq -r --arg r "$r" '.versions["v1.0"].bundles[] | select(.project == $r) | .version' "$P/build-stamp.json")" = "$bv" ] || bstamp_bad="$bstamp_bad $r(build-stamp.json)"
+  [ ! -e "$SITE/.versions/v1.0/$r" ] || bstamp_bad="$bstamp_bad $r(an archive)"
+  # "-" for an empty field: read collapses runs of a whitespace IFS such as tab.
+  printf '%s' "$b" | jq -r '.pages | to_entries[] | "\(.key)\t\(.value.edit | if . == "" then "-" else . end)\t\(.value.generated)\t\(.value.source | if . == "" then "-" else . end)"' |
+    while IFS='	' read -r f edit gen src; do
+      [ "$edit" != - ] || edit=""; [ "$src" != - ] || src=""
+      u=$(printf '%s' "$f" | sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#')
+      h=$P/v1.0/docs/${u}index.html
+      if [ ! -f "$h" ]; then echo "page $r:$u"; continue; fi
+      if [ -n "$edit" ]; then grep -qF "github.com/$brepo/edit/main/$edit" "$h" || echo "edit $r:$u"
+      elif grep -q 'Edit this page' "$h"; then echo "edit $r:$u (none expected)"; fi
+      if [ -n "$src" ]; then grep -qF "github.com/$brepo/blob/$bc/$src" "$h" || echo "view $r:$u"; fi
+    done > "$OUT/.bundle-bad"
+  bpage_bad="$bpage_bad$(grep '^page ' "$OUT/.bundle-bad" | head -n 2 | cut -c6- | tr '\n' ' ')"
+  bedit_bad="$bedit_bad$(grep '^edit ' "$OUT/.bundle-bad" | head -n 2 | cut -c6- | tr '\n' ' ')"
+  bview_bad="$bview_bad$(grep '^view ' "$OUT/.bundle-bad" | head -n 2 | cut -c6- | tr '\n' ' ')"
+done
+rm -f "$OUT/.bundle-bad"
+why="missing:$bstamp_bad"
+check "the v1.0 stamp and build-stamp.json name each docs bundle's version and commit; no archive of those repositories" [ -z "$bstamp_bad" ]
+why="not published: $bpage_bad"
+check "every page of the four docs bundles publishes in v1.0" [ -z "$bpage_bad" ]
+why="wrong: $bedit_bad"
+check "a bundle page's Edit goes to main at its manifest edit path; a generated page has none" [ -z "$bedit_bad" ]
+why="wrong: $bview_bad"
+check "a bundle page's View source goes to its source at the bundle commit" [ -z "$bview_bad" ]
+why="/v1.0/docs/reference/go-api/ is missing, or /v0.9/ has it"
+check "the library bundle's Go API reference publishes in v1.0 only" [ -f "$P/v1.0/docs/reference/go-api/index.html" -a ! -e "$P/v0.9/docs/reference/go-api" ]
 
 edit09=$(grep -rl -e 'Edit this page' -e '/edit/main/' "$P/v0.9" | head -n 3 || true)
 why="an edit link on: $edit09"
 check "v0.9 pages have no Edit this page link" [ -z "$edit09" ]
-noedit10=$(grep -rl opm-page-meta "$P/v1.0/docs" | while IFS= read -r f; do grep -q "Edit this page" "$f" || echo "${f#"$P"/}"; done | head -n 3)
+noedit10=$(for r in $GIT10; do (cd "$SITE/.versions/v1.0/$r/docs/site" && find . -name '*.md' | sed 's#^\./##'); done |
+  sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' | while IFS= read -r u; do grep -q "Edit this page" "$P/v1.0/docs/${u}index.html" 2>/dev/null || echo "$u"; done | head -n 3)
 why="no edit link on: $noedit10"
-check "v1.0 pages have an Edit this page link" [ -z "$noedit10" -a -n "$(grep -rl 'Edit this page' "$P/v1.0/docs" | head -n 1)" ]
+check "v1.0 git pages (opm, catalog_opm) have an Edit this page link" [ -z "$noedit10" ]
 
 undated=$(for f in $pages09; do case "$f" in */404.html) continue ;; esac; grep -q '<time datetime=' "$f" || echo "${f#"$P"/}"; done | head -n 3)
 why="no date on: $undated"
@@ -220,16 +274,19 @@ for r in $REPOS; do
   root=$(root_of "$r"); s=$(sha_of "$r"); s10=$(row10 "$r" 8)
   want=$(pages_at "$root" "$s")
   [ "$want" = "$(pages_in "$SITE/.versions/v0.9/$r/docs/site")" ] || set_bad="$set_bad $r(archive)"
-  [ -n "$s10" ] && [ "$(pages_at "$root" "$s10")" = "$(pages_in "$SITE/.versions/v1.0/$r/docs/site")" ] || set10_bad="$set10_bad $r"
+  # v1.0's pages: a bundle repository's manifest pages, a git one's at its SHA.
+  case " $BUN10 " in
+    *" $r "*) want10=$(jq -r --arg r "$r" '.versions["v1.0"][] | select(.tree == $r) | .pages | keys[]' "$DB" | sort) ;;
+    *) want10=$(pages_at "$root" "$s10")
+       [ -n "$s10" ] && [ "$want10" = "$(pages_in "$SITE/.versions/v1.0/$r/docs/site")" ] || set10_bad="$set10_bad $r" ;;
+  esac
   unbuilt=$(printf '%s\n' "$want" | url_of | while IFS= read -r u; do [ -f "$P/v0.9/docs/${u}index.html" ] || echo "$u"; done | head -n 1)
   [ -z "$unbuilt" ] || set_bad="$set_bad $r(/v0.9/docs/$unbuilt)"
   printf '%s\n' "$want" > "$OUT/.want"
-  for u in $(pages_at "$root" "$s10" | comm -23 - "$OUT/.want" | url_of); do
+  for u in $(printf '%s\n' "$want10" | sed '/^$/d' | comm -23 - "$OUT/.want" | url_of); do
     # A new file at a URL v0.9 already publishes is no new page: a page moved
-    # to a section of its own (x.md to x/_index.md), or a source page taking a
-    # site placeholder's place (gen-mounts.sh).
-    if printf '%s\n' "$want" | url_of | grep -qxF "$u" ||
-       grep -qx 'placeholder: true' "$SITE/content/docs/${u}_index.md" 2>/dev/null; then continue; fi
+    # to a section of its own (x.md to x/_index.md).
+    if printf '%s\n' "$want" | url_of | grep -qxF "$u"; then continue; fi
     newer="$newer $r:$u"
     { [ ! -e "$P/v0.9/docs/${u}index.html" ] && [ -f "$P/v1.0/docs/${u}index.html" ]; } || newer_bad="$newer_bad $r:$u"
   done
@@ -251,7 +308,7 @@ fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
-check "each repo's v1.0 archive is exactly its pages at the resolved SHA" [ -z "$set10_bad" ]
+check "opm's and catalog_opm's v1.0 archives are exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
 why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from v1.0}; wrong for:$newer_bad"
 n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
 check "pages added between the test SHAs and v1.0's resolved SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]

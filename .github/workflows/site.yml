@@ -12,12 +12,13 @@ on:
   schedule:
     # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
     # every build, so the nightly run of main publishes what moved upstream:
-    # new releases (cli, and the library, core and opm-operator releases a
-    # cli release pins; catalog_opm opm-v4.* tags), opm main, and the main or
-    # release-branch heads of cli, library, opm-operator, core and catalog_opm
-    # while their docs rule reads them. The sources-main job checks every source
-    # repository's main in explicit mode (lint, build checks, links) and
-    # publishes nothing. No source repository dispatches here; gh workflow
+    # new releases and docs revisions (the docs bundles of the newest cli 1.0
+    # release and of the library, core and opm-operator releases it pins;
+    # catalog_opm opm-v4.* tags), opm main, and the main or release-branch
+    # head of catalog_opm while its docs rule reads it. The sources-main job
+    # checks opm's and catalog_opm's main in explicit mode (lint, build
+    # checks, links), beside the docs bundles the build read, and publishes
+    # nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because
     # GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
@@ -374,11 +375,13 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The source pages on every source repository's main, which the published
-  # line version no longer reads for cli, library and opm-operator: an
-  # explicit-mode build (OPM_VERSIONS=v1.0=/src) runs the source lint, every
-  # build check and the link crawl over the main checkouts, so a page broken
-  # on main fails here before it is tagged. It uploads nothing and
+  # The source pages on opm's and catalog_opm's main: an explicit-mode build
+  # (OPM_VERSIONS=v1.0=/src) runs the source lint, every build check and the
+  # link crawl over those main checkouts, beside the docs bundles the build
+  # job read (the lock decides: v1.0 reads cli, core, library and
+  # opm-operator from their bundles here too, and their main pages are
+  # linted by their own docs workflow), so a page broken on main fails here
+  # before it is tagged. It uploads nothing and
   # pages-deploy does not need it, so it cannot change what is published.
   # Dates are not its subject: shallow checkouts, OPM_REQUIRE_DATES off.
   sources-main:

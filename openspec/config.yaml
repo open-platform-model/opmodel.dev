@@ -41,9 +41,10 @@ context: |
 
   ### III. Generated Before Handwritten
   Reference pages are generated in the repository that owns their source (core's definitions,
-  the CLI's commands, the operator's resources), committed there with a staleness check, or
-  published as signed docs bundles by docs-kit (the catalog's members, the Catalogs tab), and
-  never hand-edited. A generated block is marked apart from authored
+  the CLI's commands, the operator's resources, the library's Go API, the catalog's members) and
+  published in its signed docs bundle by docs-kit, which the site pulls (a site version's
+  /docs/, the Catalogs tab); they are never committed for the site to read and never
+  hand-edited. A generated block is marked apart from authored
   text. A doc bug that traces to source is fixed upstream, not in the generated output. This
   repo generates no pages.
 
