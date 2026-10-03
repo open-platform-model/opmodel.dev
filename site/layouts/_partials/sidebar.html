@@ -11,7 +11,8 @@
     under /docs/, so no link changes);
   - on a Catalogs section page the tree is its segment's (the landing of
     /catalogs/<name>/<segment>/), so no other minor shows; the /catalogs/
-    page shows only itself;
+    page shows itself and, with params.picker (scripts/gen-catalogs.sh), one
+    entry per catalog, linking what its card links (opm/catalog-entries.html);
   - groups outside the current path start collapsed (params.opm.collapseInactive);
   - the current page's h2 headings sit under its entry on mobile only;
   - a CamelCase title (a generated reference page, TransformerRegistration)
@@ -71,7 +72,10 @@
     <ul class="opm-sb-list{{ if $disableSidebar }} hx:md:hidden{{ end }}">
       {{- with $navRoot -}}
         <li>{{ template "opm-sb-link" dict "title" (partial "utils/title" .) "link" .RelPermalink "active" (eq . $context) "strong" true }}</li>
-        {{- if not $leafOnly -}}{{- template "opm-sb-tree" dict "section" . "page" $context "level" 0 "skip" $ref -}}{{- end -}}
+        {{- if not $leafOnly -}}{{- template "opm-sb-tree" dict "section" . "page" $context "level" 0 "skip" $ref -}}
+        {{- else if $context.Params.picker -}}
+          {{- range partial "opm/catalog-entries.html" $context -}}<li>{{ template "opm-sb-link" dict "title" .title "link" .href }}</li>{{- end -}}
+        {{- end -}}
       {{- end -}}
     </ul>
     {{- if and $disableSidebar $displayPlaceholder }}<div class="hx:max-xl:hidden hx:h-0 hx:w-64 hx:shrink-0"></div>{{ end -}}

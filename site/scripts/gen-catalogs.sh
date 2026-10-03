@@ -150,19 +150,28 @@ jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" --slurpfile hist "$tmp/
           version, revision, commit, digest, local, dir}]}))}
 ' "$tmp/rows" > data/opm/catalogs.json
 
-# The /catalogs/ section page: one line per catalog, linking its bare tab
-# root (its newest minor; edge for a tab that has no release yet). Its date
-# is the newest lastmod among the indexed segments' pages, so edge never
-# dates it (Hugo would otherwise date a section by its newest descendant).
+# The /catalogs/ section page, marked params.picker (opm/docs-main.html and
+# sidebar.html key on it). Its description, one sentence, is the lead;
+# in HTML the catalog cards (layouts/_partials/opm/catalog-picker.html)
+# replace the body, so the body below, one line per catalog linking its bare
+# tab root (its newest minor; edge for a tab that has no release yet) and
+# edge, feeds only the page's Markdown twin. Its date is the newest lastmod
+# among the indexed segments' pages, so edge never dates it (Hugo would
+# otherwise date a section by its newest descendant).
 newest=$(jq -r '.catalogs[] | .segments[] | select(.indexed) | .dir' data/opm/catalogs.json | while IFS= read -r d; do
   jq -r '.pages[].lastmod // empty' "$CAT_DIR/$d/manifest.json"; done | sort | tail -n 1)
 {
   printf -- '---\ntitle: Catalogs\n'
-  printf 'description: The reference of every catalog OPM publishes, one tab per catalog, versioned by the catalog'"'"'s own minor releases.\n'
+  printf 'description: Pick a catalog to read the reference of its newest release.\n'
   printf 'url: /catalogs/\n'
   [ -z "$newest" ] || printf 'date: %s\nlastmod: %s\n' "$newest" "$newest"
-  printf 'params:\n  llms: true\n  cards: false\n---\n\n'
-  printf 'Each catalog documents its members once per minor release, and once more for its unreleased main branch. Pick a catalog to read its newest release; the version switch on every catalog page moves between releases.\n\n'
-  jq -r '.catalogs[] | "- [\(.name)](\(.root)\(if .newest != "" then "" else "edge/" end)): `\(.repo)`, newest release \(if .newest != "" then .newest else "none yet" end)"' data/opm/catalogs.json
+  printf 'params:\n  llms: true\n  cards: false\n  picker: true\n---\n\n'
+  printf 'Pick a catalog to read the reference of its newest release.\n\n'
+  jq -r '.catalogs[] | .newest as $nw | (first(.segments[] | select(.edge)) // null) as $edge
+    | "- [\(.name) catalog](\(.root)\(if $nw != "" then "" else "edge/" end)): "
+      + (if $nw != "" then "newest release \(first(.segments[] | select(.segment == $nw)) | .version)"
+           + (if $edge then " ([main, unreleased](\(.root)edge/))" else "" end)
+         else "no release yet, main (unreleased) only" end)
+      + ", from `\(.repo)`"' data/opm/catalogs.json
 } > .gen/catalogs/_index.md
 echo "gen-catalogs: wrote data/opm/catalogs.json and .gen/catalogs/_index.md ($(jq -r '[.catalogs[] | "\(.name): \([.segments[].segment] | join(" "))"] | join("; ")' data/opm/catalogs.json))"

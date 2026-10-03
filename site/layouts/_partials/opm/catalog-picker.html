@@ -1,0 +1,42 @@
+{{- /* The /catalogs/ page's body in HTML: one card per catalog
+       (opm/catalog-entries.html), stacked and full width at every count, so
+       one catalog fills the row. opm/docs-main.html renders it in place of
+       .Content, which gen-catalogs.sh keeps as a Markdown list for the
+       page's Markdown twin only. The title link is stretched over the card
+       (.opm-catpick-link::after), so the whole card opens the newest release
+       and keyboard focus lands on it once (the release beside it is plain
+       text); the main link sits above that box and stays its own target.
+       No link nests in another; the code spans sit above it too, so they
+       can be selected. role="list" keeps the list semantics Safari drops
+       from a list styled without markers. */ -}}
+{{- with partial "opm/catalog-entries.html" . }}
+<ul class="opm-catpick not-prose" role="list">
+  {{- range . }}
+  <li class="opm-catpick-card">
+    <div class="opm-catpick-head">
+      <h2 class="opm-catpick-title"><a class="opm-catpick-link" href="{{ .href }}">{{ .title }}</a></h2>
+      <span class="opm-catpick-go">{{ if .release }}Newest release {{ .release }}{{ else }}main (unreleased){{ end }}<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </div>
+    {{- with .description }}
+    <p class="opm-catpick-desc">{{ . }}</p>
+    {{- end }}
+    {{- with .modulePath }}
+    <p class="opm-catpick-module"><code>{{ . }}</code></p>
+    {{- end }}
+    {{- with .kinds }}
+    <ul class="opm-catpick-kinds" role="list" aria-label="Members">
+      {{- range . }}
+      <li>{{ with .count }}<span class="opm-catpick-count">{{ . }}</span> {{ end }}{{ .title }}</li>
+      {{- end }}
+    </ul>
+    {{- end }}
+    <p class="opm-catpick-meta">
+      {{- if not .release }}<span>No release yet</span>{{ end -}}
+      <span>From <code>{{ .repo }}</code></span>
+      {{- $title := .title -}}
+      {{- with .edgeHref }}<a class="opm-catpick-edge" href="{{ . }}">main (unreleased)<span class="opm-sr-only"> of the {{ $title }}</span></a>{{ end -}}
+    </p>
+  </li>
+  {{- end }}
+</ul>
+{{- end }}
