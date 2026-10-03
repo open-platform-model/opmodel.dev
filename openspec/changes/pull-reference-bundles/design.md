@@ -82,7 +82,7 @@ The git mount for that repository and version is not written. A placeholder yiel
 | authored, no `edit` | none | as above | `lastmod` |
 | generated | none | as above when `source` is set | `lastmod` |
 
-`last-updated.html` shows Edit for a bundle page on every version, not only the default: the link names `main`, where a fix lands (owner decision of 2026-10-03, `add-authored-docs` D1). `gen-lastmod.sh` skips bundle-backed repositories (their dates are in the manifest), and `OPM_REQUIRE_DATES=1` does not count a generated page without `lastmod` as missing.
+`last-updated.html` shows Edit for a bundle page on every version, not only the default: the link names `main`, where a fix lands (`docs-kit DESIGN decision 19`, `add-authored-docs` D1). `gen-lastmod.sh` skips bundle-backed repositories (their dates are in the manifest), and `OPM_REQUIRE_DATES=1` does not count a generated page without `lastmod` as missing.
 
 ### 5. Checks
 
@@ -138,7 +138,7 @@ versions: "v1.0": {
 
 **Context**: today Edit shows only on the default version, because older versions' branches may be gone.
 **Decision**: a bundle page's Edit names the file on `main` only when the producer saw it there (`edit` set), so it is valid on every version.
-**Rationale**: owner decision of 2026-10-03 (Edit goes to the file on `main`); the producer, not the site, knows whether the path exists.
+**Rationale**: `docs-kit DESIGN decision 19` (owner, 2026-10-03: Edit goes to the file on `main`); the producer, not the site, knows whether the path exists.
 
 ## Risks / Trade-offs
 

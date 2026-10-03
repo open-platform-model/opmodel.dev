@@ -1,6 +1,6 @@
 ## Why
 
-After `pull-reference-bundles`, `v1.0` still reads two repositories from git (catalog_opm's `docs/site/` by the catalog line, opm's `docs/site/` at the head of `main`) and the Enhancements section from the enhancements repository's `main`. docs-kit phase 3 moves all three to signed bundles: catalog_opm publishes a second, docs-placed bundle `catalog-opm-docs` from its `opm-v*` tags, opm gains release-please releases (owner decision of 2026-10-03: first release `1.0.0-beta.1`, so its minor tag `1.0` follows the `v1.0` site version) and a bundle, and the enhancements repository publishes an edge-only section bundle (owner decision of 2026-10-03, `docs-kit DESIGN decision 18`). This change serves each from its bundle as it appears, so each repository cuts over on its own; `retire-git-pipeline` then deletes what is left.
+After `pull-reference-bundles`, `v1.0` still reads two repositories from git (catalog_opm's `docs/site/` by the catalog line, opm's `docs/site/` at the head of `main`) and the Enhancements section from the enhancements repository's `main`. docs-kit phase 3 moves all three to signed bundles: catalog_opm publishes a second, docs-placed bundle `catalog-opm-docs` from its `opm-v*` tags, opm gains release-please releases (`docs-kit DESIGN decision 17`; first release `1.0.0-beta.1`, `docs-kit DESIGN decision 21`, so its minor tag `1.0` follows the `v1.0` site version) and a bundle, and the enhancements repository publishes an edge-only section bundle (`docs-kit DESIGN decision 18`). This change serves each from its bundle as it appears, so each repository cuts over on its own; `retire-git-pipeline` then deletes what is left.
 
 ## Gates
 
@@ -58,4 +58,4 @@ Delivery: one PR per section (retire-git-pipeline needs all four merged; each se
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. It implements the site half of docs-kit phase 3 (`docs-kit DESIGN decision 9`, `17`, `18`, `19`) against docs-kit contracts C8, C15, C16 and C21.
+None implemented, so no `enhancement.yaml`. It implements the site half of docs-kit phase 3 (`docs-kit DESIGN decision 9`, `17`, `18`, `19`, `21`) against docs-kit contracts C8, C15, C16 and C21.

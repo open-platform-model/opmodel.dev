@@ -1,6 +1,6 @@
 ## Why
 
-core, cli, library and opm-operator generate their reference pages with four private generators and commit the output, and the site reads it, with each repository's authored `docs/site/`, from git at refs `resolve-versions.sh` derives from the cli line. docs-kit phase 2 moves all four to signed docs bundles that carry the generated reference and the authored pages together (one cutover per product repository, `docs-kit DESIGN decision 10`: a site version shows the docs of what its cli pins). This change is the site's half: pull those docs bundles per site version (docs-kit contract C16), mount them into that version's `/docs/`, and switch `v1.0` to them once the cli publishes a bundle whose pins all resolve.
+core, cli, library and opm-operator generate their reference pages with four private generators and commit the output, and the site reads it, with each repository's authored `docs/site/`, from git at refs `resolve-versions.sh` derives from the cli line. docs-kit phase 2 moves all four to signed docs bundles that carry the generated reference and the authored pages together (one cutover per product repository, `docs-kit DESIGN decision 20`; a site version shows the docs of what its cli pins, `docs-kit DESIGN decision 10`). This change is the site's half: pull those docs bundles per site version (docs-kit contract C16), mount them into that version's `/docs/`, and switch `v1.0` to them once the cli publishes a bundle whose pins all resolve.
 
 ## Gates
 
@@ -67,4 +67,4 @@ Delivery: one PR per section (core, cli and opm-operator need v1.0 reading bundl
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. It implements the site half of docs-kit phase 2 (`docs-kit DESIGN decision 9`, `10`) against docs-kit contracts C3, C7, C8, C15 and C16.
+None implemented, so no `enhancement.yaml`. It implements the site half of docs-kit phase 2 (`docs-kit DESIGN decision 9`, `10`, `19`, `20`) against docs-kit contracts C3, C7, C8, C15 and C16.
