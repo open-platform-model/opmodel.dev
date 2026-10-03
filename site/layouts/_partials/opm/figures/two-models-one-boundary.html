@@ -1,0 +1,83 @@
+{{- /* Figure body: two models, one boundary (core concepts, "The application
+       model and the platform model", after what-opm-models). The catalog
+       contracts on top, the module and the platform below them, each with
+       one arrow up to the contracts, and no edge between the two: a dashed
+       divider runs down the gap, labelled NO IMPORT EITHER WAY in the zone
+       label style, since the divider is a zone line. Both
+       meet only in the render box at the bottom.
+
+       Not roles-and-artifacts: there the arrows follow the artifacts from
+       catalogs to module, platform and instance. Here every arrow points
+       from the thing that depends to the thing it depends on, so both point
+       up, and the drawing's subject is the missing edge between them.
+
+       The tags are real catalog_opm names: the container resource and the
+       expose and backup traits. The opm catalog ships no backup
+       transformer, which is why the platform's change line adds a backup
+       provider.
+
+       Geometry: 360 grid, the contracts and render cards x=12 to 348, the
+       two cards x=8 to 164 and 196 to 352 (a 32 gap, the divider at x=180),
+       text 12 in. The up arrows run at x=40 and 320 so their labels stay
+       clear of the divider; the down arrows at the card centres. The frame
+       is _partials/opm/figure.html and the classes are in
+       assets/css/opm/figures.css; no new class (the divider is a zone line). */ -}}
+{{/* Row 1: the contracts catalogs publish */}}
+<g class="card neutral">
+  <rect x="12" y="8" width="336" height="102" rx="8"></rect>
+  <text class="role" x="24" y="28">PUBLISHED IN A REGISTRY</text>
+  <text class="title" x="24" y="50">Catalog contracts</text>
+  <text class="body" x="24" y="70">resources and traits, such as</text>
+  <g class="tag">
+    <rect x="24" y="80" width="72" height="18" rx="4"></rect>
+    <text x="60" y="93" text-anchor="middle">container</text>
+    <rect x="104" y="80" width="56" height="18" rx="4"></rect>
+    <text x="132" y="93" text-anchor="middle">expose</text>
+    <rect x="168" y="80" width="56" height="18" rx="4"></rect>
+    <text x="196" y="93" text-anchor="middle">backup</text>
+  </g>
+</g>
+
+<g class="flow">
+  <line x1="40" y1="158" x2="40" y2="112" marker-end="url(#tmb-arrow)"></line>
+  <text class="label" x="46" y="139">names contracts</text>
+  <line x1="320" y1="158" x2="320" y2="112" marker-end="url(#tmb-arrow)"></line>
+  <text class="label" x="314" y="139" text-anchor="end">admits catalogs</text>
+</g>
+
+{{/* Row 2: the two models, and nothing between them */}}
+<g class="card author">
+  <rect x="8" y="158" width="156" height="114" rx="8"></rect>
+  <text class="role" x="20" y="178">MODULE AUTHOR</text>
+  <text class="title" x="20" y="200">Module</text>
+  <text class="body" x="20" y="220">components built</text>
+  <text class="body" x="20" y="236">from the contracts</text>
+  <line class="rule" x1="20" y1="246" x2="152" y2="246"></line>
+  <text class="change" x="20" y="262">releases 1.0 → 1.1</text>
+</g>
+<g class="card team">
+  <rect x="196" y="158" width="156" height="114" rx="8"></rect>
+  <text class="role" x="208" y="178">PLATFORM TEAM</text>
+  <text class="title" x="208" y="200">Platform</text>
+  <text class="body" x="208" y="220">admits the catalogs</text>
+  <text class="body" x="208" y="236">that render them</text>
+  <line class="rule" x1="208" y1="246" x2="340" y2="246"></line>
+  <text class="change" x="208" y="262">adds backup provider</text>
+</g>
+<line class="zone" x1="180" y1="118" x2="180" y2="282"></line>
+<text class="zone-label" x="180" y="298" text-anchor="middle">NO IMPORT</text>
+<text class="zone-label" x="180" y="312" text-anchor="middle">EITHER WAY</text>
+
+<g class="flow">
+  <line x1="86" y1="272" x2="86" y2="320" marker-end="url(#tmb-arrow)"></line>
+  <line x1="274" y1="272" x2="274" y2="320" marker-end="url(#tmb-arrow)"></line>
+</g>
+
+{{/* Row 3: where they meet */}}
+<g class="card neutral">
+  <rect x="12" y="322" width="336" height="90" rx="8"></rect>
+  <text class="role" x="24" y="342">WHERE THEY MEET</text>
+  <text class="title" x="24" y="364">Render</text>
+  <text class="body" x="24" y="384">an instance imports the module</text>
+  <text class="body" x="24" y="400">and is rendered against the platform</text>
+</g>

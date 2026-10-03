@@ -1,6 +1,6 @@
 ## Why
 
-core is adding a concept page, "The application model and the platform model" (`core/docs/site/concepts/application-and-platform-models.md`). It makes two points that no existing figure draws: OPM models an application in full but a platform only as far as rendering needs, and a module and a platform never depend on each other, only on catalog contracts, so each side changes on its own schedule. The owner approved two new figures for the page. A figure is drawn in the site engine and its name is part of the page dialect, so both land here before core's page can call them.
+core is adding a concept page, "The application model and the platform model" (`core/docs/site/concepts/application-and-platform-models.md`). It makes two points that no existing figure draws: OPM models an application and models a platform only as far as rendering needs, and a module and a platform never depend on each other, only on catalog contracts, so each side changes on its own schedule. The owner approved two new figures for the page. A figure is drawn in the site engine and its name is part of the page dialect, so both land here before core's page can call them.
 
 ## What Changes
 

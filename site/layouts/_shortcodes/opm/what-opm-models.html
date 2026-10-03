@@ -1,0 +1,5 @@
+{{- /* Figure: what OPM models today (core concepts, "The application model
+       and the platform model"). The body is
+       _partials/opm/figures/what-opm-models.html. */ -}}
+{{- $claim := `OPM models an application and models a platform only as far as rendering needs. The module author’s module holds a configuration schema and components built from the resources and traits a catalog publishes. The deployer’s instance adds values, a name and a namespace. The platform team’s platform lists the catalogs it admits, whose transformers turn components into Kubernetes objects, and reports which contracts those catalogs define and serve. The cluster’s settings, its controllers and APIs, and the services it offers to teams are not modelled.` -}}
+{{- partial "opm/figure.html" (dict "id" "wom" "title" "What OPM models today" "claim" $claim "width" 360 "height" 580 "body" (partial "opm/figures/what-opm-models.html" .)) -}}

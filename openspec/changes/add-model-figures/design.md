@@ -8,7 +8,7 @@ Files under `site/` this change touches: `layouts/_shortcodes/opm/{what-opm-mode
 
 **Goals:**
 
-- One figure that shows how far OPM models each side today: the application in full, the platform only as far as rendering needs, and what it leaves out.
+- One figure that shows how far OPM models each side today: the application, the platform only as far as rendering needs, and what it leaves out.
 - One figure whose subject is the missing edge between a module and a platform, so it reads as a different drawing from roles-and-artifacts.
 - Every claim is accurate to shipped behaviour and states exactly what is drawn.
 

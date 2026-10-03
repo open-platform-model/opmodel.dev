@@ -1,0 +1,81 @@
+{{- /* Figure body: what OPM models today (core concepts, "The application
+       model and the platform model"). Two dashed zones, stacked: the
+       application model (the author's module and the deployer's instance)
+       and the platform as far as rendering needs (the platform team's
+       platform). The published catalogs sit between them, and a dashed
+       "none" box under the platform lists what OPM does not model.
+
+       Every arrow points from the thing that depends to the thing it
+       depends on, as in two-models-one-boundary on the same page: the
+       instance imports the module, the module is built from catalog parts,
+       and the platform admits catalogs. So both models point at the
+       catalogs, which is the next figure's point.
+
+       Geometry: 360 grid, zones x=8 to 352, cards 12 inside (x=20 to 340),
+       text 12 in. The module and instance cards are 136 wide with a 48 gap
+       that holds the "imports" arrow and its label. The catalogs card is
+       raa's (x=48 to 312). Its arrows run at x=88 (the module card's
+       centre) and x=300, right of the PLATFORM zone label. The frame is
+       _partials/opm/figure.html and the classes are in
+       assets/css/opm/figures.css; no new class. */ -}}
+{{/* The application model */}}
+<rect class="zone" x="8" y="8" width="344" height="146" rx="10"></rect>
+<text class="zone-label" x="20" y="26">APPLICATION MODEL</text>
+<g class="card author">
+  <rect x="20" y="36" width="136" height="106" rx="8"></rect>
+  <text class="role" x="32" y="56">MODULE AUTHOR</text>
+  <text class="title" x="32" y="78">Module</text>
+  <text class="body" x="32" y="98"><tspan class="mono">#config</tspan>: settings</text>
+  <text class="body" x="32" y="114"><tspan class="mono">#components</tspan>: built</text>
+  <text class="body" x="32" y="130">from catalog parts</text>
+</g>
+<g class="card deployer">
+  <rect x="204" y="36" width="136" height="106" rx="8"></rect>
+  <text class="role" x="216" y="56">DEPLOYER</text>
+  <text class="title" x="216" y="78">Module instance</text>
+  <text class="body" x="216" y="98">a module version,</text>
+  <text class="body" x="216" y="114">values, a name and</text>
+  <text class="body" x="216" y="130">a namespace</text>
+</g>
+<g class="flow">
+  <line x1="204" y1="89" x2="158" y2="89" marker-end="url(#wom-arrow)"></line>
+  <text class="label" x="180" y="82" text-anchor="middle">imports</text>
+  <line x1="88" y1="142" x2="88" y2="196" marker-end="url(#wom-arrow)"></line>
+  <text class="label" x="94" y="180">built from</text>
+</g>
+
+{{/* What is published */}}
+<g class="card neutral">
+  <rect x="48" y="198" width="264" height="90" rx="8"></rect>
+  <text class="role" x="60" y="218">PUBLISHED IN A REGISTRY</text>
+  <text class="title" x="60" y="240">Catalogs</text>
+  <text class="body" x="60" y="260">resources, traits, blueprints</text>
+  <text class="body" x="60" y="276">and the transformers for them</text>
+</g>
+<g class="flow">
+  <line x1="300" y1="360" x2="300" y2="290" marker-end="url(#wom-arrow)"></line>
+  <text class="label" x="294" y="318" text-anchor="end">admits</text>
+</g>
+
+{{/* The platform, as far as rendering needs */}}
+<rect class="zone" x="8" y="332" width="344" height="146" rx="10"></rect>
+<text class="zone-label" x="20" y="350">PLATFORM, AS FAR AS RENDERING NEEDS</text>
+<g class="card team">
+  <rect x="20" y="360" width="320" height="106" rx="8"></rect>
+  <text class="role" x="32" y="380">PLATFORM TEAM</text>
+  <text class="title" x="32" y="402">Platform</text>
+  <text class="body" x="32" y="422">the catalogs it admits, one build each</text>
+  <text class="body" x="32" y="438">their transformers</text>
+  <text class="body" x="32" y="454">a contract inventory</text>
+</g>
+
+{{/* What OPM does not model */}}
+<g class="none">
+  <rect x="8" y="490" width="344" height="82" rx="6"></rect>
+</g>
+<text class="zone-label" x="20" y="508">NOT MODELLED</text>
+<g class="none">
+  <text x="20" y="528">cluster settings</text>
+  <text x="20" y="544">controllers and APIs</text>
+  <text x="20" y="560">services offered to teams</text>
+</g>
