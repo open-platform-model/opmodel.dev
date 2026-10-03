@@ -42,7 +42,7 @@ sidebar: Catalogs
 - **Files.** `site/scripts/gen-catalogs.sh` (only the block that writes `.gen/catalogs/_index.md`), `site/layouts/_partials/opm/catalog-entries.html` (new), `site/layouts/_partials/opm/catalog-picker.html` (new), `site/layouts/_partials/opm/docs-main.html`, `site/layouts/_partials/sidebar.html`, `site/assets/css/opm/catalog-picker.css` (new), `site/scripts/test-site.sh` (one new check block), `README.md`, and this change directory.
 - **Build inputs.** None added: the cards read `data/opm/catalogs.json`, the pages the adapter already adds, and each newest bundle's `data/catalog.json`, already mounted at `assets/bundles`. No theme file is newly overridden; `sidebar.html` and `docs-main.html` are existing OPM copies, and their upstream pins in `site/overrides.sha256` do not change.
 - **Published URLs.** None added or removed. `/catalogs/` changes content; site versions are unaffected (the section is unversioned).
-- **Source repos.** None has to change. A display name and a one-line description per catalog exist in no bundle (see design.md); adding them is a docs-kit follow-up, not part of this change.
+- **Source repos.** None has to change. The catalog's description exists in core's `#Catalog.metadata.description` (catalog_opm fills it) but docs-kit's cue-catalog extractor does not copy it into `data/catalog.json`; a display name needs a tab-only `placement.title` in docs-kit (see design.md). Both are docs-kit follow-ups, not part of this change.
 - **Overlap.** opmodel.dev PR 31 (catalog version history) edits other blocks of `gen-catalogs.sh` and other hooks; this change stays out of them.
 - **Sections.** One implementation section, then verify and archive.
 

@@ -150,7 +150,8 @@ jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" --slurpfile hist "$tmp/
           version, revision, commit, digest, local, dir}]}))}
 ' "$tmp/rows" > data/opm/catalogs.json
 
-# The /catalogs/ section page. Its description, one sentence, is the lead;
+# The /catalogs/ section page, marked params.picker (opm/docs-main.html and
+# sidebar.html key on it). Its description, one sentence, is the lead;
 # in HTML the catalog cards (layouts/_partials/opm/catalog-picker.html)
 # replace the body, so the body below, one line per catalog linking its bare
 # tab root (its newest minor; edge for a tab that has no release yet) and
@@ -164,7 +165,7 @@ newest=$(jq -r '.catalogs[] | .segments[] | select(.indexed) | .dir' data/opm/ca
   printf 'description: Pick a catalog to read the reference of its newest release.\n'
   printf 'url: /catalogs/\n'
   [ -z "$newest" ] || printf 'date: %s\nlastmod: %s\n' "$newest" "$newest"
-  printf 'params:\n  llms: true\n  cards: false\n---\n\n'
+  printf 'params:\n  llms: true\n  cards: false\n  picker: true\n---\n\n'
   printf 'Pick a catalog to read the reference of its newest release.\n\n'
   jq -r '.catalogs[] | .newest as $nw | (first(.segments[] | select(.edge)) // null) as $edge
     | "- [\(.name) catalog](\(.root)\(if $nw != "" then "" else "edge/" end)): "

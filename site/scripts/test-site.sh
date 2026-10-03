@@ -525,7 +525,7 @@ if [ $rc -eq 0 ]; then
   side=$(printf '%s' "$r" | grep -oE 'class=opm-sb-link href=/catalogs/[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
   [ "$side" = "$want" ] || why="${why:+$why; }sidebar catalog links \"$side\", want \"$want\""
   printf '%s' "$r" | grep -qF '<a class=opm-sb-link href=/catalogs/opm/4.5/>opm catalog</a>' || why="${why:+$why; }no sidebar entry titled opm catalog"
-  printf '%s' "$r" | grep -qF '<a class=opm-catpick-edge href=/catalogs/opm/edge/>main (unreleased)</a>' || why="${why:+$why; }the opm card does not link main"
+  printf '%s' "$r" | grep -qF '<a class=opm-catpick-edge href=/catalogs/opm/edge/>main (unreleased)<span class=opm-sr-only> of the opm catalog</span></a>' || why="${why:+$why; }the opm card does not link main"
   printf '%s' "$r" | grep -qF 'Newest release 4.5.0<svg' || why="${why:+$why; }the opm card does not name release 4.5.0"
   for k in '<span class=opm-catpick-count>1</span> Blueprints' '<span class=opm-catpick-count>1</span> Resources' '<span class=opm-catpick-count>2</span> Traits'; do
     printf '%s' "$r" | grep -qF "$k" || why="${why:+$why; }the opm card lacks: $k"
@@ -690,6 +690,38 @@ if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.
    [ "$(jq -r '.sections.catalogs | "\(.from) \(.frozen)"' "$st")" = "manifest true" ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
   ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest); a frozen pull's marker shows as "frozen": true"
 else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
+
+# ---------------------------------------------------------------------------
+# The picker with two catalogs: lab, a second catalog with only an edge build
+# (no release yet), laid next to opm. Cards and sidebar entries follow the
+# project order (catalog-lab first); lab's card links its edge landing, says
+# "No release yet" and has no main link of its own.
+name=catalogs/picker-two
+copy_site "$name"; copy_ws "$name"
+B=$OUT/$name/site/.bundles
+mkdir -p "$B/catalog-lab" && cp -R "$B/catalog-opm/edge" "$B/catalog-lab/edge"
+sed -i 's/"project": "catalog-opm"/"project": "catalog-lab"/; s#"root": "/catalogs/opm/"#"root": "/catalogs/lab/"#' "$B/catalog-lab/edge/manifest.json"
+find "$B/catalog-lab/edge/content" -name '*.md' -exec sed -i 's#/catalogs/opm/#/catalogs/lab/#g' {} +
+jq '.bundles += [.bundles[] | select(.project == "catalog-opm" and .segment == "edge") | .project = "catalog-lab" | .root = "/catalogs/lab/" | .dir = "catalog-lab/edge"]' "$B/lock.json" > "$B/lock.tmp" && mv "$B/lock.tmp" "$B/lock.json"
+build "$name" "$OUT/$name/ws"; rc=$?
+if [ $rc -ne 0 ]; then bad "$name" "the build with a second, edge-only catalog failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  r=$(dq "$OUT/$name/site/public/catalogs/index.html")
+  cards=$(printf '%s' "$r" | grep -oE 'class=opm-catpick-link href=[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
+  [ "$cards" = "/catalogs/lab/edge/ /catalogs/opm/4.5/ " ] || why="card links \"$cards\", want lab's edge, then opm's 4.5"
+  side=$(printf '%s' "$r" | grep -oE 'class=opm-sb-link href=/catalogs/[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
+  [ "$side" = "$cards" ] || why="${why:+$why; }sidebar catalog links \"$side\", want \"$cards\""
+  lab=$(printf '%s' "$r" | awk 'BEGIN { RS = "<li class=opm-catpick-card>" } /href=\/catalogs\/lab\/edge\// { print }')
+  opm=$(printf '%s' "$r" | awk 'BEGIN { RS = "<li class=opm-catpick-card>" } /href=\/catalogs\/opm\/4\.5\// { print }')
+  printf '%s' "$lab" | grep -qF '<span>No release yet</span>' || why="${why:+$why; }lab's card does not say No release yet"
+  ! printf '%s' "$lab" | grep -qF 'opm-catpick-edge' || why="${why:+$why; }lab's card has a main link of its own"
+  ! printf '%s' "$lab" | grep -qF 'Newest release' || why="${why:+$why; }lab's card names a release"
+  printf '%s' "$opm" | grep -qF 'class=opm-catpick-edge href=/catalogs/opm/edge/>' || why="${why:+$why; }opm's card lost its main link"
+  ! printf '%s' "$opm" | grep -qF 'No release yet' || why="${why:+$why; }opm's card says No release yet"
+  if [ -z "$why" ]; then ok "$name" "two catalogs: lab (edge only) then opm, as cards and sidebar entries; lab links its edge landing, says No release yet and has no main link"
+  else bad "$name" "$why" "$OUT/$name/log"; fi
+fi
 
 # ---------------------------------------------------------------------------
 # The fixture workspace without docs bundles: no Catalogs section and no tab.

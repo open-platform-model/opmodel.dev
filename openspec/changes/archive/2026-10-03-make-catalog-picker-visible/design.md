@@ -19,7 +19,7 @@
 
 ### 1. Cards replace the body in HTML; the body stays for Markdown
 
-The `/catalogs/` page is the one Catalogs section page without `params.catalog` (the predicate the sidebar already uses). On that page `opm/docs-main.html` MUST render `opm/catalog-picker.html` in place of `.Content`. `gen-catalogs.sh` keeps writing a Markdown body, now one generated list item per catalog with both links, which only the Markdown twin (`index.md`, "View as Markdown") shows. The page description becomes the one short sentence, shown as the lead:
+`gen-catalogs.sh` marks the `/catalogs/` page `params.picker: true`, and `opm/docs-main.html` and `sidebar.html` key on it. On that page `opm/docs-main.html` MUST render `opm/catalog-picker.html` in place of `.Content`. `gen-catalogs.sh` keeps writing a Markdown body, now one generated list item per catalog with both links, which only the Markdown twin (`index.md`, "View as Markdown") shows. The page description becomes the one short sentence, shown as the lead:
 
 ```yaml
 description: Pick a catalog to read the reference of its newest release.
@@ -48,7 +48,7 @@ No bundle carries a display name or a description for a catalog: `manifest.json`
 
 A catalog with no release yet links its card to `edge` and says "No release yet"; it has no second link.
 
-The name is shown as written (`opm`), never upper-cased: the tab name is a path segment and the catalog's CUE module name, and the version switch already reads `opm 4.5`. A real display name and description belong in the bundle (a docs-kit manifest field filled by the catalog), a follow-up for docs-kit; the card would then show them.
+The name is shown as written (`opm`), never upper-cased: the tab name is a path segment and the catalog's CUE module name, and the version switch already reads `opm 4.5`. The description already exists at the source: core's `#Catalog.metadata.description`, which catalog_opm fills. docs-kit's cue-catalog extractor does not copy it into `data/catalog.json`; once it writes `description` there, the card shows it (the card already reads the optional field). A display name waits on a tab-only `placement.title` in docs-kit's manifest; `#Placement` is closed, so the site must accept the field before a bundle carries it.
 
 ### 3. One card shape, one column
 
@@ -86,4 +86,4 @@ In the `$leafOnly` branch `sidebar.html` adds one entry per catalog under the ro
 ## Durable decisions
 
 - **`/catalogs/` lists catalogs as generated cards, and its Markdown body only feeds the Markdown twin.** Lands in `README.md` ("The Catalogs section") and in the head comments of `opm/catalog-picker.html` and `gen-catalogs.sh`.
-- **A card shows only facts the bundles carry; a display name and description wait for a docs-kit manifest field.** Lands in `README.md` ("The Catalogs section").
+- **A card shows only facts the bundles carry; the description waits on docs-kit's cue-catalog extractor writing `description` into `data/catalog.json`, and a display name on a tab-only `placement.title` in docs-kit (closed `#Placement`, so the site accepts it first).** Lands in `README.md` ("The Catalogs section").
