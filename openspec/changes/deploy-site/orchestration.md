@@ -251,7 +251,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 Two scripts. Write each block, byte for byte, with your file-writing tool, to a scratch file outside any repo.
 
-**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `9ade191f342910629759513fda68e57bc9d453eaa6c7761fe37106186f3e4c98`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
+**The lint**, for example `<your scratchpad>/opm-dialect-lint.sh`. `sha256sum` must print `6f9e63012525d2cc181cf0b9172f64bfa29da08924cbd1ec8b33c5293b425512`. A commits the same bytes as `opmodel.dev/site/scripts/lint-sources.sh` and runs it before every build.
 
 ````sh
 #!/bin/sh
@@ -303,7 +303,7 @@ for dir in "$@"; do
           else err(NR, "catalog link \"" t "\": write /catalogs/<name>/ or /catalogs/<name>/<MAJOR>/<path>/ with a trailing slash")
           return
         }
-        if (t ~ /^\/enhancements([\/#]|$)/) { if (t !~ /^\/enhancements\/([0-9][0-9][0-9][0-9]\/((problem|design|decisions|graduation|risks|operational|questions)\/)?)?(#[^ ]*)?$/) err(NR, "enhancement link \"" t "\": write /enhancements/, /enhancements/<NNNN>/ or /enhancements/<NNNN>/<document>/ with a trailing slash"); return }
+        if (t ~ /^\/enhancements([\/#]|$)/) { if (t !~ /^\/enhancements\/(graph\/|[0-9][0-9][0-9][0-9]\/((problem|design|decisions|graduation|risks|operational|questions)\/)?)?(#[^ ]*)?$/) err(NR, "enhancement link \"" t "\": write /enhancements/, /enhancements/<NNNN>/ or /enhancements/<NNNN>/<document>/ with a trailing slash"); return }
         err(NR, "link \"" t "\": internal links are root-absolute /docs/<section>/<page>/ or /enhancements/<NNNN>/ (no relative, .md or version-prefixed links)")
       }
       NR == 1 { if ($0 != "---") { err(1, "front matter must open on line 1 with ---"); nofm = 1 } else { infm = 1; next } }
