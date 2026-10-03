@@ -147,6 +147,10 @@ versions: "v1.0": {
 - [Docs-only fixes no longer reach v1.0 at the next build] -> a docs revision dispatch per repository; named in each product repository's `AGENTS.md` "Docs bundles" paragraph by its own change.
 - [Generated pages without `lastmod`] -> shown without a date rather than failing CI.
 
+## Open Questions
+
+- **OQ1 (owner, before docs-kit orchestration step 8).** CI's `sources-main` job builds all six repositories' `main` from git (explicit mode, the lock's docs entries dropped), so the four whose released docs v1.0 reads from bundles are still linted and link-checked at `main`. Step 8 deletes the committed generated reference in core, cli and opm-operator; their `main` checkouts then hold no `reference/cli/`, `reference/definitions/` or `reference/operator-resources.md`, and any `main` page linking one fails that job. Two ways out: (a) an edge site version for `sources-main`, reading the four products' `main` docs from their `edge` docs bundles (a second `bundles.cue` `versions` entry, or a CI-only config), so `main` pages are checked with their generated reference; (b) keep the four on their release bundles in `sources-main`, which then checks only opm's and catalog_opm's `main` and leaves each product's `main` pages to its own docs workflow's bundle lint (cross-repository `/docs/` links unchecked until a release). Recommendation: (a), which keeps the cross-repository link check that motivated the job; it fits `retire-git-pipeline` or `serve-docs-from-bundles`.
+
 ## Durable decisions
 
 - A site version reads a repository from its docs bundle exactly when the lock's `docs` entries name it for that version; `versions.conf` `from-bundles` mirrors it until `retire-git-pipeline`. Lands in `AGENTS.md` (Site versions, "Docs bundles in a site version") and `README.md` ("Docs bundles in a site version", under "Site versions").
