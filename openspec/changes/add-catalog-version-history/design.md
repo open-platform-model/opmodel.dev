@@ -49,7 +49,9 @@ history: {
 }
 ```
 
-The adapter never derives anything; templates apply C13's derivation table.
+The adapter never derives anything; templates apply C13's derivation table. Besides the keys above it adds `fqn` (the page's member) and `pages` (that member's pages in this segment by apiVersion, from `data/catalog.json`), which the "Newer version" link resolves through.
+
+The value is a JSON string (`""` without history) that templates unmarshal, not a map (implementation finding): Hugo rewrites a page's params maps in place, lowercasing their keys, and the C13 maps are shared by every page of a member, so a map param raced between pages (`fatal error: concurrent map writes` in a fixture build) and lost C13's camel-case keys.
 
 ### 3. Badges, list, removed entries
 
@@ -91,7 +93,7 @@ site/tests/fixtures/history/catalog-opm/history.json    hand-written to C13 D4, 
 
 `test-site.sh` layers it onto its copy of the fixture bundles and adds the matching `history` entry to that copy's lock with `jq`, so every badge test runs. Section 3 deletes the hand-written file and asserts the pinned tool's output equals it byte for byte before deleting; any difference is a contract mismatch, reported to docs-kit, never fixed by editing the site's expectation silently.
 
-The fixture segments stay `4.4`, `4.5` and `edge` (docs-kit's orchestration names `4.5`, `4.6`, `edge`; the site keeps the segments its existing tests use). Content: `backup@v1alpha1` in all three; `backup@v1beta1` added in 4.5 (lineage, "Newer version"); a field made required and a default change for `backup@v1alpha1` between 4.4 and 4.5; a member removed in edge; a member first seen in edge ("Unreleased"); a `paths`-mode pair by giving `edge`'s manifest a different `tool` minor.
+The fixture segments stay `4.4`, `4.5` and `edge` (docs-kit's orchestration names `4.5`, `4.6`, `edge`; the site keeps the segments its existing tests use). Content (as built; the planned `v1beta1` member became edge's `expose@v1alpha2`, so the existing switch and link tests keep their pages): `backup@v1alpha2` in all three, changed in 4.5 by one of each field op (`ref`, `type`, `default`, `presence`, `added`, `removed`) and in edge by a `presence` and an `added`; `volumes@v1beta1` changed in 4.5 by its spec text only (`spec`); `backup@v1alpha1` in 4.4 only ("Newer version" there, removed in 4.5); `expose@v1alpha1` added in 4.5 and changed in edge, where `expose@v1alpha2` is new ("Unreleased") and takes the bare page, so edge's `traits/expose-v1alpha1` shows all three badges; a `paths`-mode pair by giving edge's manifest `tool` `0.2.0`. History values avoid `<`, `>` and `&`, which Go's encoder escapes unless told not to, so section 3's byte comparison tests the contract, not an escaping choice.
 
 ### 5. Files under `site/`
 

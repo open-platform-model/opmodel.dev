@@ -12,6 +12,7 @@
 #
 #   { "lock": "sha256:<hex of lock.json>",
 #     "catalogs": [ { "project", "name", "root", "repo", "newest", "majors": {"4": "4.5"},
+#                     "history": {"path", "floor", "digest"} or null,
 #                     "segments": [ { "segment", "label", "major", "edge", "indexed",
 #                                     "version", "revision", "commit", "digest", "local",
 #                                     "dir" }, ... ] } ] }
@@ -83,8 +84,35 @@ bad=$(sort -u "$tmp/roots" | cut -f2 | sort | uniq -d)
 dup=$(jq -r '"\(.project) \(.segment)"' "$tmp/rows" | sort | uniq -d)
 [ -z "$dup" ] || die "$dup: the lock lists the segment twice"
 
+# Version history (docs-kit C13): a tab project's <project>/history.json,
+# written by opm-docs pull and recorded in the lock's optional "history" key
+# (C7). The site reads it, never computes it. An entry needs its file at the
+# digest it records, of schema docs.opmodel.dev/history/v1 and its own
+# project; a file the lock does not record (left by an older pull) is
+# ignored, and its project gets no history.
+jq -c '.history // [] | .[]' "$L" > "$tmp/hentries" || die "$L: \"history\" is not a list"
+echo '{}' > "$tmp/history.json"
+while IFS= read -r e; do
+  get() { printf '%s' "$e" | jq -r "$1"; }
+  project=$(get '.project // ""'); path=$(get '.path // ""'); want=$(get '.digest // ""')
+  [ -n "$project" ] || die "$L: a history entry lacks project: $e"
+  cut -f1 "$tmp/roots" | grep -qxF "$project" || die "$project: the lock records history.json, but no bundles of the project"
+  [ "$path" = "$project/history.json" ] || die "$project: the lock records history at \"$path\", not $project/history.json"
+  f=$CAT_DIR/$path
+  [ -f "$f" ] || die "$project: the lock records history.json, but $(dirname "$f") has none"
+  have=sha256:$(sha256sum "$f" | cut -c1-64)
+  [ "$have" = "$want" ] || die "$project: history.json is $have, the lock records $want; run task bundles:pull"
+  hs=$(jq -r '.schema // ""' "$f" 2>/dev/null) || die "$project: history.json is not JSON"
+  [ "$hs" = docs.opmodel.dev/history/v1 ] || die "$project: history.json schema is \"$hs\", not docs.opmodel.dev/history/v1"
+  hp=$(jq -r '.project // ""' "$f")
+  [ "$hp" = "$project" ] || die "$project: history.json is for project \"$hp\""
+  floor=$(jq -r '.floor // ""' "$f")
+  jq --arg p "$project" --arg path "$path" --arg floor "$floor" --arg digest "$have" \
+    '.[$p] = {path: $path, floor: $floor, digest: $digest}' "$tmp/history.json" > "$tmp/h" && mv "$tmp/h" "$tmp/history.json"
+done < "$tmp/hentries"
+
 mkdir -p data/opm .gen/catalogs
-jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" '
+jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" --slurpfile hist "$tmp/history.json" '
   def key: if .segment == "edge" then [1, 0, 0]
            else (.segment | split(".") | map(tonumber)) as $v | [0, -$v[0], -$v[1]] end;
   {lock: $lock,
@@ -94,7 +122,7 @@ jq -s --arg lock "sha256:$(sha256sum "$L" | cut -c1-64)" '
      | ($minors | group_by(.segment | split(".")[0] | tonumber)
                 | map({key: (.[0].segment | split(".")[0]), value: (sort_by(key) | .[0].segment)}) | from_entries) as $majors
      | {project: $s[0].project, name: ($s[0].root | split("/")[2]), root: $s[0].root, repo: $s[0].repo,
-        newest: ($minors[0].segment // ""), majors: $majors,
+        newest: ($minors[0].segment // ""), majors: $majors, history: ($hist[0][$s[0].project] // null),
         segments: [$s[] | . as $r | {segment, label: (if .segment == "edge" then "main (unreleased)" else .segment end),
           major: (if .segment == "edge" then "" else (.segment | split(".")[0]) end), edge: (.segment == "edge"),
           indexed: (.segment != "edge" and $majors[.segment | split(".")[0]] == .segment),

@@ -8,36 +8,148 @@
       "name": "stateless-workload",
       "apiVersion": "v1",
       "level": "stable",
+      "fqn": "opmodel.dev/catalogs/opm/blueprints/stateless-workload@v1",
+      "modulePath": "opmodel.dev/catalogs/opm/blueprints/v1",
       "title": "Stateless workload",
       "page": "blueprints/stateless-workload",
-      "description": "A replicated workload that keeps no state of its own"
+      "description": "A replicated workload that keeps no state of its own",
+      "spec": {
+        "key": "statelessWorkload",
+        "cue": "spec: statelessWorkload: {\n\t// How many copies run.\n\treplicas: *1 | int\n}",
+        "fields": [
+          {
+            "path": "replicas",
+            "type": "*1 | int",
+            "presence": "regular",
+            "default": "1",
+            "doc": "How many copies run.",
+            "ref": null
+          }
+        ],
+        "linked": [],
+        "external": []
+      }
     },
     {
       "kind": "resource",
       "name": "volumes",
       "apiVersion": "v1beta1",
       "level": "beta",
+      "fqn": "opmodel.dev/catalogs/opm/resources/volumes@v1beta1",
+      "modulePath": "opmodel.dev/catalogs/opm/resources/v1beta1",
       "title": "Volumes",
       "page": "resources/volumes",
-      "description": "Persistent and ephemeral storage a component mounts"
+      "description": "Persistent and ephemeral storage a component mounts",
+      "spec": {
+        "key": "volumes",
+        "cue": "spec: volumes: [string]: #VolumeSchema\n\n#VolumeSchema: {\n\tmatchN(1, [{size!: _}, {claim!: _}])\n\tsize?:  string\n\tclaim?: string\n}",
+        "fields": [
+          {
+            "path": "[string]",
+            "type": "struct",
+            "presence": "optional",
+            "default": null,
+            "doc": "",
+            "ref": null
+          },
+          {
+            "path": "[string].size",
+            "type": "string",
+            "presence": "optional",
+            "default": null,
+            "doc": "The size of the volume, in bytes or with a unit suffix.",
+            "ref": null
+          },
+          {
+            "path": "[string].claim",
+            "type": "string",
+            "presence": "optional",
+            "default": null,
+            "doc": "An existing claim to mount instead.",
+            "ref": null
+          }
+        ],
+        "linked": [],
+        "external": []
+      }
     },
     {
       "kind": "trait",
       "name": "backup",
       "apiVersion": "v1alpha2",
       "level": "alpha",
+      "fqn": "opmodel.dev/catalogs/opm/traits/backup@v1alpha2",
+      "modulePath": "opmodel.dev/catalogs/opm/traits/v1alpha2",
       "title": "Backup",
       "page": "traits/backup",
-      "description": "Scheduled backup policy for a component's persistent state"
+      "description": "Scheduled backup policy for a component's persistent state",
+      "spec": {
+        "key": "backup",
+        "cue": "spec: backup: #BackupSchema\n\n#BackupSchema: {\n\tschedule!: schemas.#CronSchema\n\tkeep:      *14 | int\n\ttarget!: {...}\n\tvolumes?: [...string]\n}",
+        "fields": [
+          {
+            "path": "schedule",
+            "type": "string",
+            "presence": "required",
+            "default": null,
+            "doc": "How often the work runs, as a cron expression.",
+            "ref": "opmodel.dev/catalogs/opm/schemas.#CronSchema"
+          },
+          {
+            "path": "keep",
+            "type": "*14 | int",
+            "presence": "regular",
+            "default": "14",
+            "doc": "How many copies to keep.",
+            "ref": null
+          },
+          {
+            "path": "target",
+            "type": "struct",
+            "presence": "required",
+            "default": null,
+            "doc": "Where the copies go.",
+            "ref": null
+          },
+          {
+            "path": "volumes",
+            "type": "list",
+            "presence": "optional",
+            "default": null,
+            "doc": "Which volumes to capture, by name. Absent: all of them.",
+            "ref": null
+          }
+        ],
+        "linked": [],
+        "external": []
+      }
     },
     {
       "kind": "trait",
       "name": "expose",
       "apiVersion": "v1alpha1",
       "level": "alpha",
+      "fqn": "opmodel.dev/catalogs/opm/traits/expose@v1alpha1",
+      "modulePath": "opmodel.dev/catalogs/opm/traits/v1alpha1",
       "title": "Expose",
       "page": "traits/expose",
-      "description": "Publishes a component's ports outside the cluster"
+      "description": "Publishes a component's ports outside the cluster",
+      "spec": {
+        "key": "expose",
+        "cue": "spec: expose: #ExposeSchema\n\n#ExposeSchema: {\n\tport!: int\n}",
+        "fields": [
+          {
+            "path": "port",
+            "type": "int",
+            "presence": "required",
+            "default": null,
+            "doc": "The port to publish.",
+            "ref": null
+          }
+        ],
+        "linked": [],
+        "external": []
+      }
     }
   ],
   "transformers": []

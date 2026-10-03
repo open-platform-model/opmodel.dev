@@ -35,7 +35,9 @@
 # first) when CAT_DIR is set: {"lock": "sha256:...", "from": manifest |
 # explicit | OPM_BUNDLES, "frozen": true when the bundles came from a
 # frozen pull (run-in-image.sh writes <bundles>/frozen), "bundles": [{project, segment, version, revision,
-# digest, commit, local}]}, digest "" for a local bundle; "sections" is absent
+# digest, commit, local}], "history": [{project, digest}]}, digest "" for a
+# local bundle, history one entry per project whose history.json the lock
+# records (docs-kit C13), [] for none; "sections" is absent
 # without either section. layouts/_partials/opm/build-stamp.html shows it in the
 # footer, opm/source.html builds "View source" and "Edit" links from the
 # refs, and build-all.sh publishes it as public/build-stamp.json.
@@ -81,7 +83,8 @@ fi
     [ -f data/opm/catalogs.json ] || { echo "gen-stamp: the build has the Catalogs section, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
     fz=false; [ ! -f "$CAT_DIR/frozen" ] || fz=true
     cat=$(jq -c --arg from "${CAT_FROM:-}" --argjson frozen "$fz" '{lock, from: $from, frozen: $frozen, bundles: [.catalogs[] | .project as $p | .segments[]
-        | {project: $p, segment, version, revision, digest, commit, local}]}' data/opm/catalogs.json)
+        | {project: $p, segment, version, revision, digest, commit, local}],
+        history: [.catalogs[] | select(.history) | {project, digest: .history.digest}]}' data/opm/catalogs.json)
     secs="$secs${secs:+, }\"catalogs\": $cat"
   fi
   [ -z "$secs" ] || printf '  "sections": {%s},\n' "$secs"

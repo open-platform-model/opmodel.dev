@@ -8,7 +8,7 @@
     "commit": "940725124ea69c7d01e346b936854f27f0ad330f",
     "ref": "main"
   },
-  "tool": "0.1.0",
+  "tool": "0.2.0",
   "dialect": 1,
   "placement": {
     "kind": "tab",
@@ -62,8 +62,14 @@
       "generated": true
     },
     {
-      "path": "traits/expose.md",
+      "path": "traits/expose-v1alpha1.md",
       "source": "opm/traits/v1alpha1/expose.cue",
+      "lastmod": "2026-10-01T16:45:00Z",
+      "generated": true
+    },
+    {
+      "path": "traits/expose.md",
+      "source": "opm/traits/v1alpha2/expose.cue",
       "lastmod": "2026-10-01T16:45:00Z",
       "generated": true
     }

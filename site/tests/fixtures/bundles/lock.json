@@ -36,7 +36,7 @@
       "revision": 0,
       "commit": "940725124ea69c7d01e346b936854f27f0ad330f",
       "dialect": 1,
-      "builtBy": "0.1.0",
+      "builtBy": "0.2.0",
       "dir": "catalog-opm/edge"
     }
   ]

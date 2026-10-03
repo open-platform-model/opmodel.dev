@@ -2,12 +2,12 @@
 
 ## 1. History input from fixtures
 
-- [ ] 1.1 Fixtures per design.md Decision 4: enrich `site/tests/fixtures/bundles/catalog-opm/{4.4,4.5,edge}/data/catalog.json` with real `fqn`s and `spec.fields` (C10) and the members the badges need, and the matching pages and manifests; regenerate `site/tests/fixtures/bundles/lock.json` with the pinned tool (`--local`, offline) and confirm the drift test passes.
-- [ ] 1.2 Write `site/tests/fixtures/history/catalog-opm/history.json` by hand to C13 (docs-kit `add-version-history` D4: key order, two-space indent, trailing newline) for those fixtures, with one `paths`-mode pair; `test-site.sh` layers it and a `history` lock entry (`jq`) onto its copy of the fixture bundles.
-- [ ] 1.3 `gen-mounts.sh` mounts `*/history.json`; `gen-catalogs.sh` performs Decision 1's checks and writes `history` per catalog into `catalogs.json`; `gen-stamp.sh` records `sections.catalogs.history`.
-- [ ] 1.4 Check cases under `site/tests/checks/`, each failing on its fixture: `cat-history-digest` (file edited after the lock), `cat-history-missing` (entry without file), `cat-history-schema` (wrong `schema`); a stale file without an entry yields no badges (asserted in `test-site.sh`).
-- [ ] 1.5 `site/catalogs/_content.gotmpl` adds `params.catalog.history` per Decision 2; `test-site.sh` asserts the params of one member page and one kind index from `hugo` output (the adapter's data, not yet rendered).
-- [ ] 1.6 `task check`, `task build` (real bundles: no history entry, no change) and `task test:site` green, then commit `feat(site): read catalog version history from the pulled bundles`.
+- [x] 1.1 Fixtures per design.md Decision 4: enrich `site/tests/fixtures/bundles/catalog-opm/{4.4,4.5,edge}/data/catalog.json` with real `fqn`s and `spec.fields` (C10) and the members the badges need, and the matching pages and manifests; regenerate `site/tests/fixtures/bundles/lock.json` with the pinned tool (`--local`, offline) and confirm the drift test passes.
+- [x] 1.2 Write `site/tests/fixtures/history/catalog-opm/history.json` by hand to C13 (docs-kit `add-version-history` D4: key order, two-space indent, trailing newline) for those fixtures, with one `paths`-mode pair; `test-site.sh` layers it and a `history` lock entry (`jq`) onto its copy of the fixture bundles.
+- [x] 1.3 `gen-mounts.sh` mounts `*/history.json`; `gen-catalogs.sh` performs Decision 1's checks and writes `history` per catalog into `catalogs.json`; `gen-stamp.sh` records `sections.catalogs.history`.
+- [x] 1.4 Check cases under `site/tests/checks/`, each failing on its fixture: `cat-history-digest` (file edited after the lock), `cat-history-missing` (entry without file), `cat-history-schema` (wrong `schema`); a stale file without an entry yields no badges (asserted in `test-site.sh`).
+- [x] 1.5 `site/catalogs/_content.gotmpl` adds `params.catalog.history` per Decision 2; `test-site.sh` asserts the params of one member page and one kind index from `hugo` output (the adapter's data, not yet rendered).
+- [x] 1.6 `task check`, `task build` (real bundles: no history entry, no change) and `task test:site` green, then commit `feat(site): read catalog version history from the pulled bundles`.
 
 ## 2. Badges, the Changes list and Removed entries
 

@@ -13,7 +13,8 @@
        from its front matter, the dialect's type kept as params.docType (the
        page-type badge), lastmod from the manifest, and params.catalog
        {project, name, root, segment, label, version, revision, edge,
-       indexed, newest, commit, repo, source, generated}. Only the newest minor of each major
+       indexed, newest, commit, repo, source, generated, history} (history
+       a JSON string, "" without a history.json the lock records). Only the newest minor of each major
        is indexed: the others, and edge, stay out of the sitemap and
        llms.txt (and carry noindex, custom/head-end.html).
        The build fails, naming project, segment, digest (or local) and page,
@@ -33,12 +34,36 @@
 {{- with hugo.Data.opm.catalogs -}}
 {{- range .catalogs -}}
   {{- $cat := . -}}
+  {{- /* The catalog's version history (docs-kit C13), when the lock records
+         it; gen-catalogs.sh has checked its digest, schema and project. */ -}}
+  {{- $hist := false -}}
+  {{- with $cat.history -}}
+    {{- $hres := resources.Get (printf "bundles/%s" .path) -}}
+    {{- if not $hres -}}{{- errorf "catalogs: %s: %s is not mounted" $cat.project .path -}}{{- end -}}
+    {{- $hist = $hres | transform.Unmarshal -}}
+  {{- end -}}
   {{- range .segments -}}
     {{- $seg := . -}}
     {{- $who := printf "catalogs: %s %s (%s)" $cat.project .segment (cond .local "local" .digest) -}}
     {{- $mres := resources.Get (printf "bundles/%s/manifest.json" .dir) -}}
     {{- if not $mres -}}{{- errorf "%s: %s/manifest.json is not mounted" $who .dir -}}{{- end -}}
     {{- $m := $mres | transform.Unmarshal -}}
+    {{- /* With a history: the segment's members by page (data/catalog.json,
+           docs-kit C10), and each member's pages in this segment by
+           apiVersion, keyed "<kind>/<name>". */ -}}
+    {{- $byPage := dict -}}
+    {{- $pagesOf := dict -}}
+    {{- $mode := "" -}}
+    {{- if $hist -}}
+      {{- with resources.Get (printf "bundles/%s/data/catalog.json" .dir) -}}
+        {{- range (transform.Unmarshal .).members -}}
+          {{- $byPage = merge $byPage (dict .page .) -}}
+          {{- $kn := printf "%s/%s" .kind .name -}}
+          {{- $pagesOf = merge $pagesOf (dict $kn (merge (index $pagesOf $kn | default dict) (dict .apiVersion .page))) -}}
+        {{- end -}}
+      {{- end -}}
+      {{- range $hist.compared -}}{{- if eq .to $seg.segment -}}{{- $mode = .mode -}}{{- end -}}{{- end -}}
+    {{- end -}}
     {{- $listed := dict -}}
     {{- range $m.pages -}}{{- $listed = merge $listed (dict .path true) -}}{{- end -}}
     {{- $prefix := printf "bundles/%s/content/" .dir -}}
@@ -91,6 +116,35 @@
       {{- with $fm.weight -}}
         {{- if not (findRE `^[1-9][0-9]*$` (printf "%v" .)) -}}{{- errorf "%s: weight must be a positive integer (got %v)" $at . -}}{{- end -}}
       {{- end -}}
+      {{- /* params.catalog.history: the C13 data this page shows, never
+             derived here (the templates apply C13's derivations): floor,
+             the mode of the pair ending at this segment, and on a member
+             page its history by FQN, its kind/name lineage in this segment
+             and its pages here by apiVersion; on a kind index the members
+             removed in this segment whose page was under it. It is a JSON
+             string ("" without history), which templates unmarshal: Hugo
+             rewrites a page's params maps in place (lowercasing their keys),
+             and the C13 maps are shared by every page of a member, so a map
+             here races between pages (concurrent map writes). */ -}}
+      {{- $history := false -}}
+      {{- if $hist -}}
+        {{- $history = dict "floor" $hist.floor "mode" $mode "member" false "lineage" slice "pages" dict "removed" slice -}}
+        {{- with index $byPage $p -}}{{- if .fqn -}}
+          {{- $kn := printf "%s/%s" .kind .name -}}
+          {{- $history = merge $history (dict
+            "fqn" .fqn
+            "member" (index $hist.members .fqn | default false)
+            "lineage" (index (index $hist.lineage $kn | default dict) $seg.segment | default slice)
+            "pages" (index $pagesOf $kn | default dict)) -}}
+        {{- end -}}{{- end -}}
+        {{- if and (eq $kind "section") $p (not (strings.Contains $p "/")) -}}
+          {{- $gone := slice -}}
+          {{- range index $hist.removed $seg.segment -}}
+            {{- if hasPrefix .page (printf "%s/" $p) -}}{{- $gone = $gone | append . -}}{{- end -}}
+          {{- end -}}
+          {{- $history = merge $history (dict "removed" $gone) -}}
+        {{- end -}}
+      {{- end -}}
       {{- $path := printf "%s/%s" $cat.name $seg.segment -}}
       {{- $url := printf "%s%s/" $cat.root $seg.segment -}}
       {{- with $p -}}{{- $path = printf "%s/%s" $path . -}}{{- $url = printf "%s%s/" $url . -}}{{- end -}}
@@ -101,7 +155,8 @@
         "params" (dict "llms" $seg.indexed "docType" $type
           "catalog" (dict "project" $cat.project "name" $cat.name "root" $cat.root "segment" $seg.segment "label" $seg.label
             "version" $seg.version "revision" $seg.revision "edge" $seg.edge "indexed" $seg.indexed "newest" (eq $seg.segment $cat.newest)
-            "commit" $seg.commit "repo" $cat.repo "source" ($pg.source | default "") "generated" $pg.generated))
+            "commit" $seg.commit "repo" $cat.repo "source" ($pg.source | default "") "generated" $pg.generated
+            "history" (cond (not $history) "" (jsonify $history))))
         "content" (dict "mediaType" "text/markdown" "value" $body) -}}
       {{- with $fm.weight -}}{{- $page = merge $page (dict "weight" (int .)) -}}{{- end -}}
       {{- with $pg.lastmod -}}{{- $page = merge $page (dict "dates" (dict "date" (time.AsTime .) "lastmod" (time.AsTime .))) -}}{{- end -}}
