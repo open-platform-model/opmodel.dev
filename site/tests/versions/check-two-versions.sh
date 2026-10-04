@@ -140,7 +140,7 @@ tab_bad=""
 for v in v1.0 v0.9; do
   f=$P/$v/docs/index.html
   tr -d '"' < "$f" | grep -qE '<a title href=/enhancements/ class=' || tab_bad="$tab_bad $v(navbar)"
-  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/enhancements/>Enhancements' || tab_bad="$tab_bad $v(phone menu)"
+  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/enhancements/><span>Enhancements' || tab_bad="$tab_bad $v(phone menu)"
   ! tr -d '"' < "$f" | grep -qE 'href=( |>)' || tab_bad="$tab_bad $v(an empty href)"
 done
 why="missing or broken on:$tab_bad"
@@ -155,7 +155,7 @@ tab_bad=""
 for v in v1.0 v0.9; do
   f=$P/$v/docs/index.html
   tr -d '"' < "$f" | grep -qE '<a title href=/catalogs/ class=' || tab_bad="$tab_bad $v(navbar)"
-  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/catalogs/>Catalogs' || tab_bad="$tab_bad $v(phone menu)"
+  tr -d '"' < "$f" | grep -qE '<a class=opm-sb-link href=/catalogs/><span>Catalogs' || tab_bad="$tab_bad $v(phone menu)"
 done
 why="missing on:$tab_bad"
 check "both versions link the Catalogs tab to /catalogs/, in the navbar and the phone menu" [ -z "$tab_bad" ]
@@ -215,7 +215,7 @@ why="no View source link at the resolved SHA for:$view10_bad"
 why="wrong edit target:$edit10_bad"
 [ -z "$GIT10" ] || check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
 
-# The five docs bundles: named in the stamp and the footer, no archive, every
+# The six docs bundles: named in the stamp and the footer, no archive, every
 # manifest page published in v1.0, Edit to main at the manifest's edit path
 # (generated pages none), View source at the bundle commit.
 bstamp_bad=""; bpage_bad=""; bedit_bad=""; bview_bad=""

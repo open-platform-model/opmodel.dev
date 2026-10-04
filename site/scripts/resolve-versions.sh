@@ -23,7 +23,9 @@
 #   OPM_WS, OPM_SRC_WORKTREE, OPM_SRC_<REPO>
 #                          the source roots, resolved by run-in-image.sh exactly as for a build
 #
-# A version has one of three kinds, chosen by its keys:
+# A version has one of three kinds, chosen by its keys (a version whose
+# from-bundles names all six repositories has no git row at all; its one
+# row has empty repository fields and kind line, see from-bundles below):
 #   main      "source = main": every root at its checked-out HEAD, read in place
 #             (tests and local live editing).
 #   anchored  "cli = <tag or SHA>" is the anchor, bumped by commit: library
@@ -446,8 +448,10 @@ for r in $REPOS; do
   fi
 done
 
-# A version's kind comes from its keys: source makes it main, cli-line makes
-# it line, anything else is anchored. A key that its kind excludes is a named
+# A version's kind comes from its keys: source makes it main, cli-line (or
+# catalog-line beside a from-bundles naming cli) makes it line, anything else
+# is anchored; a version whose from-bundles names all six has no git row and
+# is written as line (bare_row below). A key that its kind excludes is a named
 # error, never silently ignored.
 [ -n "$versions" ] || err "$(basename "$manifest"): no [version \"...\"] section"
 defaults=""; mains=""; linevs=""; weights=""
@@ -478,6 +482,11 @@ for v in $versions; do
     esac
     case "$fbseen" in *" catalog_opm "*)
       fbcat=yes
+      # Only beside cli: a version that reads the cli from git keeps the
+      # catalog its cli line documents, so its catalog comes from git too.
+      case "$fbseen" in *" cli "*) ;; *)
+        err "version $v: from-bundles names catalog_opm but not cli: catalog_opm's docs bundle is read only in a version whose cli comes from its bundle" ;;
+      esac
       for k in catalog catalog-line; do
         if has "$v" "$k"; then
           err "version $v: from-bundles names catalog_opm, which excludes $k: catalog_opm's docs bundle (catalog-opm-docs) follows its own tag in site/bundles.cue"
@@ -543,8 +552,7 @@ for v in $versions; do
     done
     cl=$(one "version.$v.cli-line")
     if ! printf '%s' "$cl" | grep -Eq '^v[0-9]+\.[0-9]+$'; then err "version $v: cli-line \"$cl\": not a cli minor line vX.Y (for example v1.0)"; fi
-    if [ -n "$fbcat" ]; then :
-    elif ! has "$v" catalog-line; then err "version $v: cli-line needs catalog-line = opm-vN, the opm catalog major (for example opm-v4)"
+    if ! has "$v" catalog-line; then err "version $v: cli-line needs catalog-line = opm-vN, the opm catalog major (for example opm-v4)"
     else
       gl=$(one "version.$v.catalog-line")
       if printf '%s' "$gl" | grep -Eq '^opm-v[0-9]+$'; then :
@@ -556,7 +564,6 @@ for v in $versions; do
     kind=anchored
     for k in cli catalog opm; do
       [ "$k" != opm ] || [ -z "$fbopm" ] || continue
-      [ "$k" != catalog ] || [ -z "$fbcat" ] || continue
       if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set source = main, or cli-line and catalog-line)"; fi
     done
     if has "$v" catalog-line; then err "version $v: catalog-line needs cli-line: an anchored version names catalog = <tag or SHA> instead"; fi
@@ -756,33 +763,32 @@ resolve_line() {
       fi
     done
   fi
-  # catalog_opm: the newest tag of the catalog major, unless the version reads
-  # catalog_opm from its docs bundle (from-bundles; then it has no catalog-line).
-  if [ -n "$gl" ]; then
-    groot=$(root_of catalog_opm); gsha=""; gref=""
-    if gref=$(newest_in_line "$groot" opm- "${gl#opm-v}"); then gsha=$(commit_of "$groot" "refs/tags/$gref"); else gref=""; fi
-    ghow="line:newest $gl.* tag"
-    o=$(ovref catalog_opm)
-    if [ -n "$o" ]; then
-      oref=${o%%"$TAB"*}
-      if osha=$(anchor catalog_opm "$oref"); then
-        passes=no; replaced="no tag"
-        if [ -n "$gsha" ]; then
-          replaced="$gref ($ghow)"
-          release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names"
-          if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
-        fi
-        override_row "$lv" catalog_opm "$oref" "$osha" "override:${o#*"$TAB"}" "$replaced" "$passes"
-      else
-        err "$lv: catalog_opm $oref: $osha"
+  # catalog_opm: the newest tag of the catalog major (a version that reads
+  # catalog_opm from its docs bundle has no catalog-line, so it is no line
+  # version and never gets here).
+  groot=$(root_of catalog_opm); gsha=""; gref=""
+  if gref=$(newest_in_line "$groot" opm- "${gl#opm-v}"); then gsha=$(commit_of "$groot" "refs/tags/$gref"); else gref=""; fi
+  ghow="line:newest $gl.* tag"
+  o=$(ovref catalog_opm)
+  if [ -n "$o" ]; then
+    oref=${o%%"$TAB"*}
+    if osha=$(anchor catalog_opm "$oref"); then
+      passes=no; replaced="no tag"
+      if [ -n "$gsha" ]; then
+        replaced="$gref ($ghow)"
+        release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names"
+        if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
       fi
-    elif [ -n "$gsha" ]; then
-      release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names, newest tag of line $gl"
-      report "$lv" catalog_opm "" "$rd_problems"
-      [ -z "$rd_sha" ] || lrow catalog_opm "$gref" "$rd_sha" "$ghow; docs: $rd_rule" "$rd_docs"
+      override_row "$lv" catalog_opm "$oref" "$osha" "override:${o#*"$TAB"}" "$replaced" "$passes"
     else
-      err "$lv: catalog_opm line $gl: no tag $gl.<minor>.<patch>[-<pre>] in $groot; fetch its tags (task versions:fetch)"
+      err "$lv: catalog_opm $oref: $osha"
     fi
+  elif [ -n "$gsha" ]; then
+    release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names, newest tag of line $gl"
+    report "$lv" catalog_opm "" "$rd_problems"
+    [ -z "$rd_sha" ] || lrow catalog_opm "$gref" "$rd_sha" "$ghow; docs: $rd_rule" "$rd_docs"
+  else
+    err "$lv: catalog_opm line $gl: no tag $gl.<minor>.<patch>[-<pre>] in $groot; fetch its tags (task versions:fetch)"
   fi
   # opm: no release line; the head of main. An override is refused unless that
   # head itself fails, since opm has no release to fall back to. A version
@@ -834,7 +840,6 @@ for v in $ordered; do
       row "$v" "$label" "$w" "$d" line "$r" "$(printf '%s' "$line" | cut -f2)" "$(printf '%s' "$line" | cut -f3)" \
         "$(printf '%s' "$line" | cut -f4)" "$(printf '%s' "$line" | cut -f5)"
     done
-    bare_row "$v" "$label" "$w" "$d" line
     continue
   fi
   # cli, the anchor: its pins are read only when it resolves. A version that
@@ -869,8 +874,9 @@ for v in $ordered; do
   done
   # Every repository from a docs bundle whose tag moves (the cli line, its
   # pins, opm's and the catalog's lines): resolved again on every pull, so a
-  # line version, though it has no line key.
-  case "$fb" in *" cli "*" catalog_opm "*|*" catalog_opm "*" cli "*) bare_row "$v" "$label" "$w" "$d" line ;; *) bare_row "$v" "$label" "$w" "$d" anchored ;; esac
+  # line version, though it has no line key. A no-op when the version has a
+  # git row.
+  bare_row "$v" "$label" "$w" "$d" line
   fails=$(printf '%s\n' "$derived" | sed -n 's/^!//p')
   [ -z "$fails" ] || errs="$errs$fails$NL"
 done

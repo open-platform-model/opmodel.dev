@@ -229,9 +229,13 @@ run "$T/manifests/fb-all-frozen.conf" -- --check
 if [ "$rc" = 0 ] && ! grep -qE '	(cli|catalog|opm) = ' "$T/manifests/fb-all-frozen.conf"; then
   expect fb-all-freeze 0 "the frozen copy of a version with no git row names no cli, catalog or opm" "${FBL}cli core library opm-operator opm catalog_opm"
 else bad fb-all-freeze "exit $rc, or the frozen copy names a cli, catalog or opm"; fi
-run "$(manifest fb-cat-key "$good
+run "$(manifest fb-cat-no-cli "$good
 	from-bundles = catalog_opm")" -- --check
-expect fb-cat-key 1 "from-bundles naming catalog_opm refuses a catalog key" "version v2.0: from-bundles names catalog_opm, which excludes catalog"
+expect fb-cat-no-cli 1 "from-bundles naming catalog_opm without cli is refused" "version v2.0: from-bundles names catalog_opm but not cli"
+run "$(manifest fb-cat-key "$v
+	catalog = opm-v1.1.0
+	from-bundles = cli core library opm-operator opm catalog_opm")" -- --check
+expect fb-cat-key-cli 1 "a version reading cli and catalog_opm from bundles refuses a catalog key" "version v2.0: from-bundles names catalog_opm, which excludes catalog"
 run "$(manifest fb-cat-line "$v
 	catalog-line = opm-v1
 	from-bundles = cli core library opm-operator catalog_opm")" -- --check
