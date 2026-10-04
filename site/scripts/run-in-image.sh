@@ -55,7 +55,9 @@
 #                      site/bundles.frozen.json is not applied (it was pulled for bundles.cue);
 #                      an explicit OPM_BUNDLES_FROZEN still is.
 #   OPM_BUNDLES_OUT    pull mode only: the directory the pull writes and sweeps, with its
-#                      lock.json, relative to the repo or absolute; default site/.bundles.
+#                      lock.json, relative to the repo or absolute; default site/.bundles. It must
+#                      be a dot-directory under site/ that holds no tracked file and, when not
+#                      empty, a lock.json (the sweep removes whatever the pull did not write).
 #   OPM_BUNDLES_LOCAL  pull mode only: <project>@<segment>=<host dir> ..., space-separated, each a
 #                      local bundle tree (an opm-docs build output) pull takes instead of the
 #                      registry (docs-kit C7 --local): a tab's segment (4.5, edge), or, for a docs
@@ -224,13 +226,40 @@ case "$mode" in
     # source root, no repo-wide write, no token. OPM_BUNDLES is never read
     # here: it names a tree a build reads, and the pull sweeps its output.
     cfg=$(envval OPM_BUNDLES_CONFIG); out=$(envval OPM_BUNDLES_OUT)
-    cfgset=${cfg:+yes}
     cfg=${cfg:-site/bundles.cue}; out=${out:-site/.bundles}
-    [ -f "$cfg" ] || die "$cfg does not exist: there is no pull config${cfgset:+ (OPM_BUNDLES_CONFIG)}"
-    image >/dev/null
-    mkdir -p "$out" site/.cache
+    [ -f "$cfg" ] || die "$cfg does not exist: there is no pull config (OPM_BUNDLES_CONFIG, default site/bundles.cue)"
     cfgabs=$(cd "$(dirname "$cfg")" && pwd -P)/$(basename "$cfg")
-    outabs=$(cd "$out" && pwd -P)
+    # cfgset: the pull config is not site/bundles.cue (whatever names it).
+    cfgset=""; [ "$cfgabs" = "$repo/site/bundles.cue" ] || cfgset=yes
+    # The output is swept: opm-docs pull removes every entry it did not
+    # write, subdirectories included. So it must be a dot-directory under
+    # site/ (site/.bundles, site/.edge/bundles), hold no tracked file, and,
+    # when it exists and is not empty, hold a lock.json (an earlier pull).
+    case "$out" in /*) outabs=$out ;; *) outabs=$repo/$out ;; esac
+    case "/$outabs/" in */../*|*/./*) die "OPM_BUNDLES_OUT=$out: name the directory without . or .. segments" ;; esac
+    outabs=${outabs%/}
+    if [ -e "$outabs" ] || [ -L "$outabs" ]; then
+      [ -d "$outabs" ] || die "OPM_BUNDLES_OUT=$out is not a directory"
+      outabs=$(cd "$outabs" && pwd -P)
+    fi
+    case "$outabs" in
+      "$repo"/site/.[!.]*|"$repo"/site/..?*) ;;
+      *) die "OPM_BUNDLES_OUT=$out: the pull sweeps its output, so name a dot-directory under site/ (site/.bundles, site/.edge/bundles)" ;;
+    esac
+    if [ -d "$outabs" ] && [ -n "$(ls -A "$outabs")" ] && [ ! -f "$outabs/lock.json" ]; then
+      die "OPM_BUNDLES_OUT=$out holds files but no lock.json: it is not a pull's output, and the pull would sweep it"
+    fi
+    if git -C "$repo" ls-files --error-unmatch -- "$outabs" >/dev/null 2>&1; then
+      die "OPM_BUNDLES_OUT=$out holds files git tracks; the pull would sweep them"
+    fi
+    image >/dev/null
+    mkdir -p "$outabs" site/.cache
+    # Again on the created path, in case a parent was a symbolic link.
+    outabs=$(cd "$outabs" && pwd -P)
+    case "$outabs" in
+      "$repo"/site/.[!.]*|"$repo"/site/..?*) ;;
+      *) die "OPM_BUNDLES_OUT=$out resolves to $outabs, outside the dot-directories under site/" ;;
+    esac
     set -- pull --config /in/bundles.cue --out /out --lock /out/lock.json
     vols="--volume $cfgabs:/in/bundles.cue:ro --volume $outabs:/out --volume $repo/site/.cache:/cache"
     for p in "$repo" "$cfgabs" "$outabs"; do
@@ -258,7 +287,7 @@ case "$mode" in
     frozen=$(envval OPM_BUNDLES_FROZEN)
     if [ -z "$frozen" ] && [ -f site/bundles.frozen.json ]; then
       if [ -n "$cfgset" ]; then
-        echo "run-in-image: site/bundles.frozen.json not applied: it was pulled for site/bundles.cue, and OPM_BUNDLES_CONFIG names $cfg (OPM_BUNDLES_FROZEN=<lock> pins this pull)"
+        echo "run-in-image: site/bundles.frozen.json not applied: it was pulled for site/bundles.cue, and the pull config is $cfg (OPM_BUNDLES_FROZEN=<lock> pins this pull)"
       else
         frozen=site/bundles.frozen.json
       fi
@@ -298,12 +327,12 @@ case "$mode" in
       net=bridge
     fi
     # The frozen marker: gen-stamp.sh records "frozen": true while it exists.
-    rm -f "$out/frozen"
+    rm -f "$outabs/frozen"
     echo "run-in-image: pull of $cfg into $out/ (network: $net)"
     # shellcheck disable=SC2086 # vols is a list of --volume flags without spaces inside paths
     docker run --rm --init --user "$(id -u):$(id -g)" --network "$net" \
       --env HOME=/tmp --env XDG_CACHE_HOME=/cache $vols \
       --entrypoint opm-docs "$(tag)" "$@"
-    if [ -n "$frozen" ]; then echo "$frozen" > "$out/frozen"; fi ;;
+    if [ -n "$frozen" ]; then echo "$frozen" > "$outabs/frozen"; fi ;;
   *) sed -n '2,19p' "$0" >&2; exit 2 ;;
 esac

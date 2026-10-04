@@ -1,3 +1,3 @@
-+ run-in-image: site/bundles.frozen.json not applied: it was pulled for site/bundles.cue, and OPM_BUNDLES_CONFIG names site/.edge/bundles.cue
++ run-in-image: site/bundles.frozen.json not applied: it was pulled for site/bundles.cue, and the pull config is site/.edge/bundles.cue
 + run-in-image: pull of site/.edge/bundles.cue into site/.edge/bundles/ (network: none)
 - --frozen

@@ -914,19 +914,21 @@ expect_log() {
     case "$e" in
       "+ "*) grep -qF -- "$t" "$2" || printf 'missing: %s; ' "$t" ;;
       "- "*) ! grep -qF -- "$t" "$2" || printf 'unexpected: %s; ' "$t" ;;
+      *) printf 'malformed expect line (not "+ " or "- "): %s; ' "$e" ;;
     esac
   done < "$TESTS/checks/$1/expect"
 }
 mkdir -p "$OUT/edge"
-c=edge-config
-if sh "$SCRIPTS/edge-config.sh" "$TESTS/checks/$c/bundles.cue" "$OUT/edge/$c.cue" > "$OUT/edge/$c.log" 2>&1 &&
-   cmp -s "$TESTS/checks/$c/expect.cue" "$OUT/edge/$c.cue"; then
-  ok "checks/$c" "derived from a bundles.cue with six docs projects and a sections block, byte-identical to expect.cue"
-else
-  diff "$TESTS/checks/$c/expect.cue" "$OUT/edge/$c.cue" >> "$OUT/edge/$c.log" 2>&1
-  bad "checks/$c" "edge-config.sh failed or wrote something other than expect.cue" "$OUT/edge/$c.log"
-fi
-for c in edge-config-no-cli edge-config-no-versions; do
+for c in edge-config edge-config-two-versions; do
+  if sh "$SCRIPTS/edge-config.sh" "$TESTS/checks/$c/bundles.cue" "$OUT/edge/$c.cue" > "$OUT/edge/$c.log" 2>&1 &&
+     cmp -s "$TESTS/checks/$c/expect.cue" "$OUT/edge/$c.cue"; then
+    ok "checks/$c" "derived byte-identical to expect.cue ($(sed -n 1p "$TESTS/checks/$c/bundles.cue" | cut -c4-))"
+  else
+    diff "$TESTS/checks/$c/expect.cue" "$OUT/edge/$c.cue" >> "$OUT/edge/$c.log" 2>&1
+    bad "checks/$c" "edge-config.sh failed or wrote something other than expect.cue" "$OUT/edge/$c.log"
+  fi
+done
+for c in edge-config-no-cli edge-config-no-versions edge-config-unclosed edge-config-braceless edge-config-docs-unquoted edge-config-docs-inline; do
   if sh "$SCRIPTS/edge-config.sh" "$TESTS/checks/$c/bundles.cue" "$OUT/edge/$c.cue" > "$OUT/edge/$c.log" 2>&1; then
     bad "checks/$c" "edge-config.sh accepted the file" "$OUT/edge/$c.log"
   elif [ -e "$OUT/edge/$c.cue" ]; then bad "checks/$c" "edge-config.sh refused, but wrote $c.cue" "$OUT/edge/$c.log"
@@ -994,17 +996,25 @@ tablocal=$(jq -r '.bundles[] | "\(.project)@\(.segment)='"$TESTS"'/fixtures/bund
 c=edge-frozen-skipped
 ER=$OUT/edge/repo
 skeleton "$ER"
+# A second, registry-only site version in bundles.cue: the derived config
+# drops it, so the pull stays offline only if it reads the derived config.
+printf 'versions: "v1.1": {\n\tanchor: {project: "cli", tag: "1.1"}\n}\n' >> "$ER/site/bundles.cue"
+cp -R "$TESTS/fixtures/bundles" "$OUT/edge/saved"
+sum() { (cd "$1" && find . -type f -exec sha256sum {} + | sort); }
+sum "$OUT/edge/saved" > "$OUT/edge/saved.before"
 edgelocal=""
 for p in cli core library opm-operator; do edgelocal="$edgelocal $p@v1.0=$TESTS/fixtures/edge/$p"; done
 ( sh "$ER/site/scripts/edge-config.sh" &&
   PATH=$EB:$PATH OPM_BUNDLES_CONFIG=site/.edge/bundles.cue OPM_BUNDLES_OUT=site/.edge/bundles \
-    OPM_BUNDLES_LOCAL="$tablocal$edgelocal" OPM_BUNDLES=$TESTS/fixtures/bundles sh "$ER/site/scripts/run-in-image.sh" pull
+    OPM_BUNDLES_LOCAL="$tablocal$edgelocal" OPM_BUNDLES=$OUT/edge/saved sh "$ER/site/scripts/run-in-image.sh" pull
 ) > "$OUT/edge/$c.log" 2>&1; rc=$?
 EL=$ER/site/.edge/bundles/lock.json
 if [ $rc -ne 0 ]; then bad "checks/$c" "the edge pull failed (exit $rc)" "$OUT/edge/$c.log"
 elif why=$(expect_log "$c" "$OUT/edge/$c.log") && [ -n "$why" ]; then bad "checks/$c" "$why" "$OUT/edge/$c.log"
 elif [ ! -f "$EL" ] || [ -e "$ER/site/.edge/bundles/frozen" ] || [ -e "$ER/site/.bundles" ]; then
   bad "checks/$c" "no site/.edge/bundles/lock.json, a frozen marker, or a write to site/.bundles/" "$OUT/edge/$c.log"
+elif ! sum "$OUT/edge/saved" | cmp -s "$OUT/edge/saved.before" -; then
+  bad "checks/$c" "the tree OPM_BUNDLES names changed" "$OUT/edge/$c.log"
 else ok "checks/$c" "under OPM_BUNDLES_CONFIG the committed bundles.frozen.json is not applied, with a line saying so; the pull writes site/.edge/bundles/ only"; fi
 
 # The edge build: the explicit build with OPM_DOCS_BUNDLES=1 over that pull
@@ -1031,6 +1041,36 @@ else
   fi
 fi
 
+# edge-frozen-replay: with OPM_BUNDLES_CONFIG, an explicit
+# OPM_BUNDLES_FROZEN still applies (replaying a CI run from its edge-lock).
+# The lock here is the local edge pull's, which opm-docs refuses as a frozen
+# lock (a local entry), so the case asserts what run-in-image.sh passes.
+c=edge-frozen-replay
+if [ -f "$EL" ]; then
+  cp "$EL" "$OUT/edge/edge-lock.json"
+  (PATH=$EB:$PATH OPM_BUNDLES_CONFIG=site/.edge/bundles.cue OPM_BUNDLES_OUT=site/.edge/bundles \
+    OPM_BUNDLES_LOCAL="$tablocal$edgelocal" OPM_BUNDLES_FROZEN=$OUT/edge/edge-lock.json sh "$ER/site/scripts/run-in-image.sh" pull
+  ) > "$OUT/edge/$c.log" 2>&1
+  if why=$(expect_log "$c" "$OUT/edge/$c.log") && [ -z "$why" ]; then
+    ok "checks/$c" "under OPM_BUNDLES_CONFIG an explicit OPM_BUNDLES_FROZEN is applied (--frozen)"
+  else bad "checks/$c" "$why" "$OUT/edge/$c.log"; fi
+else bad "checks/$c" "no edge lock to replay (see checks/edge-frozen-skipped)"; fi
+
+# edge-out-refused: the pull sweeps its output, so OPM_BUNDLES_OUT must be a
+# dot-directory under site/ holding a lock.json when not empty; each refusal
+# happens before any container starts.
+c=edge-out-refused
+mkdir -p "$ER/site/.notapull" && echo keep > "$ER/site/.notapull/file"
+: > "$OUT/edge/$c.log"
+for o in site . /tmp site/.notapull site/.edge/../content; do
+  (PATH=$EB:$PATH OPM_BUNDLES_CONFIG=site/.edge/bundles.cue OPM_BUNDLES_OUT=$o sh "$ER/site/scripts/run-in-image.sh" pull) >> "$OUT/edge/$c.log" 2>&1 &&
+    echo "accepted OPM_BUNDLES_OUT=$o" >> "$OUT/edge/$c.log"
+done
+if grep -q '^accepted\|^docker: run' "$OUT/edge/$c.log"; then bad "checks/$c" "a pull ran with an unsafe OPM_BUNDLES_OUT" "$OUT/edge/$c.log"
+elif [ ! -f "$ER/site/.notapull/file" ]; then bad "checks/$c" "site/.notapull/file was swept" "$OUT/edge/$c.log"
+elif why=$(expect_log "$c" "$OUT/edge/$c.log") && [ -n "$why" ]; then bad "checks/$c" "$why" "$OUT/edge/$c.log"
+else ok "checks/$c" "OPM_BUNDLES_OUT outside site/.*, with a .. segment, or a non-empty tree without lock.json is refused before any container"; fi
+
 # edge-pull-ignores-bundles: a plain pull with OPM_BUNDLES exported (a saved
 # tree a build reads) still writes site/.bundles/ and leaves that tree as it
 # was, byte for byte.
@@ -1038,7 +1078,6 @@ c=edge-pull-ignores-bundles
 PR=$OUT/edge/plain
 skeleton "$PR"; rm "$PR/site/bundles.frozen.json"
 cp -R "$TESTS/fixtures/bundles" "$PR/saved-bundles"
-sum() { (cd "$1" && find . -type f -exec sha256sum {} + | sort); }
 sum "$PR/saved-bundles" > "$OUT/edge/$c.before"
 v1local=$(jq -r '.docs[] | "\(.project)@\(.site)='"$TESTS"'/fixtures/bundles/\(.dir)"' "$TESTS/fixtures/bundles/lock.json" | tr '\n' ' ')
 (PATH=$EB:$PATH OPM_BUNDLES=$PR/saved-bundles OPM_BUNDLES_LOCAL="$tablocal$v1local" sh "$PR/site/scripts/run-in-image.sh" pull) > "$OUT/edge/$c.log" 2>&1; rc=$?

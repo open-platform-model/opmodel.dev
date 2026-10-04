@@ -87,7 +87,9 @@ tasks:
   # output directory (defaults site/bundles.cue, site/.bundles; build:edge
   # names site/.edge/bundles.cue and site/.edge/bundles). With another
   # config a committed site/bundles.frozen.json is not applied: it was
-  # pulled for bundles.cue. The pull never reads OPM_BUNDLES, which names a
+  # pulled for bundles.cue. The pull sweeps its output, so OPM_BUNDLES_OUT
+  # must be a dot-directory under site/ with no tracked file and, when not
+  # empty, a lock.json. The pull never reads OPM_BUNDLES, which names a
   # tree a build reads.
   bundles:pull:
     desc: Pull, verify and unpack the docs bundles of site/bundles.cue (the Catalogs tab and the site versions' docs projects) into site/.bundles/ (network)
