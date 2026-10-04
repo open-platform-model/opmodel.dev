@@ -116,7 +116,7 @@
 
 {{- define "opm-sb-link" -}}
   <div class="hextra-sidebar-item" data-active="{{ if .active }}true{{ else }}false{{ end }}">
-    <a class="opm-sb-link{{ if .active }} hextra-sidebar-active-item{{ end }}{{ if .strong }} opm-sb-root{{ end }}" href="{{ .link }}"{{ if .active }} aria-current="page"{{ end }}{{ if hasPrefix .link "http" }} target="_blank" rel="noreferrer"{{ end }}>{{ replaceRE `([a-z])([A-Z])` `$1<wbr>$2` (htmlEscape .title) | safeHTML }}</a>
+    <a class="opm-sb-link{{ if .active }} hextra-sidebar-active-item{{ end }}{{ if .strong }} opm-sb-root{{ end }}" href="{{ .link }}"{{ if .active }} aria-current="page"{{ end }}{{ if hasPrefix .link "http" }} target="_blank" rel="noreferrer"{{ end }}><span>{{ replaceRE `([a-z])([A-Z])` `$1<wbr>$2` (htmlEscape .title) | safeHTML }}</span></a>
     {{- if .kids -}}
       <button type="button" class="hextra-sidebar-collapsible-button" aria-label="{{ (T "toggleSection") | default "Toggle section" }}: {{ .title }}" aria-expanded="{{ if .open }}true{{ else }}false{{ end }}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true" focusable="false"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
     {{- end -}}

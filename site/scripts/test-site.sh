@@ -578,7 +578,7 @@ if [ $rc -eq 0 ]; then
   [ -n "$cards" ] && [ "$cards" = "$want" ] || why="card links \"$cards\", want \"$want\""
   side=$(printf '%s' "$r" | grep -oE 'class=opm-sb-link href=/catalogs/[^ >]*' | sed 's/.*href=//' | tr '\n' ' ')
   [ "$side" = "$want" ] || why="${why:+$why; }sidebar catalog links \"$side\", want \"$want\""
-  printf '%s' "$r" | grep -qF '<a class=opm-sb-link href=/catalogs/opm/4.5/>opm catalog</a>' || why="${why:+$why; }no sidebar entry titled opm catalog"
+  printf '%s' "$r" | grep -qF '<a class=opm-sb-link href=/catalogs/opm/4.5/><span>opm catalog</span></a>' || why="${why:+$why; }no sidebar entry titled opm catalog"
   printf '%s' "$r" | grep -qF '<a class=opm-catpick-edge href=/catalogs/opm/edge/>main (unreleased)<span class=opm-sr-only> of the opm catalog</span></a>' || why="${why:+$why; }the opm card does not link main"
   printf '%s' "$r" | grep -qF 'Newest release 4.5.0<svg' || why="${why:+$why; }the opm card does not name release 4.5.0"
   for k in '<span class=opm-catpick-count>1</span> Blueprints' '<span class=opm-catpick-count>1</span> Resources' '<span class=opm-catpick-count>2</span> Traits'; do
