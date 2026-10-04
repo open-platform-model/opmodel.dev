@@ -1,0 +1,3 @@
++ run-in-image: frozen pull: exactly the digests
++ --frozen /in/frozen.json
+- site/bundles.frozen.json not applied
