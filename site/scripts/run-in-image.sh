@@ -26,12 +26,6 @@
 #                      $OPM_WS/<repo>/.claude/worktrees/$OPM_SRC_WORKTREE when OPM_SRC_WORKTREE is set,
 #                      else $OPM_WS/<repo>.
 #   OPM_SRC_WORKTREE   worktree name used for every unset OPM_SRC_<REPO>.
-#   OPM_SRC_ENHANCEMENTS  the enhancements repository (the design record, built as the
-#                      unversioned /enhancements/ section). Default: $OPM_WS/enhancements;
-#                      OPM_SRC_WORKTREE does not apply. Optional here: a root without INDEX.md is
-#                      not mounted, and a build in explicit mode then has no such section;
-#                      resolve-versions.sh fails when the manifest names the section and the
-#                      root is missing.
 #   SITE_PORT          host port for serve (default 1313).
 #   OPM_REQUIRE_DATES  1 fails the build when a page has no git date (default 0).
 #   OPM_VERSIONS       name=root ... (roots are container paths). Passed into the container only
@@ -71,8 +65,8 @@
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
 # Containers: --rm --init --user <uid>:<gid>, no --name. The repo is mounted at /work/repo and
-# each source root read-only at /src/<repo> (the enhancements root at /src/enhancements),
-# never with :z.
+# each source root read-only at /src/<repo>, never with :z. The Enhancements section comes from
+# its docs bundle (site/bundles.cue sections), never from a checkout.
 set -eu
 REPOS="opm core catalog_opm cli library opm-operator"
 DOCKERFILE=site/Dockerfile
@@ -134,19 +128,6 @@ sources() {
   done
   if [ -n "$missing" ]; then
     die "source roots missing (set OPM_WS, OPM_SRC_WORKTREE or OPM_SRC_<REPO>):$missing"
-  fi
-  # The enhancements root: mounted only when it holds INDEX.md; its HEAD joins REFS.
-  enh=$(envval OPM_SRC_ENHANCEMENTS); enh=${enh:-$ws/enhancements}
-  if [ -f "$enh/INDEX.md" ]; then
-    abs=$(cd "$enh" && pwd -P)
-    case "$abs" in *[:,\ ]*) die "OPM_SRC_ENHANCEMENTS: $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
-    MOUNTS="$MOUNTS -v $abs:/src/enhancements:ro"
-    top=$(git -C "$abs" rev-parse --show-toplevel 2>/dev/null || true)
-    if [ -n "$top" ] && [ "$(cd "$top" && pwd -P)" = "$abs" ]; then
-      REFS="$REFS enhancements=$(git -C "$abs" rev-parse HEAD)"
-    else
-      REFS="$REFS enhancements=none"
-    fi
   fi
   REFS=${REFS# }
   # The docs bundles, when OPM_BUNDLES names them: CAT holds the docker flags.

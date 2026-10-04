@@ -62,7 +62,17 @@ rm -rf "$OUT/bundles"
 cp -R "$SITE/tests/fixtures/bundles" "$OUT/bundles"
 rm -rf "$OUT/bundles/_versions"
 cp -R "$RB/_versions" "$OUT/bundles/_versions"
-jq --slurpfile r "$RB/lock.json" '.docs = $r[0].docs' "$SITE/tests/fixtures/bundles/lock.json" > "$OUT/bundles/lock.json"
+# The Enhancements section is the real one too, since the real docs bundles
+# link real entries: its tree and lock entry replace the fixture's.
+[ -f "$RB/enhancements/edge/manifest.json" ] || {
+  echo "check-two-versions: $RB holds no enhancements section bundle; run task bundles:pull first" >&2
+  exit 1
+}
+rm -rf "$OUT/bundles/enhancements"
+cp -R "$RB/enhancements" "$OUT/bundles/enhancements"
+jq --slurpfile r "$RB/lock.json" '.docs = $r[0].docs
+  | .bundles = ([.bundles[] | select(.root != "/enhancements/")] + [$r[0].bundles[] | select(.root == "/enhancements/")])' \
+  "$SITE/tests/fixtures/bundles/lock.json" > "$OUT/bundles/lock.json"
 OPM_BUNDLES=$OUT/bundles; export OPM_BUNDLES
 if ! sh -c '. "$0" >/dev/null
   sources; image >/dev/null

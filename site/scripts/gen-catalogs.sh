@@ -46,7 +46,9 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
 # One line per lock entry, checked against its manifest; the manifests'
 # fields the section needs go to $tmp/rows.json.
-jq -c '.bundles[]' "$L" > "$tmp/entries"
+# Only the tabs: an entry rooted elsewhere (the Enhancements section,
+# /enhancements/, docs-kit C21) is no catalog and is read by sections.sh.
+jq -c '.bundles[] | select(.root | startswith("/catalogs/"))' "$L" > "$tmp/entries"
 : > "$tmp/rows"
 while IFS= read -r e; do
   get() { printf '%s' "$e" | jq -r "$1"; }

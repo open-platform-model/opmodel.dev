@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): content/ holds pages manifest.json does not list: 0001/extra.md
+- == hugo build

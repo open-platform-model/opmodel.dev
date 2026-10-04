@@ -1,0 +1,134 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "enhancements",
+  "version": "edge",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/enhancements",
+    "commit": "eddf92c16f02dddf146a6068b38a6ae03f1c4f77",
+    "ref": "main"
+  },
+  "created": "2026-09-20T12:00:00Z",
+  "tool": "0.6.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "section",
+    "root": "/enhancements/"
+  },
+  "pages": [
+    {
+      "path": "0001/_index.md",
+      "source": "0001/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/decisions.md",
+      "source": "0001/03-decisions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/design.md",
+      "source": "0001/02-design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/graduation.md",
+      "source": "0001/04-graduation.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/operational.md",
+      "source": "0001/06-operational.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/problem.md",
+      "source": "0001/01-problem.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/questions.md",
+      "source": "0001/07-questions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0001/risks.md",
+      "source": "0001/05-risks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/_index.md",
+      "source": "archive/0002/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/decisions.md",
+      "source": "archive/0002/03-decisions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/design.md",
+      "source": "archive/0002/02-design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/graduation.md",
+      "source": "archive/0002/04-graduation.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/operational.md",
+      "source": "archive/0002/06-operational.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/problem.md",
+      "source": "archive/0002/01-problem.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/questions.md",
+      "source": "archive/0002/07-questions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0002/risks.md",
+      "source": "archive/0002/05-risks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "_index.md",
+      "source": "INDEX.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "graph.md",
+      "source": "GRAPH.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    }
+  ],
+  "data": [
+    {
+      "path": "enhancements.json",
+      "schema": "docs.opmodel.dev/data/enhancements/v1"
+    }
+  ]
+}

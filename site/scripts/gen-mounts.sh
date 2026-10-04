@@ -29,24 +29,28 @@
 # versions.tsv, the label is the name, the weight the position, and the first
 # version is the default.
 #
-# The enhancements section, when ENH_TREE names its tree (build-all.sh and
-# serve.sh set it; the README "Site versions" and site/enhancements/ say why it
-# belongs to no version): the tree is mounted at assets/enhancements, where the
-# content adapter site/enhancements/_content.gotmpl reads it, and the adapter
-# with the section page at content/enhancements, both into the default version
-# only, so the section publishes once and keeps its URLs when the default
-# version changes. A content adapter cannot add the section page itself (the
-# empty path is the home page's), so this writes it, .gen/enhancements/_index.md:
-# front matter, then INDEX.md without its HTML comments and its title line.
-# Beside it, data/opm/enhancements.json lists every path of the repository
-# ("blob" or "tree"), for the section's link hook: in manifest mode from
-# materialise.sh's paths.txt (git ls-tree at the built SHA), in explicit mode
-# from the tree read in place. The hugo.toml written below gains the
-# Enhancements menu entry, so the tab exists only in a build with the section.
-# Hugo cannot merge a slice across config directories, so an environment's
-# menus.main replaces _default's whole: the entry is written together with a
-# copy of _default's [menus] block (the last table of config/_default/hugo.toml,
-# which stays the one place the other entries are written).
+# The enhancements section, when ENH_DIR names its section bundle
+# (sections.sh, from the lock entry rooted at /enhancements/; docs-kit C21):
+# the bundle's files are already under assets/bundles (the catalogs mount
+# below matches <project>/<segment>/), where the content adapter
+# site/enhancements/_content.gotmpl reads them; the adapter and the section
+# page go to content/enhancements in the default version only, so the
+# section publishes once and keeps its URLs when the default version
+# changes. A content adapter cannot add the section page itself (the empty
+# path is the home page's), so this writes it, .gen/enhancements/_index.md:
+# the bundle's content/_index.md with url, lastmod (the newest entry's
+# updated date) and the section's params added to its front matter. It
+# checks the bundle first, failing the build naming the file: placement
+# section at /enhancements/, project and commit as the lock says, content/
+# holding exactly the pages manifest.json lists, data/enhancements.json of
+# schema docs.opmodel.dev/data/enhancements/v1, and a data entry for every
+# entry page (content/<NNNN>/...). The hugo.toml written below gains the
+# Enhancements menu entry, so the tab exists only in a build with the
+# section. Hugo cannot merge a slice across config directories, so an
+# environment's menus.main replaces _default's whole: the entry is written
+# together with a copy of _default's [menus] block (the last table of
+# config/_default/hugo.toml, which stays the one place the other entries
+# are written).
 #
 # The Catalogs section, when CAT_DIR names the docs bundles (sections.sh sets
 # it; gen-catalogs.sh has written data/opm/catalogs.json from their lock): the
@@ -81,46 +85,46 @@ def=$(printf '%s\n' "$list" | awk -F'\t' 'NF == 4 && $4 == "true" { print $1; ex
 [ -n "$def" ] || { echo "gen-mounts: no versions, or no default version" >&2; exit 1; }
 
 # The enhancements section's generated inputs (see the header).
-ENH_TREE=${ENH_TREE:-}
+ENH_DIR=${ENH_DIR:-}
 rm -rf .gen/enhancements data/opm/enhancements.json
-if [ -n "$ENH_TREE" ]; then
-  [ -f "$ENH_TREE/INDEX.md" ] || { echo "gen-mounts: ENH_TREE $ENH_TREE holds no INDEX.md" >&2; exit 1; }
-  mkdir -p .gen/enhancements data/opm
-  updated=$(cat "$ENH_TREE"/[0-9][0-9][0-9][0-9]/config.yaml "$ENH_TREE"/archive/[0-9][0-9][0-9][0-9]/config.yaml 2>/dev/null |
-    sed -n 's/^updated:[[:space:]]*"\{0,1\}\([0-9-]*\)"\{0,1\}[[:space:]]*$/\1/p' | sort | tail -n 1)
-  {
-    printf -- '---\ntitle: Enhancements\n'
-    printf 'description: The design record of OPM, every enhancement proposal, open and closed, with its status.\n'
-    printf 'url: /enhancements/\n'
-    [ -z "$updated" ] || printf 'lastmod: %s\n' "$updated"
-    printf 'params:\n  repoPath: INDEX.md\n  llms: false\n  cards: false\n---\n'
-    # INDEX.md without HTML comments and its first heading; a shortcode
-    # delimiter fails here, as the adapter fails one in an entry.
-    awk 'BEGIN { RS = "\001" }
-      {
-        s = $0; out = ""
-        if (index(s, "{{<") || index(s, "{{%")) { print "gen-mounts: INDEX.md holds a Hugo shortcode delimiter ({{< or {{%)" > "/dev/stderr"; bad = 1; exit 1 }
-        while ((i = index(s, "<!--")) > 0) {
-          out = out substr(s, 1, i - 1); s = substr(s, i + 4)
-          j = index(s, "-->"); if (j == 0) { print "gen-mounts: INDEX.md holds an unclosed <!--" > "/dev/stderr"; bad = 1; exit 1 }
-          s = substr(s, j + 3)
-        }
-        out = out s
-        sub(/^[ \t\n]*# [^\n]*\n/, "", out)
-        printf "%s", out
-      }' "$ENH_TREE/INDEX.md"
-  } > .gen/enhancements/_index.md
-  # Every path of the repository, "blob" or "tree".
-  if [ -f "${ENH_PATHS:-}" ]; then
-    cat "$ENH_PATHS"
-  else
-    (cd "$ENH_TREE" && { find . -mindepth 1 -type d | sed 's/^/tree /'; find . -type f | sed 's/^/blob /'; }) |
-      awk '{ t = $1; p = substr($0, 8); if (p !~ /^\.git(\/|$)/) print t "\t" p }'
-  fi | awk -F'\t' '
-    $2 ~ /["\\]/ { print "gen-mounts: an enhancements path holds a quote or a backslash: " $2 > "/dev/stderr"; bad = 1; exit 1 }
-    NF == 2 { printf "%s\n    \"%s\": \"%s\"", (n++ ? "," : "{\"paths\": {"), $2, $1 }
-    END { if (!bad) printf "\n}}\n" }' > data/opm/enhancements.json
-  echo "gen-mounts: wrote .gen/enhancements/_index.md and data/opm/enhancements.json ($(grep -c '": "' data/opm/enhancements.json | tr -d ' ') paths) for the enhancements section"
+if [ -n "$ENH_DIR" ]; then
+  enh_fail() { echo "gen-mounts: enhancements bundle ($ENH_HOW): $*" >&2; exit 1; }
+  M=$ENH_DIR/manifest.json; D=$ENH_DIR/data/enhancements.json
+  jq -e . "$M" >/dev/null 2>&1 || enh_fail "manifest.json is missing or not JSON"
+  [ "$(jq -r '.placement.kind + " " + .placement.root' "$M")" = "section /enhancements/" ] ||
+    enh_fail "manifest.json places the bundle as $(jq -r '.placement.kind' "$M") at \"$(jq -r '.placement.root' "$M")\", not as section at /enhancements/"
+  [ "$(jq -r '.project' "$M")" = enhancements ] || enh_fail "manifest.json says project $(jq -r '.project' "$M"), not enhancements"
+  [ "$(jq -r '.source.commit' "$M")" = "$ENH_SHA" ] || enh_fail "manifest.json says source.commit $(jq -r '.source.commit' "$M"), the lock says $ENH_SHA"
+  have=$(cd "$ENH_DIR" && { [ ! -d content ] || find content -type f; } | sed 's#^content/##' | sort)
+  want=$(jq -r '.pages[].path' "$M" | sort)
+  extra=$(printf '%s\n' "$have" | grep . | grep -vxF "$want" || true)
+  missing=$(printf '%s\n' "$want" | grep . | grep -vxF "$have" || true)
+  [ -z "$extra" ] || enh_fail "content/ holds pages manifest.json does not list: $(printf '%s' "$extra" | tr '\n' ' ')"
+  [ -z "$missing" ] || enh_fail "manifest.json lists pages content/ does not hold: $(printf '%s' "$missing" | tr '\n' ' ')"
+  printf '%s\n' "$want" | grep -qxF _index.md || enh_fail "manifest.json lists no _index.md (the section page)"
+  [ "$(jq -r '.schema // ""' "$D" 2>/dev/null)" = docs.opmodel.dev/data/enhancements/v1 ] ||
+    enh_fail "data/enhancements.json is missing, or not docs.opmodel.dev/data/enhancements/v1"
+  # Every entry page (content/<NNNN>/_index.md or <NNNN>/<document>.md) has
+  # its data entry, as page or documents[].page.
+  known=$(jq -r '.entries[] | .page, (.documents[]?.page)' "$D" | sort -u)
+  orphans=$(printf '%s\n' "$want" | grep -E '^[0-9]{4}/' | sed -E 's#/_index\.md$##; s#\.md$##' | grep -vxF "$known" || true)
+  [ -z "$orphans" ] || enh_fail "data/enhancements.json has no entry for the pages $(printf '%s' "$orphans" | tr '\n' ' ')"
+  mkdir -p .gen/enhancements
+  updated=$(jq -r '[.entries[].updated] | max // ""' "$D")
+  src=$(jq -r '.pages[] | select(.path == "_index.md") | .source // ""' "$M")
+  awk -v U="$updated" -v S="$src" '
+    NR == 1 { if ($0 != "---") { bad = 1; exit 1 } print; next }
+    !done && $0 == "---" {
+      print "url: /enhancements/"
+      if (U != "") print "lastmod: " U
+      print "params:\n  llms: false\n  cards: false"
+      if (S != "") print "  repoPath: " S
+      print; done = 1; next
+    }
+    { print }
+    END { if (bad || !done) exit 1 }' "$ENH_DIR/content/_index.md" > .gen/enhancements/_index.md ||
+    enh_fail "content/_index.md has no front matter (--- on line 1, closed by ---)"
+  echo "gen-mounts: wrote .gen/enhancements/_index.md for the enhancements section ($(printf '%s\n' "$want" | grep -c .) pages, commit $ENH_SHA)"
 fi
 
 # The docs bundles of a version: "<tree>\t<dir>" per bundle-backed repository.
@@ -139,11 +143,8 @@ mkdir -p "$(dirname "$out")"
     printf '[[mounts]]\n  source = "%s"\n  target = "%s"\n' "$d" "$d"
   done
   printf '[[mounts]]\n  source = "content"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = [%s]\n' "$names"
-  if [ -n "$ENH_TREE" ]; then
-    # Only the files the section publishes, so a tree read in place (its .git,
-    # experiments and research included) adds nothing else to the build.
-    printf '[[mounts]]\n  source = "%s"\n  target = "assets/enhancements"\n  files = [%s]\n' "$ENH_TREE" \
-      "'INDEX.md', 'GRAPH.md', '[0-9][0-9][0-9][0-9]/{config.yaml,README.md,0[1-7]-*.md}', 'archive/[0-9][0-9][0-9][0-9]/{config.yaml,README.md,0[1-7]-*.md}'"
+  if [ -n "$ENH_DIR" ]; then
+    [ -n "${CAT_DIR:-}" ] || { echo "gen-mounts: ENH_DIR is set, but CAT_DIR is not (the section bundle is read through the bundles mount)" >&2; exit 1; }
     for d in enhancements .gen/enhancements; do
       printf '[[mounts]]\n  source = "%s"\n  target = "content/enhancements"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
     done
@@ -177,7 +178,7 @@ mkdir -p "$(dirname "$out")"
     done
   done
 } > "$out"
-echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_TREE:+, the enhancements section in $def}${CAT_DIR:+, the catalogs section in $def})"
+echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_DIR:+, the enhancements section in $def}${CAT_DIR:+, the catalogs section in $def})"
 
 cfg=$(dirname "$out")/hugo.toml
 {
@@ -189,11 +190,11 @@ printf '%s\n' "$list" | awk -F'\t' -v Q="'" '
     for (i = 1; i <= n; i++) printf "  [versions." Q "%s" Q "]\n    weight = %s\n", name[i], weight[i]
     for (i = 1; i <= n; i++) printf "[[params.opm.versions]]\n  name = " Q "%s" Q "\n  label = " Q "%s" Q "\n", name[i], label[i]
   }'
-if [ -n "$ENH_TREE" ] || [ -n "${CAT_DIR:-}" ]; then
+if [ -n "$ENH_DIR" ] || [ -n "${CAT_DIR:-}" ]; then
   awk '/^\[menus\]/ { on = 1 } on && /^\[/ && !/^\[menus\]/ && !/^\[\[menus\./ { on = 0 } on' config/_default/hugo.toml | grep . ||
     { echo "gen-mounts: config/_default/hugo.toml has no [menus] table to copy" >&2; exit 1; }
   [ -z "${CAT_DIR:-}" ] || printf "  [[menus.main]]\n    name = 'Catalogs'\n    pageRef = '/catalogs/'\n    weight = 3\n"
-  [ -z "$ENH_TREE" ] || printf "  [[menus.main]]\n    name = 'Enhancements'\n    pageRef = '/enhancements/'\n    weight = 4\n"
+  [ -z "$ENH_DIR" ] || printf "  [[menus.main]]\n    name = 'Enhancements'\n    pageRef = '/enhancements/'\n    weight = 4\n"
 fi
 } > "$cfg"
-echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${CAT_DIR:+, the Catalogs tab}${ENH_TREE:+, the Enhancements tab})"
+echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${CAT_DIR:+, the Catalogs tab}${ENH_DIR:+, the Enhancements tab})"

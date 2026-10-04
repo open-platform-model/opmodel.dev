@@ -30,8 +30,14 @@
 #                                              other build reads all six repositories from git
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
-#                                              template), read in place as explicit mode
-#                                              reads /src/enhancements
+#                                              template), the source of the section
+#                                              bundle fixture below; no build reads it
+#   site/tests/fixtures/bundles/enhancements/edge/
+#                                              the Enhancements section bundle (docs-kit
+#                                              C21) that opm-docs build writes from
+#                                              ws/enhancements committed as one commit
+#                                              (README "The Enhancements section" has the
+#                                              command); every fixture build reads it
 #   site/tests/subpath/env                     the base URL the fixture workspace also
 #                                              builds under (a two-segment path)
 #   site/tests/lint/<case>/                    lint cases
@@ -46,7 +52,6 @@
 #
 # A case directory holds any of:
 #   <repo>/docs/site/...  pages laid over the copy of the fixture workspace
-#   enhancements/...      files laid over the copy of its enhancements tree
 #   site/...              files laid over the copy of the site (site-owned pages, config)
 #   setup.sh              run after the copies, with SITE and WS set to them
 #   env                   KEY=VALUE lines exported for the build (checks only);
@@ -113,7 +118,7 @@ copy_ws() {
 # overlay CASE DIR: lay DIR's repo trees over the workspace copy and its site/
 # tree over the site copy, then run its setup.sh.
 overlay() {
-  for r in $REPOS enhancements; do
+  for r in $REPOS; do
     [ -d "$2/$r" ] && cp -R "$2/$r" "$OUT/$1/ws/"
   done
   if [ -d "$2/site" ]; then cp -R "$2/site/." "$OUT/$1/site/"; fi
@@ -395,8 +400,9 @@ $mdbad"; fi
 fi
 
 # ---------------------------------------------------------------------------
-# The Enhancements section, from the fixture's enhancements tree: unversioned
-# pages at /enhancements/, the tab, repository links mapped, the exclusions.
+# The Enhancements section, from the fixture's section bundle: unversioned
+# pages at /enhancements/, the tab, the producer's links resolved, the
+# exclusions.
 if [ $rc -eq 0 ]; then
   E=$OUT/$name/site/public/enhancements
   log=$OUT/$name/log
@@ -419,9 +425,9 @@ if [ $rc -eq 0 ]; then
   why=""
   for want in 'href=/enhancements/0001/design/>the design document' 'href=/enhancements/0001/decisions/#d1>D1' \
     'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>the index' 'href=/enhancements/graph/>the relationship graph' \
-    'href=/enhancements/0001/decisions/>Decisions' \
-    'href=https://github.com/open-platform-model/enhancements/blob/main/0001/schemas/target.cue' \
-    'href=https://github.com/open-platform-model/enhancements/tree/main/0001/schemas' \
+    'href=/enhancements/0001/decisions/>0001: Decisions' \
+    'href=https://github.com/open-platform-model/enhancements/blob/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas/target.cue' \
+    'href=https://github.com/open-platform-model/enhancements/tree/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas' \
     'href=/v1.0/docs/start/>the start section'; do
     printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
   done
@@ -620,8 +626,8 @@ if [ $rc -eq 0 ]; then
   hd=sha256:$(sha256sum "$BUNDLES/catalog-opm/history.json" | cut -c1-64)
   if [ "$got" = "explicit false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
      [ "$(jq -r '.sections.catalogs.history | map("\(.project) \(.digest)") | join(",")' "$st")" = "catalog-opm $hd" ] &&
-     [ "$(jq -r '.sections.enhancements.ref' "$st")" = worktree ]; then
-    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest, every bundle (local) and the history digest; sections.enhancements kept"
+     [ "$(jq -r '.sections.enhancements | "\(.ref) \(.sha) \(.local)"' "$st")" = "edge eddf92c16f02dddf146a6068b38a6ae03f1c4f77 true" ]; then
+    ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest, every bundle (local) and the history digest; sections.enhancements names the section bundle (edge, its commit, local)"
   else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi
 
