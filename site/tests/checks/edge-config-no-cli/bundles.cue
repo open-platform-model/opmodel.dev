@@ -7,3 +7,7 @@ docs: {
 versions: "v1.0": {
 	anchor: {project: "core", tag: "2.0"}
 }
+// A "cli" key outside docs does not count.
+sections: {
+	"cli": {repo: "open-platform-model/cli", root: "/enhancements/"}
+}
