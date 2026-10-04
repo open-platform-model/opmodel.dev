@@ -195,6 +195,35 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# The site-owned pages' dates (gen-site-dates.sh, a host step; git is in the
+# image, so it runs here on a throwaway repository): a full clone dates each
+# page by its own last commit; a shallow clone dates none, so that
+# OPM_REQUIRE_DATES=1 fails instead of publishing the one commit's date.
+sd=$OUT/site-dates
+mkdir -p "$sd/repo/site/scripts" "$sd/repo/site/content/docs"
+cp "$SCRIPTS/gen-site-dates.sh" "$sd/repo/site/scripts/"
+(
+  set -e
+  cd "$sd/repo"
+  export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.org GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.org
+  git init -q -b main .
+  printf -- '---\ntitle: A\n---\n' > site/content/_index.md
+  git add -A; GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z git -c commit.gpgsign=false commit -q -m one
+  printf -- '---\ntitle: B\n---\n' > site/content/docs/_index.md
+  git add -A; GIT_AUTHOR_DATE=2026-02-01T00:00:00Z GIT_COMMITTER_DATE=2026-02-01T00:00:00Z git -c commit.gpgsign=false commit -q -m two
+  sh site/scripts/gen-site-dates.sh
+  git clone -q --depth 1 "file://$sd/repo" "$sd/shallow"
+  sh "$sd/shallow/site/scripts/gen-site-dates.sh"
+) > "$sd/log" 2>&1
+if [ "$(jq -r '."opmodel.dev/site/content/_index.md"' "$sd/repo/site/data/opm/lastmod.json" 2>/dev/null | cut -c1-19)" = 2026-01-01T00:00:00 ] &&
+   [ "$(jq -r '."opmodel.dev/site/content/docs/_index.md"' "$sd/repo/site/data/opm/lastmod.json" 2>/dev/null | cut -c1-19)" = 2026-02-01T00:00:00 ]; then
+  ok "site-dates/full" "a full clone dates each site-owned page by its own last commit"
+else bad "site-dates/full" "the pages' dates are not their own commits'" "$sd/log"; fi
+if [ "$(jq -c . "$sd/shallow/site/data/opm/lastmod.json" 2>/dev/null)" = '{}' ] && grep -qF 'this is a shallow clone' "$sd/log"; then
+  ok "site-dates/shallow" "a shallow clone dates no page and says why, so OPM_REQUIRE_DATES=1 fails (checks/site-dates-missing)"
+else bad "site-dates/shallow" "a shallow clone wrote dates" "$sd/log"; fi
+
+# ---------------------------------------------------------------------------
 # Docs bundles at pull time, through the real tool (docs-kit C16): each case
 # edits a copy of the fixture trees and the all-local pull must refuse it
 # with the exit code and the message C16 gives. The registry case, a pin
@@ -218,6 +247,11 @@ docs_pull_case docs-pull-collision 2 "v1.0: operating/deploy-a-fixture.md is in 
 docs_pull_case docs-pull-pin-version-mismatch 1 "the tree is core 2.0.0-beta.4, and cli 1.0.0-beta.9 pins core 2.0.0-beta.3" '
   jq ".version = \"2.0.0-beta.4\" | .source.ref = \"v2.0.0-beta.4\"" _versions/v1.0/core/manifest.json > m && mv m _versions/v1.0/core/manifest.json
   jq "(.docs[] | select(.project == \"core\") | .version) = \"2.0.0-beta.4\"" lock.json > l && mv l lock.json'
+# The page dialect (docs-kit C11) is enforced only here, at pull: a bundle
+# page that breaks it (a relative .md link) is refused, naming file and line.
+docs_pull_case docs-pull-lint 2 "concepts/lint-bad.md:7:" '
+  printf -- "---\ntitle: Lint bad\ndescription: A page that breaks the dialect.\ntype: explanation\n---\n\nSee [the concept](fixture-concept.md).\n" > _versions/v1.0/core/content/concepts/lint-bad.md
+  jq ".pages += [{path: \"concepts/lint-bad.md\", source: \"docs/site/concepts/lint-bad.md\", generated: false}] | .pages |= sort_by(.path)" _versions/v1.0/core/manifest.json > m && mv m _versions/v1.0/core/manifest.json'
 docs_pull_case docs-pull-pin-missing 2 "v1.0: cli 1.0.0-beta.9 (local) pins no version of library" '
   jq "del(.pins.library)" _versions/v1.0/cli/manifest.json > m && mv m _versions/v1.0/cli/manifest.json
   jq "del(.docs[] | select(.project == \"cli\") | .pins.library)" lock.json > l && mv l lock.json'
@@ -827,7 +861,7 @@ cp "$BUNDLES/_versions/v1.0/library/manifest.json" "$B/_versions/v1.0/library/ma
 cp "$BUNDLES/_versions/v1.0/library/content/embedding/embed-the-kernel.md" "$B/_versions/v1.0/library/content/embedding/"
 jq '.version = "1.0.0-beta.8" | .source.ref = "v1.0.0-beta.8"' "$B/_versions/v0.9/cli/manifest.json" > "$B/m" && mv "$B/m" "$B/_versions/v0.9/cli/manifest.json"
 jq '(.docs[] | select(.site == "v0.9" and .project == "cli") | .version) = "1.0.0-beta.8"' "$B/lock.json" > "$B/l" && mv "$B/l" "$B/lock.json"
-printf '[version "v0.9"]\n\tlabel = v0.9 (test)\n\tweight = 1\n\tdefault = true\n[version "v1.0"]\n\tlabel = v1.0 (bundles)\n\tweight = 2\n' > "$OUT/$name/site/versions.conf"
+printf '[version "v0.9"]\n\tlabel = v0.9 (test) ; an inline comment, which is no part of the label\n\tweight = 1\n\tdefault = true\n[version "v1.0"]\n\tlabel = v1.0 (bundles)\n\tweight = 2\n' > "$OUT/$name/site/versions.conf"
 build "$name"; rc=$?
 R=$OUT/$name/site/public
 if [ $rc -ne 0 ]; then bad "$name" "the two-version build failed (exit $rc)" "$OUT/$name/log"

@@ -27,8 +27,10 @@
 # OPM_VERSIONS_CONF, a path relative to SITE_DIR: the two-version test)
 # gives each its display keys, [version "<name>"] label, weight and default.
 # The build fails when the two name different versions, on any other section
-# or key, on a missing or empty label, a weight that is not a positive
-# integer, two versions with one weight, or not exactly one default.
+# or key, a key set twice, a missing or empty label or one holding a quote, a
+# backslash or a tab, a weight that is not a positive integer, two versions
+# with one weight, a default that is not true or false, or not exactly one
+# default (site/tests/checks/versions-conf-*).
 #
 # The enhancements section (site/enhancements/), unversioned, comes from its
 # section bundle (docs-kit C21): the lock entry whose root is /enhancements/
@@ -76,7 +78,9 @@ kv=$(awk -v F="$VCONF" '
   }
   {
     if (v == "" || index($0, "=") == 0) { print F ":" NR ": \"" trim($0) "\" is not a key = value line under a [version \"<name>\"] section" > "/dev/stderr"; bad = 1; exit 1 }
-    k = trim(substr($0, 1, index($0, "=") - 1)); val = trim(substr($0, index($0, "=") + 1))
+    k = trim(substr($0, 1, index($0, "=") - 1)); val = substr($0, index($0, "=") + 1)
+    # An unquoted ; or # starts a comment, as in git-config syntax.
+    sub(/[;#].*$/, "", val); val = trim(val)
     if (k != "label" && k != "weight" && k != "default") { print F ": version " v " has the key " k "; only label, weight and default are allowed (the version list is site/bundles.cue versions)" > "/dev/stderr"; bad = 1; exit 1 }
     if ((v SUBSEP k) in seen) { print F ": version " v " sets " k " twice" > "/dev/stderr"; bad = 1; exit 1 }
     seen[v, k]; print v "\t" k "\t" val
@@ -86,12 +90,12 @@ inconf=$(printf '%s\n' "$kv" | cut -f1 | sed '/^$/d' | sort -u)
 a=$(printf '%s\n' $inlock | sort | tr '\n' ' '); b=$(printf '%s\n' $inconf | sort | tr '\n' ' ')
 [ "$a" = "$b" ] || sections_fail "the lock's docs entries name the site versions ${a% }, but $VCONF names ${b% }; they must name the same (site/bundles.cue versions is the list; run task bundles:pull, or fix $VCONF)"
 mkdir -p .gen
-get_key() { printf '%s\n' "$kv" | awk -F'\t' -v v="$1" -v k="$2" '$1 == v && $2 == k { print $3 }'; }
+get_key() { printf '%s\n' "$kv" | awk -F'\t' -v v="$1" -v k="$2" '$1 == v && $2 == k { sub(/^[^\t]*\t[^\t]*\t/, ""); print }'; }
 : > .gen/versions.tsv.tmp
 for v in $inconf; do
   label=$(get_key "$v" label); weight=$(get_key "$v" weight); def=$(get_key "$v" default)
   [ -n "$label" ] || sections_fail "$VCONF: version $v has no label"
-  case "$label" in *[\"\'\\]*) sections_fail "$VCONF: version $v's label holds a quote or a backslash" ;; esac
+  case "$label" in *[\"\'\\]*|*"$(printf '\t')"*) sections_fail "$VCONF: version $v's label holds a quote, a backslash or a tab" ;; esac
   case "$weight" in ''|0*|*[!0-9]*) sections_fail "$VCONF: version $v's weight \"$weight\" is not a positive integer" ;; esac
   case "$def" in true) ;; ''|false) def=false ;; *) sections_fail "$VCONF: version $v's default \"$def\" is not true or false" ;; esac
   printf '%s\t%s\t%s\t%s\n' "$v" "$label" "$weight" "$def" >> .gen/versions.tsv.tmp

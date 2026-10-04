@@ -1,0 +1,2 @@
++ build-all: versions.conf: version v0.9's label holds a quote, a backslash or a tab
+- == drift guard
