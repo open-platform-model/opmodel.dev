@@ -20,8 +20,9 @@
        repository (repoPath) instead: viewURL at the commit the section was
        built from (data/opm/build.json's sections.enhancements), when the
        build names one, and no editURL, since an entry changes through its
-       own review, not a page edit. Its key is empty: its date is the entry's
-       updated date, not a git date.
+       own review, not a page edit. Its key is empty: its date is not a git
+       date but the bundle's (the entry's updated date on its own page, the
+       manifest's lastmod on a document).
        A page of the Catalogs section names the file its bundle says it came
        from (params.catalog.source) in the catalog's repository, viewURL at
        the commit the bundle was built from, and no editURL: an edit lands on

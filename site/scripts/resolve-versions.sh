@@ -944,7 +944,7 @@ nvers=$(printf '%s' "$ordered" | grep -c .)
 case "$mode" in
   check)
     printf '%s\n%s%s%s' "$header" "$siteline" "$fblines" "$rows"
-    echo "resolve-versions: $nvers version(s)resolved from $manifest; nothing written" >&2
+    echo "resolve-versions: $nvers version(s) resolved from $manifest; nothing written" >&2
     exit 0 ;;
   freeze)
     freeze
@@ -956,4 +956,4 @@ printf '%s\n%s%s%s' "$header" "$siteline" "$fblines" "$rows" > "$OUT.tmp"
 freeze > "$FROZEN.tmp"
 mv "$OUT.tmp" "$OUT"
 mv "$FROZEN.tmp" "$FROZEN"
-echo "resolve-versions: $nvers version(s)from $manifest -> $OUT, $FROZEN"
+echo "resolve-versions: $nvers version(s) from $manifest -> $OUT, $FROZEN"

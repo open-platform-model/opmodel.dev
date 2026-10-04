@@ -163,7 +163,8 @@ jobs:
       - name: Summary
         # Every version's resolved refs: the ref the stamp names, where its
         # docs tree came from, the commit built and the rule that chose it
-        # (not the checkout heads, which a line version does not read).
+        # (not the checkout heads, which a line version does not read), and
+        # the Enhancements section.
         run: |
           {
             echo '### Site build'
@@ -456,8 +457,9 @@ jobs:
               | (["cli", "core", "library", "opm-operator", "opm", "catalog-opm-docs"] - [$b[].project]) == []
                 and ($b | all(.version == "edge" and (.local | not)))
                 and (.sections.enhancements.local == false)' "$stamp" >/dev/null; then
-            echo "::error::The edge build did not read cli, core, library, opm-operator, opm and catalog-opm-docs from pulled edge bundles; the stamp's v1.0 bundles are below."
+            echo "::error::The edge build did not read cli, core, library, opm-operator, opm and catalog-opm-docs, and the Enhancements section, from pulled edge bundles; the stamp's v1.0 bundles and its Enhancements section are below."
             jq '.versions["v1.0"].bundles // []' "$stamp"
+            jq '.sections.enhancements // "no Enhancements section"' "$stamp"
             exit 1
           fi
       - name: Upload the edge lock
@@ -504,8 +506,11 @@ jobs:
               summary "| $project | $role | $tag | $version | $digest | $c | $main |"
             done
           summary '' '| Catalog | Segment | Version | Revision | Digest | Commit |' '|---|---|---|---|---|---|'
-          jq -r '.bundles[]
+          jq -r '.bundles[] | select(.root | startswith("/catalogs/"))
             | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' "$lock" >> "$GITHUB_STEP_SUMMARY"
+          summary '' '| Section | Segment | Digest | Commit |' '|---|---|---|---|'
+          jq -r '.bundles[] | select(.root | startswith("/catalogs/") | not)
+            | "| \(.project) (\(.root)) | \(.segment) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' "$lock" >> "$GITHUB_STEP_SUMMARY"
 
   # The interim GitHub Pages deploy (README.md, "GitHub Pages (interim)"). It
   # publishes the Pages artifact the build job uploaded; it checks nothing out
