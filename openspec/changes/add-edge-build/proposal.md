@@ -7,13 +7,13 @@ CI's `sources-main` job builds every source repository's `main` together (explic
 ## Gates
 
 - **Section 1:** none. The pinned `opm-docs` (0.6.0) already pulls a site version whose anchor and every other project sit at `edge`: a scratch pull on 2026-10-04 resolved and verified cli, core, library and opm-operator `edge` and passed the cross-bundle checks (design.md Decision 1).
-- **Section 2:** section 1 merged. Merging section 2 is **G2-edge**: core `publish-definitions-bundle` section 3, cli `publish-cli-bundle` section 3 and opm-operator `publish-crd-bundle` section 3 (docs-kit orchestration step 8) wait for it, beside G2-switch.
+- **Section 2:** section 1 merged. Merging it is the `sources-main` switch, docs-kit's **G2-edge** (docs-kit#43): the step-8 retirements in core, cli and opm-operator wait for it, beside G2-switch.
 
 ## What Changes
 
 - **Not a published version.** The edge build is CI-only: nothing it builds is uploaded or deployed, and the published site's version set, URLs, sitemap and switcher do not change (design.md Decision 2).
-- `site/scripts/edge-config.sh` derives the edge pull config from `site/bundles.cue`: the same registry, signer, `tabs` and `docs`, with `versions` replaced by one entry, `"v1.0"`, whose anchor is `cli` at `edge` and whose `tags` put every other `docs` project at `edge` (no `pinned`).
-- `OPM_BUNDLES_CONFIG` names the pull config (default `site/bundles.cue`) for `bundles:pull`, the lock check in `sections.sh` and the signer lookup in `gen-docs-bundles.sh`; `OPM_BUNDLES` already names the unpacked tree. With another config, a committed `site/bundles.frozen.json` is not applied (it was pulled for `bundles.cue`).
+- `site/scripts/edge-config.sh` derives the edge pull config from `site/bundles.cue`: every top-level block kept in order, with `versions` replaced by one entry, `"v1.0"`, whose anchor is `cli` at `edge` and whose `tags` put every other `docs` project at `edge` (no `pinned`).
+- `OPM_BUNDLES_CONFIG` and `OPM_BUNDLES_OUT` name the pull's config and output directory (defaults `site/bundles.cue`, `site/.bundles`); `OPM_BUNDLES` keeps meaning only the tree a build reads. With another config, a committed `site/bundles.frozen.json` is not applied (it was pulled for `bundles.cue`).
 - `task build:edge`: derive, pull into `site/.edge/bundles/`, then build in explicit mode with the lock's docs entries (`OPM_VERSIONS=v1.0=/src OPM_DOCS_BUNDLES=1`).
 - `sources-main` runs `task build:edge`, pulls on its own (no longer the build job's lock, so it no longer waits for `build`), and records the edge digests in its summary and an `edge-lock` artifact.
 - `retire-git-pipeline` keeps the edge build working when explicit mode goes (one line in its design and tasks).
@@ -47,7 +47,7 @@ site/.edge/bundles.cue
 
 ## Impact
 
-- **Files.** `site/scripts/{edge-config (new),run-in-image,sections,gen-docs-bundles,test-site}.sh`, `Taskfile.yml`, `.gitignore`, `.github/workflows/site.yml` (`sources-main`), `site/tests/checks/` (new cases), `README.md` (CI, "Docs bundles in a site version"), `AGENTS.md` (Site versions, Build And Dev Commands), `openspec/changes/retire-git-pipeline/{design,tasks}.md`.
+- **Files.** `site/scripts/{edge-config (new),run-in-image,test-site}.sh`, `Taskfile.yml`, `.gitignore`, `.github/workflows/site.yml` (`sources-main`), `site/tests/checks/` (new cases), `site/tests/fixtures/edge/` (new), `README.md` (CI, "Docs bundles in a site version", Quick Start, Contributing), `AGENTS.md` (Site versions, Environment Notes, Build And Dev Commands), `openspec/changes/retire-git-pipeline/{design,tasks}.md`.
 - **Build inputs.** The published build: none change. `sources-main`: gains the four products' `edge` docs bundles and the catalog tab resolved fresh; loses the build job's frozen lock.
 - **Published URLs.** None. The version set is unchanged and 0021:OQ15 is not touched.
 - **Other repositories.** docs-kit's orchestration names G2-edge as a gate of step 8; core, cli and opm-operator name it on their retire sections. No docs-kit contract changes: C16 already expresses an all-edge site version under a `vN.N` key (design.md Decision 1).
