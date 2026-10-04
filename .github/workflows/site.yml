@@ -445,12 +445,14 @@ jobs:
         # Without OPM_DOCS_BUNDLES=1 an explicit build reads every product
         # from its git checkout and still passes, so the stamp must show
         # cli, core, library, opm-operator, opm and catalog-opm-docs read
-        # from pulled (not local) edge bundles, and no other kind of bundle.
+        # from pulled (not local) edge bundles, and no other kind of bundle,
+        # and the Enhancements section from its pulled bundle.
         run: |
           stamp=site/public/build-stamp.json
           if ! jq -e '(.versions["v1.0"].bundles // []) as $b
               | (["cli", "core", "library", "opm-operator", "opm", "catalog-opm-docs"] - [$b[].project]) == []
-                and ($b | all(.version == "edge" and (.local | not)))' "$stamp" >/dev/null; then
+                and ($b | all(.version == "edge" and (.local | not)))
+                and (.sections.enhancements.local == false)' "$stamp" >/dev/null; then
             echo "::error::The edge build did not read cli, core, library, opm-operator, opm and catalog-opm-docs from pulled edge bundles; the stamp's v1.0 bundles are below."
             jq '.versions["v1.0"].bundles // []' "$stamp"
             exit 1
