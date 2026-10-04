@@ -68,7 +68,7 @@ Every check case that used the fixture workspace takes a bundle fixture instead;
 
 ### 6. CI and Taskfile
 
-`.github/workflows/site.yml` checks out only this repository in every job; the source-checkout steps, their `fetch-depth: 0`, `OPM_REQUIRE_DATES` for source pages and the `build-manifest` upload go. Taskfile loses `versions:prepare`, `versions:check`, `versions:fetch`, `lint:sources`; `build` and `serve` depend on a current lock instead of `versions:prepare`; `versions:test` builds the two bundle versions. `run-in-image.sh` loses `sources()`, the `/src/<repo>` mounts and `OPM_BUILD_REFS`.
+`.github/workflows/site.yml` checks out only this repository in every job; the source-checkout steps, their `fetch-depth: 0`, `OPM_REQUIRE_DATES` for source pages and the `build-manifest` upload go. Taskfile loses `versions:prepare`, `versions:check`, `versions:fetch`, `lint:sources`; `build` and `serve` depend on a current lock instead of `versions:prepare`; `versions:test` builds the two bundle versions. `run-in-image.sh` loses `sources()`, the `/src/<repo>` mounts and `OPM_BUILD_REFS`. `task build:edge` (`add-edge-build`) then builds in manifest mode like `build`, over the derived config's `v1.0`, every repository from a bundle once phase 3 is done, and `sources-main` checks out only this repository like every other job.
 
 ## Research & Decisions
 

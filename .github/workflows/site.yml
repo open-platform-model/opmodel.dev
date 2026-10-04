@@ -16,8 +16,9 @@ on:
     # release and of the library, core and opm-operator releases it pins;
     # catalog_opm opm-v4.* tags), opm main, and the main or release-branch
     # head of catalog_opm while its docs rule reads it. The sources-main job
-    # checks every source repository's main in explicit mode (lint, build
-    # checks, links) and publishes nothing. No source repository dispatches here; gh workflow
+    # checks every source repository's main together (task build:edge: the
+    # four products' edge docs bundles, opm and catalog_opm from main; lint,
+    # build checks, links) and publishes nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because
     # GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
@@ -147,8 +148,8 @@ jobs:
         # so no token and no permission. task build never pulls.
         run: task bundles:pull
       - name: Upload the docs bundles' lock
-        # The digests this build reads, so the browser and sources-main jobs
-        # pull exactly them (--frozen) and QA checks what deploys. Every
+        # The digests this build reads, so the browser job pulls exactly
+        # them (--frozen) and QA checks what deploys. Every
         # event; include-hidden-files, because .bundles is a dot directory.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -374,18 +375,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  # The source pages on every source repository's main: an explicit-mode
-  # build (OPM_VERSIONS=v1.0=/src) runs the source lint, every build check
-  # and the link crawl over the six main checkouts, the four whose released
-  # docs v1.0 reads from bundles included, so a page broken on main fails
-  # here before it is released. It uploads nothing and
-  # pages-deploy does not need it, so it cannot change what is published.
-  # Dates are not its subject: shallow checkouts, OPM_REQUIRE_DATES off.
+  # The source pages on every source repository's main, built together:
+  # task build:edge (openspec add-edge-build) pulls cli (the anchor), core,
+  # library and opm-operator from their edge docs bundles (each product
+  # publishes one on every push to main, generated reference included) and
+  # the Catalogs tab at its newest digests, then runs an explicit-mode build
+  # (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1) with opm and catalog_opm
+  # from their main checkouts: the source lint, every build check and the
+  # link crawl, so a page broken on main fails here before it is released.
+  # A missing edge bundle fails the pull (exit 2, naming the repository);
+  # there is no fallback to git, whose main no longer holds the generated
+  # reference. CI-only: it uploads only the edge lock, pages-deploy does not
+  # need it, and it cannot change what is published. It pulls its own
+  # bundles, so it waits for no job. The four product checkouts stay because
+  # explicit mode checks every root before a container starts. Dates are not
+  # its subject: shallow checkouts, OPM_REQUIRE_DATES off.
   sources-main:
     name: Source pages on main (not published)
-    # It pulls the docs bundles the build job read (bundles-lock), so it
-    # waits for that job.
-    needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -453,32 +459,46 @@ jobs:
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           version: 3.52.0
-      - name: Download the build job's docs bundles' lock
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Build every main from the edge docs bundles
+        # Derive site/.edge/bundles.cue, pull it into site/.edge/bundles/
+        # (anonymous, read-only: no token), build in explicit mode. The task
+        # sets OPM_REQUIRE_DATES=0 and the other build variables itself.
+        run: task build:edge
+      - name: Upload the edge lock
+        # The digests this run read, also when the build failed after the
+        # pull: OPM_BUNDLES_FROZEN=<this lock> task build:edge replays it.
+        # include-hidden-files, because .edge is a dot directory.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: bundles-lock
-          path: ${{ runner.temp }}/bundles-lock
-      - name: Pull the docs bundles the build job read
-        # Exactly the build job's digests (opm-docs pull --frozen, signatures
-        # still checked), so this job checks the bundles that deploy, not
-        # whatever edge moved to since. The stamp then says "frozen": true.
-        env:
-          OPM_BUNDLES_FROZEN: ${{ runner.temp }}/bundles-lock/lock.json
-        run: task bundles:pull
-      - name: Read every repository from its main checkout
-        # The frozen lock names v1.0's docs bundles; without its docs entries
-        # this build reads all six main checkouts, so their pages are linted
-        # and link-checked against each other before any of them is released.
-        # (Explicit mode also ignores them unless OPM_DOCS_BUNDLES=1.)
+          name: edge-lock
+          path: opmodel.dev/site/.edge/bundles/lock.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Summary
+        # The edge docs bundles and catalog segments this run read, from the
+        # lock (written by the pull even when the build then failed).
+        if: always()
         run: |
-          jq 'del(.docs)' site/.bundles/lock.json > site/.bundles/lock.json.tmp
-          mv site/.bundles/lock.json.tmp site/.bundles/lock.json
-          rm -rf site/.bundles/_versions
-      - name: Build the main checkouts in explicit mode
-        env:
-          OPM_VERSIONS: v1.0=/src
-          OPM_REQUIRE_DATES: '0'
-        run: task build
+          lock=site/.edge/bundles/lock.json
+          {
+            echo '### Every main, from edge docs bundles (not published)'
+            echo
+            if [ ! -f "$lock" ]; then
+              echo 'The edge pull wrote no lock: see the job log (a missing edge bundle names its repository).'
+              exit 0
+            fi
+            echo '| Project | Role | Tag | Version | Digest | Commit |'
+            echo '|---|---|---|---|---|---|'
+            jq -r '.docs // [] | .[]
+              | "| \(.project) | \(.role) | \(.tag // "") | \(.version) | \(if .local then "local" else .digest[0:19] end) | \(if .signer then "[\(.commit[0:12])](\(.signer.repository)/commit/\(.commit))" else .commit[0:12] end) |"' "$lock"
+            echo
+            echo '| Catalog | Segment | Version | Revision | Digest | Commit |'
+            echo '|---|---|---|---|---|---|'
+            jq -r '.bundles[]
+              | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' "$lock"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # The interim GitHub Pages deploy (README.md, "GitHub Pages (interim)"). It
   # publishes the Pages artifact the build job uploaded; it checks nothing out
