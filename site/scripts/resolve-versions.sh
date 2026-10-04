@@ -73,15 +73,18 @@
 # lock): "from-bundles = <repo> ..." mirrors that set here, where the
 # resolver runs on the host without CUE or the lock, and the build fails when
 # the mirror and the lock disagree (gen-docs-bundles.sh). The repositories it
-# may name are cli, core, library, opm-operator and opm; one that names cli
-# names library, core and opm-operator too (the cli bundle's pins choose
-# them), and then the version has no cli anchor: a line version has
-# catalog-line and no cli-line (the resolver refuses both together), an
-# anchored one catalog and no cli. opm's bundle follows its own tag
+# may name are cli, core, library, opm-operator, opm and catalog_opm; one
+# that names cli names library, core and opm-operator too (the cli bundle's
+# pins choose them), and then the version has no cli anchor: a line version
+# has catalog-line and no cli-line (the resolver refuses both together), an
+# anchored one no cli. opm's and catalog_opm's bundles follow their own tags
 # (site/bundles.cue tags), so a version whose from-bundles names opm has no
-# opm row and no opm key, and a line version never reads opm's main. A named
-# repository gets no row (nothing archives it, nothing reads its git tree for
-# that version) and no override; the others resolve as before. It is one "# from-bundles" line of versions.tsv
+# opm key and never reads opm's main, and one that names catalog_opm has no
+# catalog and no catalog-line key. A named repository gets no row (nothing
+# archives it, nothing reads its git tree for that version) and no override;
+# the others resolve as before. A version whose from-bundles names all six
+# has one row with empty repository fields, which carries its label, weight
+# and default, kind line (every bundle it reads follows a release line). It is one "# from-bundles" line of versions.tsv
 # ("# from-bundles\t<version>\t<repo> ...") and the same key in frozen.conf.
 #
 # The manifest may also name the enhancements section, [section "enhancements"],
@@ -463,18 +466,24 @@ for v in $versions; do
   done
   # from-bundles: which repositories the version reads from docs bundles.
   fb=$(one "version.$v.from-bundles")
-  fbcli=""; fbopm=""
+  fbcli=""; fbopm=""; fbcat=""
   if has "$v" from-bundles; then
-    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm)"
+    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm, catalog_opm)"
     fbseen=" "
     for r in $fb; do
-      case " cli core library opm-operator opm " in *" $r "*) ;; *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator and opm publish docs bundles" ;; esac
+      case " cli core library opm-operator opm catalog_opm " in *" $r "*) ;; *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator, opm and catalog_opm publish docs bundles" ;; esac
       case "$fbseen" in *" $r "*) err "version $v: from-bundles names $r twice" ;; esac
       fbseen="$fbseen$r "
     done
     case "$fbseen" in *" opm "*)
       fbopm=yes
       if has "$v" opm; then err "version $v: from-bundles names opm, which excludes opm: opm's docs bundle follows its own tag in site/bundles.cue"; fi ;;
+    esac
+    case "$fbseen" in *" catalog_opm "*)
+      fbcat=yes
+      for k in catalog catalog-line; do
+        if has "$v" "$k"; then err "version $v: from-bundles names catalog_opm, which excludes $k: catalog_opm's docs bundle (catalog-opm-docs) follows its own tag in site/bundles.cue"; fi
+      done ;;
     esac
     case "$fbseen" in *" cli "*)
       fbcli=yes
@@ -521,6 +530,7 @@ for v in $versions; do
       kind=anchored
       for k in catalog opm; do
         [ "$k" != opm ] || [ -z "$fbopm" ] || continue
+        [ "$k" != catalog ] || [ -z "$fbcat" ] || continue
         if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set catalog-line)"; fi
       done
     fi
@@ -532,7 +542,8 @@ for v in $versions; do
     done
     cl=$(one "version.$v.cli-line")
     if ! printf '%s' "$cl" | grep -Eq '^v[0-9]+\.[0-9]+$'; then err "version $v: cli-line \"$cl\": not a cli minor line vX.Y (for example v1.0)"; fi
-    if ! has "$v" catalog-line; then err "version $v: cli-line needs catalog-line = opm-vN, the opm catalog major (for example opm-v4)"
+    if [ -n "$fbcat" ]; then :
+    elif ! has "$v" catalog-line; then err "version $v: cli-line needs catalog-line = opm-vN, the opm catalog major (for example opm-v4)"
     else
       gl=$(one "version.$v.catalog-line")
       if printf '%s' "$gl" | grep -Eq '^opm-v[0-9]+$'; then :
@@ -544,6 +555,7 @@ for v in $versions; do
     kind=anchored
     for k in cli catalog opm; do
       [ "$k" != opm ] || [ -z "$fbopm" ] || continue
+      [ "$k" != catalog ] || [ -z "$fbcat" ] || continue
       if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set source = main, or cli-line and catalog-line)"; fi
     done
     if has "$v" catalog-line; then err "version $v: catalog-line needs cli-line: an anchored version names catalog = <tag or SHA> instead"; fi
@@ -767,30 +779,33 @@ resolve_line() {
       fi
     done
   fi
-  # catalog_opm: the newest tag of the catalog major.
-  groot=$(root_of catalog_opm); gsha=""; gref=""
-  if gref=$(newest_in_line "$groot" opm- "${gl#opm-v}"); then gsha=$(commit_of "$groot" "refs/tags/$gref"); else gref=""; fi
-  ghow="line:newest $gl.* tag"
-  o=$(ovref catalog_opm)
-  if [ -n "$o" ]; then
-    oref=${o%%"$TAB"*}
-    if osha=$(anchor catalog_opm "$oref"); then
-      passes=no; replaced="no tag"
-      if [ -n "$gsha" ]; then
-        replaced="$gref ($ghow)"
-        release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names"
-        if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
+  # catalog_opm: the newest tag of the catalog major, unless the version reads
+  # catalog_opm from its docs bundle (from-bundles; then it has no catalog-line).
+  if [ -n "$gl" ]; then
+    groot=$(root_of catalog_opm); gsha=""; gref=""
+    if gref=$(newest_in_line "$groot" opm- "${gl#opm-v}"); then gsha=$(commit_of "$groot" "refs/tags/$gref"); else gref=""; fi
+    ghow="line:newest $gl.* tag"
+    o=$(ovref catalog_opm)
+    if [ -n "$o" ]; then
+      oref=${o%%"$TAB"*}
+      if osha=$(anchor catalog_opm "$oref"); then
+        passes=no; replaced="no tag"
+        if [ -n "$gsha" ]; then
+          replaced="$gref ($ghow)"
+          release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names"
+          if [ -n "$rd_sha" ] && [ -z "$rd_problems" ]; then passes=yes; fi
+        fi
+        override_row "$lv" catalog_opm "$oref" "$osha" "override:${o#*"$TAB"}" "$replaced" "$passes"
+      else
+        err "$lv: catalog_opm $oref: $osha"
       fi
-      override_row "$lv" catalog_opm "$oref" "$osha" "override:${o#*"$TAB"}" "$replaced" "$passes"
+    elif [ -n "$gsha" ]; then
+      release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names, newest tag of line $gl"
+      report "$lv" catalog_opm "" "$rd_problems"
+      [ -z "$rd_sha" ] || lrow catalog_opm "$gref" "$rd_sha" "$ghow; docs: $rd_rule" "$rd_docs"
     else
-      err "$lv: catalog_opm $oref: $osha"
+      err "$lv: catalog_opm line $gl: no tag $gl.<minor>.<patch>[-<pre>] in $groot; fetch its tags (task versions:fetch)"
     fi
-  elif [ -n "$gsha" ]; then
-    release_docs catalog_opm opm- "$gref" "$gsha" "the release the stamp names, newest tag of line $gl"
-    report "$lv" catalog_opm "" "$rd_problems"
-    [ -z "$rd_sha" ] || lrow catalog_opm "$gref" "$rd_sha" "$ghow; docs: $rd_rule" "$rd_docs"
-  else
-    err "$lv: catalog_opm line $gl: no tag $gl.<minor>.<patch>[-<pre>] in $groot; fetch its tags (task versions:fetch)"
   fi
   # opm: no release line; the head of main. An override is refused unless that
   # head itself fails, since opm has no release to fall back to. A version
@@ -813,6 +828,13 @@ resolve_line() {
 }
 
 ordered=$(for v in $versions; do printf '%s %s\n' "$(one "version.$v.weight")" "$v"; done | sort -n | awk '{ print $2 }')
+# bare_row VERSION LABEL WEIGHT DEFAULT KIND: a version that reads every
+# repository from docs bundles (from-bundles names all six) has no git row;
+# one row with empty repository fields still carries its label, weight and
+# default, and nothing archives or dates a repository for it.
+bare_row() {
+  case "$rows" in "$1$TAB"*|*"$NL$1$TAB"*) ;; *) row "$1" "$2" "$3" "$4" "$5" "" "" "" "" "" ;; esac
+}
 for v in $ordered; do
   label=$(one "version.$v.label"); w=$(one "version.$v.weight")
   case " $defaults " in *" $v "*) d=true ;; *) d=false ;; esac
@@ -835,6 +857,7 @@ for v in $ordered; do
       row "$v" "$label" "$w" "$d" line "$r" "$(printf '%s' "$line" | cut -f2)" "$(printf '%s' "$line" | cut -f3)" \
         "$(printf '%s' "$line" | cut -f4)" "$(printf '%s' "$line" | cut -f5)"
     done
+    bare_row "$v" "$label" "$w" "$d" line
     continue
   fi
   # cli, the anchor: its pins are read only when it resolves. A version that
@@ -867,6 +890,10 @@ for v in $ordered; do
     check_ref "$v" "$r" "$ref" "$sha" anchored
     row "$v" "$label" "$w" "$d" anchored "$r" "$ref" "$sha" "$how" "$docs"
   done
+  # Every repository from a docs bundle whose tag moves (the cli line, its
+  # pins, opm's and the catalog's lines): resolved again on every pull, so a
+  # line version, though it has no line key.
+  case "$fb" in *" cli "*" catalog_opm "*|*" catalog_opm "*" cli "*) bare_row "$v" "$label" "$w" "$d" line ;; *) bare_row "$v" "$label" "$w" "$d" anchored ;; esac
   fails=$(printf '%s\n' "$derived" | sed -n 's/^!//p')
   [ -z "$fails" ] || errs="$errs$fails$NL"
 done
@@ -954,7 +981,7 @@ freeze() {
         v = order[i]; printf "%s", head[v]
         if (v in fb) printf "\tfrom-bundles = %s\n", fb[v]
         if (key[v, "cli"] != "") printf "%s\tcli = %s\n", note[v], key[v, "cli"]
-        printf "\tcatalog = %s\n", key[v, "catalog"]
+        if (key[v, "catalog"] != "") printf "\tcatalog = %s\n", key[v, "catalog"]
         if (key[v, "opm"] != "") printf "\topm = %s\n", key[v, "opm"]
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }

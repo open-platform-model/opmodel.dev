@@ -22,7 +22,9 @@
        (data/opm/docs-bundles.json; docs-kit C16) names them after the git
        refs, "docs bundles cli 1.0.0-beta.7, library 1.0.0-beta.3, ...", each
        linking the commit its bundle was built from, with its role, tag and
-       digest (or "local") as the link title; the git list leaves them out. */ -}}
+       digest (or "local") as the link title; the git list leaves them out,
+       and a version with no git ref (every repository from a bundle) shows
+       no "documents" list at all. */ -}}
 {{- if and (eq .Section "catalogs") .Params.catalog -}}
   {{- $c := .Params.catalog -}}
   {{- $digest := "local" -}}
@@ -67,6 +69,7 @@
   {{- $refs := $ver.refs | default dict -}}
   {{- $shown := slice -}}
   {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- if index $refs . -}}{{- $shown = $shown | append . -}}{{- end -}}{{- end -}}
+  {{- with $shown }}
   <span class="opm-build-refs">documents
   {{- range $i, $repo := $shown -}}
     {{- $r := index $refs $repo -}}
@@ -84,6 +87,7 @@
     {{- end }}</span>
   {{- end -}}
   </span>
+  {{- end }}
   {{- else -}}
   {{ with $sources -}}
   <span>built from</span>

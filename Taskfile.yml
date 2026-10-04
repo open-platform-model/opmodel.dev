@@ -160,8 +160,8 @@ tasks:
 
   # The edge build (openspec add-edge-build), CI-only: CI's sources-main job
   # runs it to check every repository's main together, and publishes nothing.
-  # cli (the anchor), core, library, opm-operator and opm come from their
-  # edge docs bundles, catalog_opm from its checkout (explicit mode),
+  # cli (the anchor), core, library, opm-operator, opm and catalog-opm-docs
+  # come from their edge docs bundles (an explicit build),
   # the Catalogs tab resolved fresh. edge-config.sh derives the pull config
   # from site/bundles.cue (every block but versions, which becomes v1.0 at
   # edge); the pull writes site/.edge/bundles/, never the site/.bundles/

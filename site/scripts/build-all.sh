@@ -91,8 +91,14 @@ for pair in $VERSIONS; do
     case "$fromb" in *" $r "*) ;; *) dirs="$dirs $root/$r/docs/site" ;; esac
   done
 done
-# shellcheck disable=SC2086 # the roots hold no spaces
-sh "$SCRIPTS/lint-sources.sh" $dirs
+# A build whose every version reads every repository from docs bundles has
+# no git tree to lint (the pull linted every bundle page).
+if [ -n "$dirs" ]; then
+  # shellcheck disable=SC2086 # the roots hold no spaces
+  sh "$SCRIPTS/lint-sources.sh" $dirs
+else
+  echo "source lint: no git tree to lint; every repository comes from a docs bundle, which opm-docs pull linted"
+fi
 
 step "dates, stamp, mounts, collisions"
 # shellcheck disable=SC2086

@@ -172,12 +172,12 @@ check "the v0.9 stamp names the six test SHAs" [ -z "$stamp_bad" -a -n "$stamp" 
 why="no View source link at the test SHA for:$view_bad"
 check "v0.9 View source links carry the test SHAs" [ -z "$view_bad" ]
 
-# v1.0 is a line version for catalog_opm: every expected ref, SHA and
-# docs source is read from versions.tsv, never written here, since the lines
-# move. cli, core, library, opm-operator and opm come from their docs bundles
-# (from-bundles): their versions, commits and pages are read from
-# data/opm/docs-bundles.json, which the build wrote from the lock.
-GIT10="catalog_opm"; BUN10="cli core library opm-operator opm"
+# v1.0 reads every repository from its docs bundle (from-bundles names all
+# six), so it has no git row: their versions, commits and pages are read from
+# data/opm/docs-bundles.json, which the build wrote from the lock. GIT10 lists
+# the repositories a v1.0 would read from git; the git-only checks run only
+# while it names one.
+GIT10=""; BUN10="cli core library opm-operator opm catalog_opm"
 DB=$SITE/data/opm/docs-bundles.json
 row10() { awk -F'\t' -v r="$1" -v c="$2" '!/^#/ && $1 == "v1.0" && $6 == r { print $c }' "$TSV"; }
 stamp10=$(tr '\n' ' ' < "$P/v1.0/docs/index.html" | grep -o '<div class="\{0,1\}opm-build-stamp.*' | sed 's#</footer>.*##')
@@ -195,13 +195,15 @@ done
 fb=$(awk -F'\t' '$1 == "# from-bundles" && $2 == "v1.0" { print $3 }' "$TSV")
 for r in $BUN10; do [ -z "$(row10 "$r" 8)" ] || kind_bad="$kind_bad $r(a git row)"; done
 why="not kind line, or a git row for a bundle repository:$kind_bad; from-bundles \"$fb\""
-check "versions.tsv resolves v1.0's catalog_opm as a line, mirrors from-bundles, and gives the five bundle repositories no row" [ -z "$kind_bad" -a -n "$(row10 catalog_opm 8)" -a "$fb" = "cli core library opm-operator opm" ]
-why="the stamp misses:$stamp10_bad"
-check "the v1.0 stamp links catalog_opm's resolved SHA" [ -z "$stamp10_bad" -a -n "$stamp10" ]
+bare10=$(awk -F'\t' '!/^#/ && $1 == "v1.0"' "$TSV")
+check "versions.tsv gives v1.0 one row with empty repository fields (no git row), mirrors from-bundles, and gives the six bundle repositories no row" [ -z "$kind_bad" -a "$(printf '%s\n' "$bare10" | grep -c .)" = 1 -a -z "$(printf '%s' "$bare10" | cut -f6)" -a "$fb" = "cli core library opm-operator opm catalog_opm" ]
+stamp10_ok() { [ -n "$stamp10" ] && [ "$(jq -r '.versions["v1.0"].refs | length' "$P/build-stamp.json" 2>/dev/null)" = 0 ] && ! printf '%s' "$stamp10" | grep -q 'documents'; }
+why="no stamp on /v1.0/docs/, a \"documents\" list in it, or git refs for v1.0 in build-stamp.json"
+check "the v1.0 stamp names no git ref and shows no documents list" stamp10_ok
 why="no View source link at the resolved SHA for:$view10_bad"
-check "v1.0 View source links of git pages carry blob/<resolved SHA>/docs/site/" [ -z "$view10_bad" ]
+[ -z "$GIT10" ] || check "v1.0 View source links of git pages carry blob/<resolved SHA>/docs/site/" [ -z "$view10_bad" ]
 why="wrong edit target:$edit10_bad"
-check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
+[ -z "$GIT10" ] || check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
 
 # The five docs bundles: named in the stamp and the footer, no archive, every
 # manifest page published in v1.0, Edit to main at the manifest's edit path
@@ -212,7 +214,7 @@ for r in $BUN10; do
   if [ -z "$b" ]; then bstamp_bad="$bstamp_bad $r(no bundle)"; continue; fi
   bv=$(printf '%s' "$b" | jq -r .version); bc=$(printf '%s' "$b" | jq -r .commit); brepo=$(printf '%s' "$b" | jq -r .repo)
   printf '%s' "$stamp10" | grep -q "github.com/$brepo/commit/$bc" && printf '%s' "$stamp10" | grep -qF "<code>$bv</code>" || bstamp_bad="$bstamp_bad $r"
-  [ "$(jq -r --arg r "$r" '.versions["v1.0"].bundles[] | select(.project == $r) | .version' "$P/build-stamp.json")" = "$bv" ] || bstamp_bad="$bstamp_bad $r(build-stamp.json)"
+  [ "$(jq -r --arg p "$(printf "%s" "$b" | jq -r .project)" '.versions["v1.0"].bundles[] | select(.project == $p) | .version' "$P/build-stamp.json")" = "$bv" ] || bstamp_bad="$bstamp_bad $r(build-stamp.json)"
   [ ! -e "$SITE/.versions/v1.0/$r" ] || bstamp_bad="$bstamp_bad $r(an archive)"
   # "-" for an empty field: read collapses runs of a whitespace IFS such as tab.
   printf '%s' "$b" | jq -r '.pages | to_entries[] | "\(.key)\t\(.value.edit | if . == "" then "-" else . end)\t\(.value.generated)\t\(.value.source | if . == "" then "-" else . end)"' |
@@ -247,7 +249,7 @@ check "v0.9 pages have no Edit this page link" [ -z "$edit09" ]
 noedit10=$(for r in $GIT10; do (cd "$SITE/.versions/v1.0/$r/docs/site" && find . -name '*.md' | sed 's#^\./##'); done |
   sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' | while IFS= read -r u; do grep -q "Edit this page" "$P/v1.0/docs/${u}index.html" 2>/dev/null || echo "$u"; done | head -n 3)
 why="no edit link on: $noedit10"
-check "v1.0 git pages (catalog_opm) have an Edit this page link" [ -z "$noedit10" ]
+[ -z "$GIT10" ] || check "v1.0 git pages have an Edit this page link" [ -z "$noedit10" ]
 
 undated=$(for f in $pages09; do case "$f" in */404.html) continue ;; esac; grep -q '<time datetime=' "$f" || echo "${f#"$P"/}"; done | head -n 3)
 why="no date on: $undated"
@@ -308,11 +310,11 @@ fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
-check "catalog_opm's v1.0 archive is exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
+[ -z "$GIT10" ] || check "the v1.0 git archives are exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
 why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from v1.0}; wrong for:$newer_bad"
 n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
 check "pages added between the test SHAs and v1.0's resolved SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]
-if git -C "$(root_of catalog_opm)" cat-file -e "$(row10 catalog_opm 8):docs/site/extending/write-a-blueprint.md" 2>/dev/null; then
+if [ -f "$SITE/.bundles/_versions/v1.0/catalog-opm-docs/content/extending/write-a-blueprint.md" ]; then
   why="/v0.9/ has it, or /v1.0/ lacks it"
   check "/docs/extending/write-a-blueprint/ (catalog_opm, after its floor) is in v1.0 and not in v0.9" \
     [ ! -e "$P/v0.9/docs/extending/write-a-blueprint/index.html" -a -f "$P/v1.0/docs/extending/write-a-blueprint/index.html" ]

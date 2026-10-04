@@ -13,11 +13,12 @@
 
 ## 2. catalog_opm's docs from catalog-opm-docs (GATED: G3.1)
 
-- [ ] 2.1 Confirm G3.1: an anonymous pull of `docs/catalog-opm-docs` tag `4` resolves and verifies (signer `open-platform-model/catalog_opm` at `refs/heads/main`); record the digest in the PR description.
-- [ ] 2.2 `site/bundles.cue` `docs."catalog-opm-docs"` and `versions."v1.0".tags."catalog-opm-docs": "4"`; `versions.conf` `from-bundles` gains `catalog_opm`, `catalog-line` removed; `resolve-versions.sh` and `test-resolve.sh` handle a version without a catalog row.
-- [ ] 2.3 Real build: `task bundles:pull build`; catalog_opm's `/docs/` pages build from the bundle, Edit goes to `main`, the stamp names the bundle, no A1 or link failure.
-- [ ] 2.4 `README.md` ("Site versions") names `catalog-opm-docs` and its major tag.
-- [ ] 2.5 `task check`, `task build`, `task test:site` and `task qa` green, then commit `feat(site): read catalog_opm's docs from its docs bundle`.
+- [x] 2.1 Confirm G3.1: an anonymous pull of `docs/catalog-opm-docs` tag `4` resolves and verifies (signer `open-platform-model/catalog_opm` at `refs/heads/main`); record the digest in the PR description.
+- [x] 2.2 `site/bundles.cue` `docs."catalog-opm-docs"` and `versions."v1.0".tags."catalog-opm-docs": "4"`; `versions.conf` `from-bundles` gains `catalog_opm`, `catalog-line` removed; `resolve-versions.sh` and `test-resolve.sh` handle a version without a catalog row, and (moved from 3.2) a version with no git row: one row with empty repository fields, kind line, which `materialise.sh`, `gen-lastmod.sh` and `gen-stamp.sh` already skip; `build-all.sh` and `serve.sh` run the source lint only when some version has a git tree.
+- [x] 2.2a Fixtures (the catalog_opm half of 1.1): `site/tests/fixtures/bundles/_versions/v1.0/catalog-opm-docs/` (the fixture contract page and a how-to linking `/catalogs/opm/4/` and a `/docs/` page of opm), `site/tests/fixtures/edge/catalog-opm-docs/`, `tests/fixtures/bundles.cue`, the lock re-pulled offline; `test-site.sh` and `check-two-versions.sh` read catalog_opm from its bundle, and v1.0 of the two-version test has no git row.
+- [x] 2.3 Real build: `task bundles:pull build`; catalog_opm's `/docs/` pages build from the bundle, Edit goes to `main`, the stamp names the bundle, no A1 or link failure; every `v1.0` page under `/docs/` comes from a bundle (no `docs/site` git mount for v1.0 in the generated `module.toml`, moved from 3.3).
+- [x] 2.4 `README.md` ("Site versions") names `catalog-opm-docs` and its major tag; `AGENTS.md` (Purpose, Site versions) and `openspec/config.yaml` (context, Principle I): every v1.0 page under `/docs/` comes from a docs bundle (moved from 3.4); the edge build's docs, Taskfile and CI stamp check gain catalog-opm-docs.
+- [x] 2.5 `task check`, `task build`, `task test:site` and `task qa` green, then commit `feat(site): read catalog_opm's docs from its docs bundle`.
 
 ## 3. opm's docs from its bundle (GATED: G3.2)
 

@@ -224,7 +224,28 @@ run "$(manifest fb-cli-partial "$v
 expect fb-cli-partial 1 "from-bundles naming cli must name its pins too" "version v2.0: from-bundles names cli but not library" "version v2.0: from-bundles names cli but not opm-operator"
 run "$(manifest fb-unknown "$good
 	from-bundles = enhancements")" -- --check
-expect fb-unknown 1 "from-bundles names only the docs-bundle repositories" "version v2.0: from-bundles names enhancements; only cli, core, library, opm-operator and opm publish docs bundles"
+expect fb-unknown 1 "from-bundles names only the docs-bundle repositories" "version v2.0: from-bundles names enhancements; only cli, core, library, opm-operator, opm and catalog_opm publish docs bundles"
+# Every repository from its bundle (openspec serve-docs-from-bundles): no
+# cli, catalog or opm key, one row with empty repository fields.
+run "$(manifest fb-all "$v
+	from-bundles = cli core library opm-operator opm catalog_opm")" -- --check
+if [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | grep -c "^v2.0${TAB}")" = 1 ]; then
+  expect fb-all 0 "from-bundles naming all six: one row with empty repository fields, kind line (its bundles follow release lines)" \
+    "${FBL}cli core library opm-operator opm catalog_opm" "v2.0${TAB}v2.0 (test)${TAB}1${TAB}true${TAB}line${TAB}${TAB}${TAB}${TAB}${TAB}"
+else bad fb-all "exit $rc, or not exactly one v2.0 row"; fi
+# shellcheck disable=SC2046 # env assignments hold no spaces
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$T/manifests/fb-all.conf" sh "$RESOLVE" --freeze > "$T/manifests/fb-all-frozen.conf" 2>/dev/null
+run "$T/manifests/fb-all-frozen.conf" -- --check
+if [ "$rc" = 0 ] && ! grep -qE '	(cli|catalog|opm) = ' "$T/manifests/fb-all-frozen.conf"; then
+  expect fb-all-freeze 0 "the frozen copy of a version with no git row names no cli, catalog or opm" "${FBL}cli core library opm-operator opm catalog_opm"
+else bad fb-all-freeze "exit $rc, or the frozen copy names a cli, catalog or opm"; fi
+run "$(manifest fb-cat-key "$good
+	from-bundles = catalog_opm")" -- --check
+expect fb-cat-key 1 "from-bundles naming catalog_opm refuses a catalog key" "version v2.0: from-bundles names catalog_opm, which excludes catalog"
+run "$(manifest fb-cat-line "$v
+	catalog-line = opm-v1
+	from-bundles = cli core library opm-operator catalog_opm")" -- --check
+expect fb-cat-line 1 "from-bundles naming catalog_opm refuses catalog-line" "version v2.0: from-bundles names catalog_opm, which excludes catalog-line"
 # opm from its bundle (openspec serve-docs-from-bundles): no opm key, no opm row.
 run "$(manifest fb-opm "$v
 	cli = v1.1.0
