@@ -1,0 +1,5 @@
++ OPM_BUNDLES_OUT=site: the pull sweeps its output, so name a dot-directory under site/
++ OPM_BUNDLES_OUT=.: name the directory without . or .. segments
++ OPM_BUNDLES_OUT=/tmp: the pull sweeps its output
++ OPM_BUNDLES_OUT=site/.notapull holds files but no lock.json
++ OPM_BUNDLES_OUT=site/.edge/../content: name the directory without . or .. segments

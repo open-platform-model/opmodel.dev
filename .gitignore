@@ -37,6 +37,9 @@ go.work.sum
 # Build artifacts
 bin/
 
+# The edge build's derived config and pulled bundles (task build:edge)
+site/.edge/
+
 # Generated documentation (site build output is ignored in site/.gitignore)
 site/data/schema/*.json
 site/content/docs/reference/cli/opm*.md

@@ -6,7 +6,8 @@
 #   run-in-image.sh image    build opmodel-dev-hugo:<first 12 hex of sha256(Dockerfile)> if missing (network)
 #   run-in-image.sh tag      print that tag
 #   run-in-image.sh pull     opm-docs pull of site/bundles.cue in the image -> site/.bundles/ (network,
-#                            unless every tab and docs bundle is local)
+#                            unless every tab and docs bundle is local; OPM_BUNDLES_CONFIG and
+#                            OPM_BUNDLES_OUT choose another config and output)
 #   run-in-image.sh build    build-all.sh in the image, --network none -> site/public/
 #   run-in-image.sh serve    serve.sh in the image, published on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
@@ -46,15 +47,26 @@
 #                      pull writes; the test fixtures site/tests/fixtures/bundles), relative to the
 #                      repo or absolute. Build and serve mount it read-only at /bundles and pass
 #                      OPM_BUNDLES=/bundles, so the Catalogs section comes from it instead of
-#                      site/.bundles/ (site/scripts/sections.sh).
+#                      site/.bundles/ (site/scripts/sections.sh). Build and serve only: pull never
+#                      reads it (pull sweeps its output, so a tree a build reads is never a target).
+#   OPM_BUNDLES_CONFIG pull mode only: the pull config, relative to the repo or absolute; default
+#                      site/bundles.cue. task build:edge names site/.edge/bundles.cue
+#                      (site/scripts/edge-config.sh). When it is set, a committed
+#                      site/bundles.frozen.json is not applied (it was pulled for bundles.cue);
+#                      an explicit OPM_BUNDLES_FROZEN still is.
+#   OPM_BUNDLES_OUT    pull mode only: the directory the pull writes and sweeps, with its
+#                      lock.json, relative to the repo or absolute; default site/.bundles. It must
+#                      be a dot-directory under site/ that holds no tracked file and, when not
+#                      empty, a lock.json (the sweep removes whatever the pull did not write).
 #   OPM_BUNDLES_LOCAL  pull mode only: <project>@<segment>=<host dir> ..., space-separated, each a
 #                      local bundle tree (an opm-docs build output) pull takes instead of the
 #                      registry (docs-kit C7 --local): a tab's segment (4.5, edge), or, for a docs
 #                      project, the site version it is placed in (cli@v1.0=<dir>, C16). Each is
 #                      mounted read-only. A pull whose every tab and every docs project of every
-#                      site version of site/bundles.cue is named here runs with --network none.
+#                      site version of the pull config is named here runs with --network none.
 #   OPM_BUNDLES_FROZEN pull mode only: a lock to pull exactly (opm-docs pull --frozen), e.g. the
-#                      build job's lock in CI; default site/bundles.frozen.json when it exists.
+#                      build job's lock in CI; default site/bundles.frozen.json when it exists and
+#                      OPM_BUNDLES_CONFIG is unset.
 # OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
 # here from each root on the host, where git works in a worktree; never set it by hand.
 #
@@ -206,16 +218,53 @@ case "$mode" in
     run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
   pull)
     # The only network step besides the image builds and versions:fetch:
-    # opm-docs resolves the tabs of site/bundles.cue in GHCR, verifies each
-    # signature, unpacks into site/.bundles/ and writes its lock.json. It
-    # mounts only the config, the output, its cache, the local trees and the
-    # frozen lock; no source root, no repo-wide write, no token.
-    [ -f site/bundles.cue ] || die "site/bundles.cue does not exist: there is no Catalogs tab to pull"
+    # opm-docs resolves the tabs and site versions of the pull config
+    # (OPM_BUNDLES_CONFIG, default site/bundles.cue) in GHCR, verifies each
+    # signature, unpacks into the output (OPM_BUNDLES_OUT, default
+    # site/.bundles/) and writes its lock.json there. It mounts only the
+    # config, the output, its cache, the local trees and the frozen lock; no
+    # source root, no repo-wide write, no token. OPM_BUNDLES is never read
+    # here: it names a tree a build reads, and the pull sweeps its output.
+    cfg=$(envval OPM_BUNDLES_CONFIG); out=$(envval OPM_BUNDLES_OUT)
+    cfg=${cfg:-site/bundles.cue}; out=${out:-site/.bundles}
+    [ -f "$cfg" ] || die "$cfg does not exist: there is no pull config (OPM_BUNDLES_CONFIG, default site/bundles.cue)"
+    cfgabs=$(cd "$(dirname "$cfg")" && pwd -P)/$(basename "$cfg")
+    # cfgset: the pull config is not site/bundles.cue (whatever names it).
+    cfgset=""; [ "$cfgabs" = "$repo/site/bundles.cue" ] || cfgset=yes
+    # The output is swept: opm-docs pull removes every entry it did not
+    # write, subdirectories included. So it must be a dot-directory under
+    # site/ (site/.bundles, site/.edge/bundles), hold no tracked file, and,
+    # when it exists and is not empty, hold a lock.json (an earlier pull).
+    case "$out" in /*) outabs=$out ;; *) outabs=$repo/$out ;; esac
+    case "/$outabs/" in */../*|*/./*) die "OPM_BUNDLES_OUT=$out: name the directory without . or .. segments" ;; esac
+    outabs=${outabs%/}
+    if [ -e "$outabs" ] || [ -L "$outabs" ]; then
+      [ -d "$outabs" ] || die "OPM_BUNDLES_OUT=$out is not a directory"
+      outabs=$(cd "$outabs" && pwd -P)
+    fi
+    case "$outabs" in
+      "$repo"/site/.[!.]*|"$repo"/site/..?*) ;;
+      *) die "OPM_BUNDLES_OUT=$out: the pull sweeps its output, so name a dot-directory under site/ (site/.bundles, site/.edge/bundles)" ;;
+    esac
+    if [ -d "$outabs" ] && [ -n "$(ls -A "$outabs")" ] && [ ! -f "$outabs/lock.json" ]; then
+      die "OPM_BUNDLES_OUT=$out holds files but no lock.json: it is not a pull's output, and the pull would sweep it"
+    fi
+    if git -C "$repo" ls-files --error-unmatch -- "$outabs" >/dev/null 2>&1; then
+      die "OPM_BUNDLES_OUT=$out holds files git tracks; the pull would sweep them"
+    fi
     image >/dev/null
-    mkdir -p site/.bundles site/.cache
+    mkdir -p "$outabs" site/.cache
+    # Again on the created path, in case a parent was a symbolic link.
+    outabs=$(cd "$outabs" && pwd -P)
+    case "$outabs" in
+      "$repo"/site/.[!.]*|"$repo"/site/..?*) ;;
+      *) die "OPM_BUNDLES_OUT=$out resolves to $outabs, outside the dot-directories under site/" ;;
+    esac
     set -- pull --config /in/bundles.cue --out /out --lock /out/lock.json
-    vols="--volume $repo/site/bundles.cue:/in/bundles.cue:ro --volume $repo/site/.bundles:/out --volume $repo/site/.cache:/cache"
-    case "$repo" in *[:,\ ]*) die "$repo contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+    vols="--volume $cfgabs:/in/bundles.cue:ro --volume $outabs:/out --volume $repo/site/.cache:/cache"
+    for p in "$repo" "$cfgabs" "$outabs"; do
+      case "$p" in *[:,\ ]*) die "$p contains ':', ',' or a space; docker -v cannot mount it" ;; esac
+    done
     localproj=" "; localkeys=" "
     for pair in $(envval OPM_BUNDLES_LOCAL); do
       key=${pair%%=*}; dir=${pair#*=}
@@ -233,8 +282,16 @@ case "$mode" in
     # committed site/bundles.frozen.json), signatures and lint still checked.
     # It still fetches blobs and the Sigstore trusted root, so it does not
     # help through a GHCR or Sigstore outage; it pins what a build reads.
+    # The committed file was pulled for site/bundles.cue, and opm-docs refuses
+    # it for any other config (C7), so another config skips it.
     frozen=$(envval OPM_BUNDLES_FROZEN)
-    [ -n "$frozen" ] || { [ ! -f site/bundles.frozen.json ] || frozen=site/bundles.frozen.json; }
+    if [ -z "$frozen" ] && [ -f site/bundles.frozen.json ]; then
+      if [ -n "$cfgset" ]; then
+        echo "run-in-image: site/bundles.frozen.json not applied: it was pulled for site/bundles.cue, and the pull config is $cfg (OPM_BUNDLES_FROZEN=<lock> pins this pull)"
+      else
+        frozen=site/bundles.frozen.json
+      fi
+    fi
     if [ -n "$frozen" ]; then
       [ -f "$frozen" ] || die "OPM_BUNDLES_FROZEN: $frozen is not a file"
       abs=$(cd "$(dirname "$frozen")" && pwd -P)/$(basename "$frozen")
@@ -251,13 +308,13 @@ case "$mode" in
     # which must be local for every site version (the quoted keys of the
     # versions block), as <project>@<version>; a config without versions
     # pulls no docs bundle, so its docs block needs nothing local.
-    keys_of() { awk -v b="$1" '$0 ~ "^" b ":[[:space:]]*\\{" { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue; }
+    keys_of() { awk -v b="$1" '$0 ~ "^" b ":[[:space:]]*\\{" { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"[a-z0-9]+(-[a-z0-9]+)*"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' "$cfg"; }
     net=none; tabs=$(keys_of tabs)
     [ -n "$tabs" ] || net=bridge
     for proj in $tabs; do
       case "$localproj" in *" $proj "*) ;; *) net=bridge ;; esac
     done
-    sites=$(awk 'match($0, /^versions:[[:space:]]*"v[0-9]+\.[0-9]+"/) { k = substr($0, RSTART, RLENGTH); sub(/^versions:[[:space:]]*/, "", k); gsub(/"/, "", k); print k; next } /^versions:[[:space:]]*\{/ { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"v[0-9]+\.[0-9]+"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' site/bundles.cue)
+    sites=$(awk 'match($0, /^versions:[[:space:]]*"v[0-9]+\.[0-9]+"/) { k = substr($0, RSTART, RLENGTH); sub(/^versions:[[:space:]]*/, "", k); gsub(/"/, "", k); print k; next } /^versions:[[:space:]]*\{/ { on = 1; next } on && /^\}/ { on = 0 } on && match($0, /^[[:space:]]*"v[0-9]+\.[0-9]+"[[:space:]]*:/) { k = substr($0, RSTART, RLENGTH); gsub(/[[:space:]":]/, "", k); print k }' "$cfg")
     if [ -n "$sites" ]; then
       dprojs=$(keys_of docs)
       [ -n "$dprojs" ] || net=bridge
@@ -266,16 +323,16 @@ case "$mode" in
           case "$localkeys" in *" $proj@$sv "*) ;; *) net=bridge ;; esac
         done
       done
-    elif grep -q '^versions:' site/bundles.cue; then
+    elif grep -q '^versions:' "$cfg"; then
       net=bridge
     fi
     # The frozen marker: gen-stamp.sh records "frozen": true while it exists.
-    rm -f site/.bundles/frozen
-    echo "run-in-image: pull of site/bundles.cue into site/.bundles/ (network: $net)"
+    rm -f "$outabs/frozen"
+    echo "run-in-image: pull of $cfg into $out/ (network: $net)"
     # shellcheck disable=SC2086 # vols is a list of --volume flags without spaces inside paths
     docker run --rm --init --user "$(id -u):$(id -g)" --network "$net" \
       --env HOME=/tmp --env XDG_CACHE_HOME=/cache $vols \
       --entrypoint opm-docs "$(tag)" "$@"
-    if [ -n "$frozen" ]; then echo "$frozen" > site/.bundles/frozen; fi ;;
-  *) sed -n '2,18p' "$0" >&2; exit 2 ;;
+    if [ -n "$frozen" ]; then echo "$frozen" > "$outabs/frozen"; fi ;;
+  *) sed -n '2,19p' "$0" >&2; exit 2 ;;
 esac

@@ -1,0 +1,44 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "cli",
+  "version": "edge",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/cli",
+    "commit": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+    "ref": "main"
+  },
+  "created": "2026-10-04T03:00:00Z",
+  "tool": "0.4.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/",
+    "owns": [
+      "reference/cli/"
+    ]
+  },
+  "pages": [
+    {
+      "path": "operating/deploy-a-fixture.md",
+      "source": "docs/site/operating/deploy-a-fixture.md",
+      "lastmod": "2026-09-21T10:00:00Z",
+      "generated": false,
+      "edit": "docs/site/operating/deploy-a-fixture.md"
+    },
+    {
+      "path": "reference/cli/_index.md",
+      "generated": true
+    },
+    {
+      "path": "reference/cli/opm-module.md",
+      "generated": true
+    }
+  ],
+  "data": [],
+  "pins": {
+    "core": "2.0.0-beta.3",
+    "library": "1.0.0-beta.3",
+    "opm-operator": "1.0.0-beta.7"
+  }
+}
