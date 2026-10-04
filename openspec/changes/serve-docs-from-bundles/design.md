@@ -28,7 +28,7 @@ docs: {
 versions: "v1.0": tags: {"catalog-opm-docs": "4", opm: "1.0"}
 ```
 
-`catalog-opm-docs` takes the major tag `4`, as `catalog-line = opm-v4` does today; `opm` takes `1.0`. `versions.conf` `from-bundles` gains `catalog_opm`, then `opm`; `catalog-line` is removed with catalog_opm. A version whose `from-bundles` names all six has no git row; `resolve-versions.sh` writes it with no archive, and `materialise.sh` and `gen-lastmod.sh` have nothing to do for it.
+`catalog-opm-docs` takes the major tag `4`, as `catalog-line = opm-v4` does today; `opm` takes `1.0`. `versions.conf` `from-bundles` gains `opm` (section 3, first), then `catalog_opm` (section 2); `catalog-line` is removed with catalog_opm. A version whose `from-bundles` names opm has no `opm` key and never reads opm's `main`. A version whose `from-bundles` names all six has no git row; `resolve-versions.sh` writes one row with empty repository fields (its label, weight and default), and `materialise.sh` and `gen-lastmod.sh` have nothing to do for it.
 
 The `/docs/` landing (`_index.md`) and `start/_index.md` are opm's (C16 D4 refuses a second bundle shipping them; the site's A1 refuses a site-owned copy).
 
@@ -85,11 +85,12 @@ Section 4 copies docs-kit's `link-enhancements-graph` conformance case into `sit
 **Context**: docs-kit's plan has three site sections, each gated on a producer.
 **Decision**: a first section with every fixture and the site-side machinery, mergeable before any producer is ready; the three gated sections are then configuration, a real-pull check and deletions.
 **Rationale**: fixture work starts at once and survives a session boundary as a commit; each gated section is small when its producer lands.
+**Revised 2026-10-04**: every producer had published before section 1 started, so its fixtures ride their producers' sections (tasks.md, the revision note), delivered as opm, catalog_opm, enhancements.
 
 ## Risks / Trade-offs
 
 - [The enhancements bundle's lint refuses what the repository's own link check accepts] -> blocks the enhancements repository's `main`, not the site; docs-kit `add-enhancements-bundle`'s spike sizes it first, and enhancements#86 fixes the sources.
-- [opm has no release before the owner sets up release-please] -> section 3 waits; opm's pages keep coming from git (head of `main`) until then, as today.
+- [opm has no release before the owner sets up release-please] -> did not happen: opm released `1.0.0-beta.1` (G3.2) before section 3 started.
 - [The site loses the per-build enhancements SHA from git] -> the bundle's `source.commit` names it, in the stamp and on every page's View source.
 
 ## Durable decisions

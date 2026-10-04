@@ -912,7 +912,7 @@ fi
 # The edge build (openspec add-edge-build): edge-config.sh derives the pull
 # config from bundles.cue, run-in-image.sh pull takes another config and
 # output (OPM_BUNDLES_CONFIG, OPM_BUNDLES_OUT) and never reads OPM_BUNDLES,
-# and the explicit build reads the four products' edge bundles. The case
+# and the explicit build reads the five edge docs bundles. The case
 # data is in tests/checks/edge-*/ (the build-check loop below skips them);
 # "CASE" in an expect line is that case's directory.
 # expect_log CASE LOG: the case's "+ text" / "- text" lines against LOG;

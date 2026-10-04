@@ -468,13 +468,18 @@ for v in $versions; do
     [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm)"
     fbseen=" "
     for r in $fb; do
-      case " cli core library opm-operator opm " in *" $r "*) ;; *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator and opm publish docs bundles" ;; esac
+      case " cli core library opm-operator opm " in
+        *" $r "*) ;;
+        *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator and opm publish docs bundles" ;;
+      esac
       case "$fbseen" in *" $r "*) err "version $v: from-bundles names $r twice" ;; esac
       fbseen="$fbseen$r "
     done
     case "$fbseen" in *" opm "*)
       fbopm=yes
-      if has "$v" opm; then err "version $v: from-bundles names opm, which excludes opm: opm's docs bundle follows its own tag in site/bundles.cue"; fi ;;
+      if has "$v" opm; then
+        err "version $v: from-bundles names opm, which excludes opm: opm's docs bundle follows its own tag in site/bundles.cue"
+      fi ;;
     esac
     case "$fbseen" in *" cli "*)
       fbcli=yes
@@ -513,6 +518,8 @@ for v in $versions; do
       kind=line
       linevs="$linevs $v"
       for k in catalog opm; do
+        # from-bundles naming opm already refuses an opm key, naming why.
+        [ "$k" != opm ] || [ -z "$fbopm" ] || continue
         if has "$v" "$k"; then err "version $v: catalog-line excludes $k: a line version resolves catalog and opm from their lines"; fi
       done
       gl=$(one "version.$v.catalog-line")

@@ -308,7 +308,7 @@ fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
-check "catalog_opm's v1.0 archive is exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
+check "catalog_opm's v1.0 archive is exactly its pages at the resolved SHA" [ -z "$set10_bad" ]
 why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from v1.0}; wrong for:$newer_bad"
 n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
 check "pages added between the test SHAs and v1.0's resolved SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]
