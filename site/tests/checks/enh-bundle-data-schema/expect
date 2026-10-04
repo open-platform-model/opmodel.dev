@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): data/enhancements.json is missing, or not docs.opmodel.dev/data/enhancements/v1
+- == hugo build

@@ -170,6 +170,15 @@ else
   bad "catalogs/fixture-pull" "the all-local pull failed or differs from tests/fixtures/bundles/; regenerate lock.json with it" "$BUNDLES.log"
   BUNDLES=$TESTS/fixtures/bundles
 fi
+# enh-fixture-regen: the Enhancements section fixture is exactly what the
+# pinned opm-docs builds from ws/enhancements (tests/fixtures/regen-enhancements.sh,
+# offline), so no hand edit can drift it from docs-kit C21.
+if sh "$TESTS/fixtures/regen-enhancements.sh" "$OUT/enh-regen" > "$OUT/enh-regen.log" 2>&1 &&
+   diff -r "$TESTS/fixtures/bundles/enhancements/edge" "$OUT/enh-regen" >> "$OUT/enh-regen.log" 2>&1; then
+  ok "enhancements/fixture-regen" "opm-docs $(opm-docs version | cut -d' ' -f2) rebuilds bundles/enhancements/edge/ from ws/enhancements byte-identical"
+else
+  bad "enhancements/fixture-regen" "regen-enhancements.sh failed or wrote another tree; run it and re-pull the fixture lock" "$OUT/enh-regen.log"
+fi
 # cat-fixture-drift: one edited byte (a commit in the lock) must fail it.
 mkdir -p "$OUT/cat-fixture-drift"
 cp -R "$TESTS/fixtures/bundles" "$OUT/cat-fixture-drift/src"
