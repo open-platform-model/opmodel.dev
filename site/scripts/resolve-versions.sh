@@ -24,7 +24,9 @@
 #   OPM_WS, OPM_SRC_WORKTREE, OPM_SRC_<REPO>, OPM_SRC_ENHANCEMENTS
 #                          the source roots, resolved by run-in-image.sh exactly as for a build
 #
-# A version has one of three kinds, chosen by its keys:
+# A version has one of three kinds, chosen by its keys (a version whose
+# from-bundles names all six repositories has no git row at all; its one
+# row has empty repository fields and kind line, see from-bundles below):
 #   main      "source = main": every root at its checked-out HEAD, read in place
 #             (tests and local live editing).
 #   anchored  "cli = <tag or SHA>" is the anchor, bumped by commit: library
@@ -73,15 +75,18 @@
 # lock): "from-bundles = <repo> ..." mirrors that set here, where the
 # resolver runs on the host without CUE or the lock, and the build fails when
 # the mirror and the lock disagree (gen-docs-bundles.sh). The repositories it
-# may name are cli, core, library, opm-operator and opm; one that names cli
-# names library, core and opm-operator too (the cli bundle's pins choose
-# them), and then the version has no cli anchor: a line version has
-# catalog-line and no cli-line (the resolver refuses both together), an
-# anchored one catalog and no cli. opm's bundle follows its own tag
+# may name are cli, core, library, opm-operator, opm and catalog_opm; one
+# that names cli names library, core and opm-operator too (the cli bundle's
+# pins choose them), and then the version has no cli anchor: a line version
+# has catalog-line and no cli-line (the resolver refuses both together), an
+# anchored one no cli. opm's and catalog_opm's bundles follow their own tags
 # (site/bundles.cue tags), so a version whose from-bundles names opm has no
-# opm row and no opm key, and a line version never reads opm's main. A named
-# repository gets no row (nothing archives it, nothing reads its git tree for
-# that version) and no override; the others resolve as before. It is one "# from-bundles" line of versions.tsv
+# opm key and never reads opm's main, and one that names catalog_opm has no
+# catalog and no catalog-line key. A named repository gets no row (nothing
+# archives it, nothing reads its git tree for that version) and no override;
+# the others resolve as before. A version whose from-bundles names all six
+# has one row with empty repository fields, which carries its label, weight
+# and default, kind line (every bundle it reads follows a release line). It is one "# from-bundles" line of versions.tsv
 # ("# from-bundles\t<version>\t<repo> ...") and the same key in frozen.conf.
 #
 # The manifest may also name the enhancements section, [section "enhancements"],
@@ -451,8 +456,10 @@ for r in $REPOS; do
   fi
 done
 
-# A version's kind comes from its keys: source makes it main, cli-line makes
-# it line, anything else is anchored. A key that its kind excludes is a named
+# A version's kind comes from its keys: source makes it main, cli-line (or
+# catalog-line beside a from-bundles naming cli) makes it line, anything else
+# is anchored; a version whose from-bundles names all six has no git row and
+# is written as line (bare_row below). A key that its kind excludes is a named
 # error, never silently ignored.
 [ -n "$versions" ] || err "$(basename "$manifest"): no [version \"...\"] section"
 defaults=""; mains=""; linevs=""; weights=""
@@ -463,14 +470,14 @@ for v in $versions; do
   done
   # from-bundles: which repositories the version reads from docs bundles.
   fb=$(one "version.$v.from-bundles")
-  fbcli=""; fbopm=""
+  fbcli=""; fbopm=""; fbcat=""
   if has "$v" from-bundles; then
-    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm)"
+    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm, catalog_opm)"
     fbseen=" "
     for r in $fb; do
-      case " cli core library opm-operator opm " in
+      case " cli core library opm-operator opm catalog_opm " in
         *" $r "*) ;;
-        *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator and opm publish docs bundles" ;;
+        *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator, opm and catalog_opm publish docs bundles" ;;
       esac
       case "$fbseen" in *" $r "*) err "version $v: from-bundles names $r twice" ;; esac
       fbseen="$fbseen$r "
@@ -480,6 +487,19 @@ for v in $versions; do
       if has "$v" opm; then
         err "version $v: from-bundles names opm, which excludes opm: opm's docs bundle follows its own tag in site/bundles.cue"
       fi ;;
+    esac
+    case "$fbseen" in *" catalog_opm "*)
+      fbcat=yes
+      # Only beside cli: a version that reads the cli from git keeps the
+      # catalog its cli line documents, so its catalog comes from git too.
+      case "$fbseen" in *" cli "*) ;; *)
+        err "version $v: from-bundles names catalog_opm but not cli: catalog_opm's docs bundle is read only in a version whose cli comes from its bundle" ;;
+      esac
+      for k in catalog catalog-line; do
+        if has "$v" "$k"; then
+          err "version $v: from-bundles names catalog_opm, which excludes $k: catalog_opm's docs bundle (catalog-opm-docs) follows its own tag in site/bundles.cue"
+        fi
+      done ;;
     esac
     case "$fbseen" in *" cli "*)
       fbcli=yes
@@ -528,6 +548,7 @@ for v in $versions; do
       kind=anchored
       for k in catalog opm; do
         [ "$k" != opm ] || [ -z "$fbopm" ] || continue
+        [ "$k" != catalog ] || [ -z "$fbcat" ] || continue
         if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set catalog-line)"; fi
       done
     fi
@@ -774,7 +795,9 @@ resolve_line() {
       fi
     done
   fi
-  # catalog_opm: the newest tag of the catalog major.
+  # catalog_opm: the newest tag of the catalog major (a version that reads
+  # catalog_opm from its docs bundle has no catalog-line, so it is no line
+  # version and never gets here).
   groot=$(root_of catalog_opm); gsha=""; gref=""
   if gref=$(newest_in_line "$groot" opm- "${gl#opm-v}"); then gsha=$(commit_of "$groot" "refs/tags/$gref"); else gref=""; fi
   ghow="line:newest $gl.* tag"
@@ -820,6 +843,13 @@ resolve_line() {
 }
 
 ordered=$(for v in $versions; do printf '%s %s\n' "$(one "version.$v.weight")" "$v"; done | sort -n | awk '{ print $2 }')
+# bare_row VERSION LABEL WEIGHT DEFAULT KIND: a version that reads every
+# repository from docs bundles (from-bundles names all six) has no git row;
+# one row with empty repository fields still carries its label, weight and
+# default, and nothing archives or dates a repository for it.
+bare_row() {
+  case "$rows" in "$1$TAB"*|*"$NL$1$TAB"*) ;; *) row "$1" "$2" "$3" "$4" "$5" "" "" "" "" "" ;; esac
+}
 for v in $ordered; do
   label=$(one "version.$v.label"); w=$(one "version.$v.weight")
   case " $defaults " in *" $v "*) d=true ;; *) d=false ;; esac
@@ -874,6 +904,11 @@ for v in $ordered; do
     check_ref "$v" "$r" "$ref" "$sha" anchored
     row "$v" "$label" "$w" "$d" anchored "$r" "$ref" "$sha" "$how" "$docs"
   done
+  # Every repository from a docs bundle whose tag moves (the cli line, its
+  # pins, opm's and the catalog's lines): resolved again on every pull, so a
+  # line version, though it has no line key. A no-op when the version has a
+  # git row.
+  bare_row "$v" "$label" "$w" "$d" line
   fails=$(printf '%s\n' "$derived" | sed -n 's/^!//p')
   [ -z "$fails" ] || errs="$errs$fails$NL"
 done
@@ -961,7 +996,7 @@ freeze() {
         v = order[i]; printf "%s", head[v]
         if (v in fb) printf "\tfrom-bundles = %s\n", fb[v]
         if (key[v, "cli"] != "") printf "%s\tcli = %s\n", note[v], key[v, "cli"]
-        printf "\tcatalog = %s\n", key[v, "catalog"]
+        if (key[v, "catalog"] != "") printf "\tcatalog = %s\n", key[v, "catalog"]
         if (key[v, "opm"] != "") printf "\topm = %s\n", key[v, "opm"]
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }

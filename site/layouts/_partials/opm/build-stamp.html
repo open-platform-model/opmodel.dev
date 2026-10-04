@@ -22,7 +22,9 @@
        (data/opm/docs-bundles.json; docs-kit C16) names them after the git
        refs, "docs bundles cli 1.0.0-beta.7, library 1.0.0-beta.3, ...", each
        linking the commit its bundle was built from, with its role, tag and
-       digest (or "local") as the link title; the git list leaves them out. */ -}}
+       digest (or "local") as the link title; the git list leaves them out,
+       and a version with no git ref (every repository from a bundle) shows
+       no "documents" list at all. */ -}}
 {{- if and (eq .Section "catalogs") .Params.catalog -}}
   {{- $c := .Params.catalog -}}
   {{- $digest := "local" -}}
@@ -67,6 +69,7 @@
   {{- $refs := $ver.refs | default dict -}}
   {{- $shown := slice -}}
   {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- if index $refs . -}}{{- $shown = $shown | append . -}}{{- end -}}{{- end -}}
+  {{- with $shown }}
   <span class="opm-build-refs">documents
   {{- range $i, $repo := $shown -}}
     {{- $r := index $refs $repo -}}
@@ -84,6 +87,7 @@
     {{- end }}</span>
   {{- end -}}
   </span>
+  {{- end }}
   {{- else -}}
   {{ with $sources -}}
   <span>built from</span>
@@ -102,7 +106,7 @@
   {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- $t := . -}}{{- range $bundles -}}{{- if eq .tree $t -}}{{- $order = $order | append . -}}{{- end -}}{{- end -}}{{- end }}
   <span class="opm-build-refs">docs bundles
   {{- range $i, $b := $order -}}
-    {{- $name := index (dict "catalog_opm" "catalog" "opm-operator" "operator") $b.tree | default $b.tree -}}
+    {{- $name := index (dict "catalog_opm" "catalog docs" "opm-operator" "operator") $b.tree | default $b.tree -}}
     {{- $title := printf "%s%s, bundle %s" $b.role (cond (ne $b.tag "") (printf " %s" $b.tag) "") (cond $b.local "local" $b.digest) -}}
     {{- if $i }},{{ end }} <span class="opm-build-ref">{{ $name }} <a href="{{ printf "https://github.com/%s/commit/%s" $b.repo $b.commit }}" title="{{ $title }}"><code>{{ $b.version }}</code></a>{{ if gt (int $b.revision) 0 }} (docs revision {{ $b.revision }}){{ end }}</span>
   {{- end -}}

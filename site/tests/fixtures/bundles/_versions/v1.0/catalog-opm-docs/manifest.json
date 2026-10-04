@@ -1,0 +1,35 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "catalog-opm-docs",
+  "version": "4.5.1",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/catalog_opm",
+    "commit": "c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+    "ref": "opm-v4.5.1"
+  },
+  "created": "2026-10-04T12:00:00Z",
+  "tool": "0.6.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/"
+  },
+  "pages": [
+    {
+      "path": "authoring/attach-the-fixture-trait.md",
+      "source": "docs/site/authoring/attach-the-fixture-trait.md",
+      "lastmod": "2026-10-03T10:00:00Z",
+      "generated": false,
+      "edit": "docs/site/authoring/attach-the-fixture-trait.md"
+    },
+    {
+      "path": "reference/fixture-contract.md",
+      "source": "docs/site/reference/fixture-contract.md",
+      "lastmod": "2026-10-03T10:01:00Z",
+      "generated": false,
+      "edit": "docs/site/reference/fixture-contract.md"
+    }
+  ],
+  "data": []
+}

@@ -33,15 +33,19 @@ docs: {
 	"library":      {repo: "open-platform-model/library"}
 	"opm-operator": {repo: "open-platform-model/opm-operator"}
 	"opm":          {repo: "open-platform-model/opm"}
+	// catalog_opm's docs/site, a second project beside its Catalogs tab
+	// (docs-kit C1 naming rule, C15), published from the same opm-v* tags.
+	"catalog-opm-docs": {repo: "open-platform-model/catalog_opm"}
 }
 // v1.0 follows the cli 1.0 line through its docs bundle: the anchor is the
 // newest cli release in 1.0, and library, core and opm-operator are exactly
 // what that release pins (docs-kit C16, DESIGN decisions 9 and 10). opm,
 // which the cli does not pin, follows its own 1.0 line (its newest release in
 // that minor; docs-kit DESIGN decision 21: opm's minor follows the site
-// version).
+// version), and catalog_opm's docs the catalog's major 4 (its newest opm-v4.*
+// release), as the Catalogs tab and the cli's catalog dependency do.
 versions: "v1.0": {
 	anchor: {project: "cli", tag: "1.0"}
 	pinned: ["library", "core", "opm-operator"]
-	tags: {"opm": "1.0"}
+	tags: {"opm": "1.0", "catalog-opm-docs": "4"}
 }

@@ -1,2 +1,2 @@
-+ gen-docs-bundles: v1.0: versions.conf from-bundles names cli core, the lock's docs entries name cli core library opm opm-operator; run task bundles:pull, or fix versions.conf
++ gen-docs-bundles: v1.0: versions.conf from-bundles names cli core, the lock's docs entries name catalog_opm cli core library opm opm-operator; run task bundles:pull, or fix versions.conf
 - == source lint
