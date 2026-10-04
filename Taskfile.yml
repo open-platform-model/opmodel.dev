@@ -80,7 +80,7 @@ tasks:
   # named by the version: cli@v1.0=<dir> (docs-kit C16).
   # OPM_BUNDLES_FROZEN=<lock>, else a
   # committed site/bundles.frozen.json, pulls exactly that lock's digests
-  # (a bad bundle upstream; CI's browser and sources-main jobs). A frozen
+  # (a bad bundle upstream; CI's browser job). A frozen
   # pull still fetches from GHCR and Sigstore: an outage of either is
   # waited out, not worked around.
   # OPM_BUNDLES_CONFIG and OPM_BUNDLES_OUT choose another pull config and
