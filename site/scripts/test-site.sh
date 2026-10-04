@@ -14,9 +14,10 @@
 #   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge), the
 #                                              version history (catalog-opm/history.json), the
 #                                              docs bundles of site version v1.0
-#                                              (_versions/v1.0/{cli,core,library,opm-operator,opm},
-#                                              docs-kit C15, C16: cli the anchor with pins, opm
-#                                              by its own tag) and
+#                                              (_versions/v1.0/{cli,core,library,opm-operator,opm,
+#                                              catalog-opm-docs}, docs-kit C15, C16: cli the anchor
+#                                              with pins, opm and catalog-opm-docs by their own
+#                                              tags) and
 #                                              the lock an all-local opm-docs pull writes over
 #                                              them; the tests first re-pull them offline with
 #                                              the pinned opm-docs and fail unless the result is

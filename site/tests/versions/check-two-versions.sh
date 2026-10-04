@@ -205,7 +205,7 @@ why="no View source link at the resolved SHA for:$view10_bad"
 why="wrong edit target:$edit10_bad"
 [ -z "$GIT10" ] || check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
 
-# The five docs bundles: named in the stamp and the footer, no archive, every
+# The six docs bundles: named in the stamp and the footer, no archive, every
 # manifest page published in v1.0, Edit to main at the manifest's edit path
 # (generated pages none), View source at the bundle commit.
 bstamp_bad=""; bpage_bad=""; bedit_bad=""; bview_bad=""

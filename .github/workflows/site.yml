@@ -16,8 +16,9 @@ on:
     # release and of the library, core and opm-operator releases it pins, of
     # the newest opm 1.0 release and of the newest opm-v4.* catalog release,
     # tab and docs). The sources-main job checks every source repository's
-    # main together (task build:edge: every repository's edge docs bundle; lint,
-    # build checks, links) and publishes nothing. No source repository dispatches here; gh workflow
+    # main together (task build:edge: every repository's edge docs bundle,
+    # linted in bundle mode by opm-docs pull; build checks, links) and
+    # publishes nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because
     # GitHub delays runs at the top of the hour.
     - cron: '23 3 * * *'
@@ -379,8 +380,10 @@ jobs:
   # library, opm-operator, opm and catalog-opm-docs from their edge docs
   # bundles (each publishes one on every push to main, generated reference
   # included) and the Catalogs tab at its newest digests, then runs an
-  # explicit-mode build (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1): the source lint, every build check and the
-  # link crawl, so a page broken on main fails here before it is released.
+  # explicit-mode build (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1). The
+  # pull lints every page in bundle mode (opm-docs); the build runs every
+  # check and the link crawl, so a page broken on main fails here before it
+  # is released.
   # A missing edge bundle fails the pull (exit 2, naming the repository);
   # there is no fallback to git, whose main no longer holds the generated
   # reference. CI-only: it uploads only the edge lock, pages-deploy does not
