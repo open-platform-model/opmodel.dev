@@ -1,0 +1,3 @@
++ run-in-image: pull of site/bundles.cue into site/.bundles/ (network: none)
++ /site/.bundles:/out 
+- saved-bundles

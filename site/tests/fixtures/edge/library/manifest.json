@@ -1,0 +1,42 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "library",
+  "version": "edge",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/library",
+    "commit": "e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2",
+    "ref": "main"
+  },
+  "created": "2026-10-04T03:00:00Z",
+  "tool": "0.4.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/",
+    "owns": [
+      "reference/go-api/"
+    ]
+  },
+  "pages": [
+    {
+      "path": "embedding/embed-the-kernel.md",
+      "source": "docs/site/embedding/embed-the-kernel.md",
+      "lastmod": "2026-09-24T08:00:00Z",
+      "generated": false,
+      "edit": "docs/site/embedding/embed-the-kernel.md"
+    },
+    {
+      "path": "embedding/load-a-fixture.md",
+      "source": "docs/site/embedding/load-a-fixture.md",
+      "lastmod": "2026-09-24T09:00:00Z",
+      "generated": false,
+      "edit": "docs/site/embedding/load-a-fixture.md"
+    },
+    {
+      "path": "reference/go-api/_index.md",
+      "generated": true
+    }
+  ],
+  "data": []
+}

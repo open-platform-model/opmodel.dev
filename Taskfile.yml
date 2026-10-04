@@ -83,11 +83,19 @@ tasks:
   # (a bad bundle upstream; CI's browser and sources-main jobs). A frozen
   # pull still fetches from GHCR and Sigstore: an outage of either is
   # waited out, not worked around.
+  # OPM_BUNDLES_CONFIG and OPM_BUNDLES_OUT choose another pull config and
+  # output directory (defaults site/bundles.cue, site/.bundles; build:edge
+  # names site/.edge/bundles.cue and site/.edge/bundles). With another
+  # config a committed site/bundles.frozen.json is not applied: it was
+  # pulled for bundles.cue. The pull never reads OPM_BUNDLES, which names a
+  # tree a build reads.
   bundles:pull:
     desc: Pull, verify and unpack the docs bundles of site/bundles.cue (the Catalogs tab and the site versions' docs projects) into site/.bundles/ (network)
     env:
       OPM_BUNDLES_LOCAL: '{{.OPM_BUNDLES_LOCAL}}'
       OPM_BUNDLES_FROZEN: '{{.OPM_BUNDLES_FROZEN}}'
+      OPM_BUNDLES_CONFIG: '{{.OPM_BUNDLES_CONFIG}}'
+      OPM_BUNDLES_OUT: '{{.OPM_BUNDLES_OUT}}'
     cmds:
       - sh site/scripts/run-in-image.sh pull
 
@@ -147,6 +155,39 @@ tasks:
     env: *hugo-env
     cmds:
       - sh site/scripts/run-in-image.sh serve
+
+  # The edge build (openspec add-edge-build), CI-only: CI's sources-main job
+  # runs it to check every repository's main together, and publishes nothing.
+  # cli (the anchor), core, library and opm-operator come from their edge
+  # docs bundles, opm and catalog_opm from their checkouts (explicit mode),
+  # the Catalogs tab resolved fresh. edge-config.sh derives the pull config
+  # from site/bundles.cue (every block but versions, which becomes v1.0 at
+  # edge); the pull writes site/.edge/bundles/, never the site/.bundles/
+  # task build reads. A missing edge bundle fails the pull (exit 2, naming
+  # the repository); there is no fallback to git. Each step runs as its own
+  # task process with its variables assigned in the command, because an env
+  # map entry loses to an exported variable and a dependency never sees a
+  # call's vars. OPM_BUNDLES_LOCAL="core@v1.0=<core>/out/core" checks a
+  # product's branch against every other main; OPM_BUNDLES_FROZEN=<edge-lock>
+  # replays a failed CI run.
+  build:edge:
+    desc: Build every repository's main together from the four products' edge docs bundles into site/public/ (CI's sources-main; not published)
+    env:
+      OPM_WS: '{{.OPM_WS}}'
+      OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'
+      OPM_SRC_OPM: '{{.OPM_SRC_OPM}}'
+      OPM_SRC_CORE: '{{.OPM_SRC_CORE}}'
+      OPM_SRC_CATALOG_OPM: '{{.OPM_SRC_CATALOG_OPM}}'
+      OPM_SRC_CLI: '{{.OPM_SRC_CLI}}'
+      OPM_SRC_LIBRARY: '{{.OPM_SRC_LIBRARY}}'
+      OPM_SRC_OPM_OPERATOR: '{{.OPM_SRC_OPM_OPERATOR}}'
+      OPM_SRC_ENHANCEMENTS: '{{.OPM_SRC_ENHANCEMENTS}}'
+      OPM_BUNDLES_LOCAL: '{{.OPM_BUNDLES_LOCAL}}'
+      OPM_BUNDLES_FROZEN: '{{.OPM_BUNDLES_FROZEN}}'
+    cmds:
+      - sh site/scripts/edge-config.sh
+      - OPM_BUNDLES_CONFIG=site/.edge/bundles.cue OPM_BUNDLES_OUT=site/.edge/bundles "{{.TASK_EXE}}" bundles:pull
+      - OPM_BUNDLES=site/.edge/bundles OPM_VERSIONS=v1.0=/src OPM_DOCS_BUNDLES=1 OPM_REQUIRE_DATES=0 OPM_BASE_URL= "{{.TASK_EXE}}" build
 
   preview:
     desc: Serve the built site/public/ on http://127.0.0.1:${SITE_PORT:-1313}/ (run build first)
@@ -228,7 +269,7 @@ tasks:
   clean:
     desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:
-      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/
+      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/ site/.edge/
 
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.
