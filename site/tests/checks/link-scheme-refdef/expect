@@ -1,0 +1,4 @@
++ unsafe link "JavaScript:alert(1)" in
++ it has the scheme JavaScript:
++ /_versions/v1.0/core/content/concepts/unsafe-refdef.md (version v1.0)
+- == page set

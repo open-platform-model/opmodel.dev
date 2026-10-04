@@ -1,0 +1,4 @@
++ unsafe link "javascript&#58;alert(1)" in
++ it has the scheme javascript:
++ /_versions/v1.0/core/content/concepts/unsafe-entity.md (version v1.0)
+- == page set
