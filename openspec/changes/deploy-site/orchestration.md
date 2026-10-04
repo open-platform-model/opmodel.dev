@@ -1,5 +1,7 @@
 # Orchestration: opmodel.dev moves to Hugo + Hextra v0.13.0 (neutral skin)
 
+> **Retired interfaces (2026-10-04).** `retire-git-pipeline` removed the git source pipeline: the build reads no repository but opmodel.dev, and every source page arrives in a signed docs bundle. The source-tree setup of `orchestration.md` section 5, the interface of section 6 (`OPM_WS`, `OPM_SRC_*`, `OPM_SRC_WORKTREE`, `OPM_VERSIONS`, `OPM_BUILD_REFS`, `versions:prepare`, `lint:sources`, the `site-src` worktrees) and traps 21, 26, 29 and 38 no longer apply; read them as history. The build is `task bundles:pull build` (gates: `task bundles:pull ci`); the site-owned pages are dated on the host by `site/scripts/gen-site-dates.sh`, which needs opmodel.dev's full history; the page dialect is docs-kit C11 (`opm-docs lint`). Current rules: opmodel.dev `AGENTS.md`.
+
 This brief is for every worker and for the supervisor of this change set. It is copied verbatim into every OpenSpec change in the set. The plain-PR rows (W0, S1, I1a, I1b, I2) are given a path to a copy when they are launched. It is self-contained: read it whole before you start.
 
 Your work is defined by three things:
@@ -247,7 +249,7 @@ No other shortcode may appear in a source page: not Hextra's `callout`, `tabs`, 
 
 **Rules beyond O4's list.** O4 names the lint's rules; the contract adds the key allowlist (which forbids `aliases`, `draft` and `slug`), the link rules, the ban on images and non-`.md` files, kebab-case names, `weight` >= 1 (0018's `#Page` allows 0; Hugo reads 0 as unset), the exact alert marker, and tagged code fences. Their bases (0018:D7, 0018:D7:R3, 0018:D14 and Hugo behaviour) are listed in A's `design.md`. Supervisor ruling 2026-09-30, under the owner's "rewrite it to how it needs to be": all of them hold. `draft` stays forbidden because a draft is a silently dropped page (Q2). `aliases` stays forbidden while nothing is published; allowing it for a moved page after go-live is a contract change (a planning commit that updates every copy of this file and the lint).
 
-### 4.1 The dialect lint and the page-order helper (POSIX shell tools)
+### 4.1 The page-order helper (POSIX shell tool)
 
 The dialect lint is no longer copied here. Its shell form (`opm-dialect-lint.sh`, committed as `opmodel.dev/site/scripts/lint-sources.sh`) was retired by opmodel.dev's `retire-git-pipeline` (2026-10-04): every page the site publishes from a source repository arrives in a signed docs bundle that `opm-docs pull` lints in bundle mode, so the page dialect is docs-kit contract C11, enforced by `opm-docs lint`, with its conformance set in docs-kit (`internal/dialect/testdata/conformance/`). Read C11 in docs-kit's `docs/contracts.md` for the rules.
 
