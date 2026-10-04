@@ -13,11 +13,12 @@ on:
     # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
     # every build, so the nightly run of main publishes what moved upstream:
     # new releases and docs revisions (the docs bundles of the newest cli 1.0
-    # release and of the library, core and opm-operator releases it pins;
-    # catalog_opm opm-v4.* tags), opm main, and the main or release-branch
-    # head of catalog_opm while its docs rule reads it. The sources-main job
-    # checks every source repository's main together (task build:edge: the
-    # four products' edge docs bundles, opm and catalog_opm from main; lint,
+    # release and of the library, core and opm-operator releases it pins, and
+    # of the newest opm 1.0 release; catalog_opm opm-v4.* tags), and the main
+    # or release-branch head of catalog_opm while its docs rule reads it. The
+    # sources-main job checks every source repository's main together (task
+    # build:edge: the edge docs bundles of the four products and opm,
+    # catalog_opm from main; lint,
     # build checks, links) and publishes nothing. No source repository dispatches here; gh workflow
     # run Site --ref main publishes at once. An off-the-hour minute, because
     # GitHub delays runs at the top of the hour.
@@ -377,17 +378,17 @@ jobs:
 
   # The source pages on every source repository's main, built together:
   # task build:edge (openspec add-edge-build) pulls cli (the anchor), core,
-  # library and opm-operator from their edge docs bundles (each product
+  # library, opm-operator and opm from their edge docs bundles (each
   # publishes one on every push to main, generated reference included) and
   # the Catalogs tab at its newest digests, then runs an explicit-mode build
-  # (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1) with opm and catalog_opm
-  # from their main checkouts: the source lint, every build check and the
+  # (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1) with catalog_opm from its
+  # main checkout: the source lint, every build check and the
   # link crawl, so a page broken on main fails here before it is released.
   # A missing edge bundle fails the pull (exit 2, naming the repository);
   # there is no fallback to git, whose main no longer holds the generated
   # reference. CI-only: it uploads only the edge lock, pages-deploy does not
   # need it, and it cannot change what is published. It pulls its own
-  # bundles, so it waits for no job. The four product checkouts stay because
+  # bundles, so it waits for no job. The checkouts of the bundled repositories stay because
   # explicit mode checks every root before a container starts, and the
   # summary compares each edge bundle's commit with them. Dates are not its
   # subject: shallow checkouts, OPM_REQUIRE_DATES off. Never make it a
@@ -472,14 +473,14 @@ jobs:
       - name: The build read the edge docs bundles
         # Without OPM_DOCS_BUNDLES=1 an explicit build reads every product
         # from its git checkout and still passes, so the stamp must show
-        # cli, core, library and opm-operator read from pulled (not local)
-        # edge bundles, and no other kind of bundle.
+        # cli, core, library, opm-operator and opm read from pulled (not
+        # local) edge bundles, and no other kind of bundle.
         run: |
           stamp=site/public/build-stamp.json
           if ! jq -e '(.versions["v1.0"].bundles // []) as $b
-              | (["cli", "core", "library", "opm-operator"] - [$b[].project]) == []
+              | (["cli", "core", "library", "opm-operator", "opm"] - [$b[].project]) == []
                 and ($b | all(.version == "edge" and (.local | not)))' "$stamp" >/dev/null; then
-            echo "::error::The edge build did not read cli, core, library and opm-operator from pulled edge bundles; the stamp's v1.0 bundles are below."
+            echo "::error::The edge build did not read cli, core, library, opm-operator and opm from pulled edge bundles; the stamp's v1.0 bundles are below."
             jq '.versions["v1.0"].bundles // []' "$stamp"
             exit 1
           fi

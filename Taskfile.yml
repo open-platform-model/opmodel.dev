@@ -160,8 +160,8 @@ tasks:
 
   # The edge build (openspec add-edge-build), CI-only: CI's sources-main job
   # runs it to check every repository's main together, and publishes nothing.
-  # cli (the anchor), core, library and opm-operator come from their edge
-  # docs bundles, opm and catalog_opm from their checkouts (explicit mode),
+  # cli (the anchor), core, library, opm-operator and opm come from their
+  # edge docs bundles, catalog_opm from its checkout (explicit mode),
   # the Catalogs tab resolved fresh. edge-config.sh derives the pull config
   # from site/bundles.cue (every block but versions, which becomes v1.0 at
   # edge); the pull writes site/.edge/bundles/, never the site/.bundles/
@@ -173,7 +173,7 @@ tasks:
   # product's branch against every other main; OPM_BUNDLES_FROZEN=<edge-lock>
   # replays a failed CI run.
   build:edge:
-    desc: Build every repository's main together from the four products' edge docs bundles into site/public/ (CI's sources-main; not published)
+    desc: Build every repository's main together from their edge docs bundles into site/public/ (CI's sources-main; not published)
     env:
       OPM_WS: '{{.OPM_WS}}'
       OPM_SRC_WORKTREE: '{{.OPM_SRC_WORKTREE}}'

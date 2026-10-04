@@ -6,7 +6,7 @@ Once `serve-docs-from-bundles` has merged, no site version reads a source reposi
 
 Named as in docs-kit's `docs/orchestration.md` (PR #13, `plan/phases-1b-2-3`).
 
-- **Section 1 (spike) and section 2: no producer gate.** They need `serve-docs-from-bundles` section 1 merged (every fixture can be a bundle) and change nothing the real build reads.
+- **Section 1 (spike) and section 2: no producer gate.** They need `serve-docs-from-bundles` sections 2 and 4 merged (every fixture can be a bundle; its section 1 was folded into its producer sections on 2026-10-04) and change nothing the real build reads.
 - **Sections 3 and 4: G3.4**, the opm and enhancements bundles published and `v1.0` reading them: `serve-docs-from-bundles` sections 2, 3 and 4 merged. Merging this change is docs-kit's **G3.5**, which starts docs-kit `retire-lint-conformance-binding`.
 
 ## What Changes

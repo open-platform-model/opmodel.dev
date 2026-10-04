@@ -1,0 +1,56 @@
+{
+  "schema": "docs.opmodel.dev/bundle/v1",
+  "project": "opm",
+  "version": "1.0.0-beta.2",
+  "revision": 0,
+  "source": {
+    "repo": "open-platform-model/opm",
+    "commit": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+    "ref": "v1.0.0-beta.2"
+  },
+  "created": "2026-10-03T12:00:00Z",
+  "tool": "0.6.0",
+  "dialect": 1,
+  "placement": {
+    "kind": "docs",
+    "root": "/docs/"
+  },
+  "pages": [
+    {
+      "path": "_index.md",
+      "source": "docs/site/_index.md",
+      "lastmod": "2026-10-02T09:00:00Z",
+      "generated": false,
+      "edit": "docs/site/_index.md"
+    },
+    {
+      "path": "start/_index.md",
+      "source": "docs/site/start/_index.md",
+      "lastmod": "2026-10-02T09:01:00Z",
+      "generated": false,
+      "edit": "docs/site/start/_index.md"
+    },
+    {
+      "path": "start/alpha-second.md",
+      "source": "docs/site/start/alpha-second.md",
+      "lastmod": "2026-10-02T09:02:00Z",
+      "generated": false,
+      "edit": "docs/site/start/alpha-second.md"
+    },
+    {
+      "path": "start/quickstart.md",
+      "source": "docs/site/start/quickstart.md",
+      "lastmod": "2026-10-02T09:03:00Z",
+      "generated": false,
+      "edit": "docs/site/start/quickstart.md"
+    },
+    {
+      "path": "start/zeta-first.md",
+      "source": "docs/site/start/zeta-first.md",
+      "lastmod": "2026-10-02T09:04:00Z",
+      "generated": false,
+      "edit": "docs/site/start/zeta-first.md"
+    }
+  ],
+  "data": []
+}

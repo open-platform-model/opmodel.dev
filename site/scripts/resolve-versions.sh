@@ -73,13 +73,15 @@
 # lock): "from-bundles = <repo> ..." mirrors that set here, where the
 # resolver runs on the host without CUE or the lock, and the build fails when
 # the mirror and the lock disagree (gen-docs-bundles.sh). The repositories it
-# may name are cli, core, library and opm-operator; one that names cli names
-# the other three too (the cli bundle's pins choose them), and then the
-# version has no cli anchor: a line version has catalog-line and no cli-line
-# (the resolver refuses both together), an anchored one catalog and opm and
-# no cli. A named repository gets no row (nothing archives it, nothing reads
-# its git tree for that version) and no override; the others resolve as
-# before. It is one "# from-bundles" line of versions.tsv
+# may name are cli, core, library, opm-operator and opm; one that names cli
+# names library, core and opm-operator too (the cli bundle's pins choose
+# them), and then the version has no cli anchor: a line version has
+# catalog-line and no cli-line (the resolver refuses both together), an
+# anchored one catalog and no cli. opm's bundle follows its own tag
+# (site/bundles.cue tags), so a version whose from-bundles names opm has no
+# opm row and no opm key, and a line version never reads opm's main. A named
+# repository gets no row (nothing archives it, nothing reads its git tree for
+# that version) and no override; the others resolve as before. It is one "# from-bundles" line of versions.tsv
 # ("# from-bundles\t<version>\t<repo> ...") and the same key in frozen.conf.
 #
 # The manifest may also name the enhancements section, [section "enhancements"],
@@ -461,15 +463,24 @@ for v in $versions; do
   done
   # from-bundles: which repositories the version reads from docs bundles.
   fb=$(one "version.$v.from-bundles")
-  fbcli=""
+  fbcli=""; fbopm=""
   if has "$v" from-bundles; then
-    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator)"
+    [ -n "$fb" ] || err "version $v: from-bundles names no repository (cli, core, library, opm-operator, opm)"
     fbseen=" "
     for r in $fb; do
-      case " cli core library opm-operator " in *" $r "*) ;; *) err "version $v: from-bundles names $r; only cli, core, library and opm-operator publish docs bundles" ;; esac
+      case " cli core library opm-operator opm " in
+        *" $r "*) ;;
+        *) err "version $v: from-bundles names $r; only cli, core, library, opm-operator and opm publish docs bundles" ;;
+      esac
       case "$fbseen" in *" $r "*) err "version $v: from-bundles names $r twice" ;; esac
       fbseen="$fbseen$r "
     done
+    case "$fbseen" in *" opm "*)
+      fbopm=yes
+      if has "$v" opm; then
+        err "version $v: from-bundles names opm, which excludes opm: opm's docs bundle follows its own tag in site/bundles.cue"
+      fi ;;
+    esac
     case "$fbseen" in *" cli "*)
       fbcli=yes
       for r in library core opm-operator; do
@@ -507,6 +518,8 @@ for v in $versions; do
       kind=line
       linevs="$linevs $v"
       for k in catalog opm; do
+        # from-bundles naming opm already refuses an opm key, naming why.
+        [ "$k" != opm ] || [ -z "$fbopm" ] || continue
         if has "$v" "$k"; then err "version $v: catalog-line excludes $k: a line version resolves catalog and opm from their lines"; fi
       done
       gl=$(one "version.$v.catalog-line")
@@ -514,6 +527,7 @@ for v in $versions; do
     else
       kind=anchored
       for k in catalog opm; do
+        [ "$k" != opm ] || [ -z "$fbopm" ] || continue
         if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set catalog-line)"; fi
       done
     fi
@@ -536,6 +550,7 @@ for v in $versions; do
   else
     kind=anchored
     for k in cli catalog opm; do
+      [ "$k" != opm ] || [ -z "$fbopm" ] || continue
       if ! has "$v" "$k"; then err "version $v: $k is required in an anchored version (or set source = main, or cli-line and catalog-line)"; fi
     done
     if has "$v" catalog-line; then err "version $v: catalog-line needs cli-line: an anchored version names catalog = <tag or SHA> instead"; fi
@@ -595,7 +610,9 @@ fi
 # A line version reads tags and remote-tracking refs, which a shallow root
 # lacks and a root without refs/remotes/origin/main has never fetched.
 for v in $linevs; do
+  lfb=" $(one "version.$v.from-bundles") "
   for r in $REPOS; do
+    case "$lfb" in *" $r "*) continue ;; esac
     root=$(root_of "$r")
     if [ "$(git -C "$root" rev-parse --is-shallow-repository 2>/dev/null || true)" = true ]; then
       err "$v: $r: root $root: a shallow clone; a line version needs full history and tags (fetch-depth: 0)"
@@ -783,7 +800,9 @@ resolve_line() {
     err "$lv: catalog_opm line $gl: no tag $gl.<minor>.<patch>[-<pre>] in $groot; fetch its tags (task versions:fetch)"
   fi
   # opm: no release line; the head of main. An override is refused unless that
-  # head itself fails, since opm has no release to fall back to.
+  # head itself fails, since opm has no release to fall back to. A version
+  # that reads opm from its docs bundle (from-bundles) reads no opm main.
+  case " $(one "version.$lv.from-bundles") " in *" opm "*) return 0 ;; esac
   msha=$(main_head "$(root_of opm)")
   o=$(ovref opm)
   if [ -n "$o" ]; then
@@ -837,6 +856,7 @@ for v in $ordered; do
   explicit=""
   for pair in catalog_opm:catalog opm:opm; do
     r=${pair%%:*}; k=${pair#*:}
+    case "$fb" in *" $r "*) continue ;; esac
     o=$(ovref "$r")
     if [ -n "$o" ]; then ref=${o%%"$TAB"*}; how="override:${o#*"$TAB"}"; else ref=$(one "version.$v.$k"); how=explicit; fi
     if sha=$(anchor "$r" "$ref"); then explicit="$explicit$r$TAB$ref$TAB$sha$TAB$how$NL"; else err "$v: $r $ref: $sha"; fi
@@ -912,7 +932,7 @@ siteline=""; [ -z "$site_sha" ] || siteline="# site$TAB$site_sha$NL"
 case "$manifest" in "$(dirname "$SITE")"/*) mshow=${manifest#"$(dirname "$SITE")"/} ;; *) mshow=$manifest ;; esac
 
 # freeze: the resolved build as an anchored manifest, so nothing is re-derived:
-# the floors, then every version with cli, catalog and opm explicit and
+# the floors, then every version with cli, catalog and opm explicit (each that it reads from git) and
 # library, core and opm-operator overridden. A row whose docs is a tag freezes
 # by its tag name (tags are immutable), every other row by its SHA; a cli of
 # a line version frozen by SHA gets a comment naming the release the stamp
@@ -941,7 +961,8 @@ freeze() {
         v = order[i]; printf "%s", head[v]
         if (v in fb) printf "\tfrom-bundles = %s\n", fb[v]
         if (key[v, "cli"] != "") printf "%s\tcli = %s\n", note[v], key[v, "cli"]
-        printf "\tcatalog = %s\n\topm = %s\n", key[v, "catalog"], key[v, "opm"]
+        printf "\tcatalog = %s\n", key[v, "catalog"]
+        if (key[v, "opm"] != "") printf "\topm = %s\n", key[v, "opm"]
         printf "%s%s%s", ov[v, "library"], ov[v, "core"], ov[v, "opm-operator"]
       }
     }'
