@@ -774,6 +774,39 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# The render hooks refuse a link scheme other than http, https or mailto, and
+# a protocol-relative //host (issue #34; checks/link-scheme-* and
+# checks/cat-link-scheme). opm-docs pull refuses those too (docs-kit
+# internal/mdsafe), so those cases lay their page into the copy of the pulled
+# tree, which the build reads unlinted: only the hook stands between them and
+# an href. This case is their other half: the links a page may write still
+# render as before, in a docs page and a catalog page.
+name=link-schemes-safe
+copy_site "$name"
+printf -- '---\ntitle: Safe links\ndescription: Every link form the render hook passes.\ntype: explanation\n---\n\n%s\n' \
+  'An [https link](https://example.org/a?b=1#c), an [upper-case one](HTTPS://example.org/up), [mail](mailto:team@example.org), a [relative link](fixture-concept.md#why), a [root-absolute one](/docs/concepts/fixture-concept/), a [fragment](#top) and <https://example.org/auto>.' \
+  > "$OUT/$name/safe-links.md"
+add_page "$OUT/$name/site/.bundles" core concepts/safe-links.md "$OUT/$name/safe-links.md"
+printf '\nSee [the spec](#spec), [the site](https://example.org/cat) and [mail](mailto:team@example.org).\n' >> "$OUT/$name/site/.bundles/catalog-opm/4.4/content/resources/volumes.md"
+build "$name"; rc=$?
+if [ $rc -ne 0 ]; then bad "$name" "the build failed (exit $rc)" "$OUT/$name/log"
+else
+  why=""
+  s=$(dq "$OUT/$name/site/public/v1.0/docs/concepts/safe-links/index.html")
+  for h in 'href=https://example.org/a?b=1#c target=_blank' 'href=https://example.org/up>' 'href=mailto:team@example.org>' \
+           'href=/v1.0/docs/concepts/fixture-concept/#why>' 'href=/v1.0/docs/concepts/fixture-concept/>' 'href=#top>' \
+           'href=https://example.org/auto target=_blank'; do
+    printf '%s' "$s" | grep -qF -- "$h" || why="${why:+$why; }docs page lacks $h"
+  done
+  s=$(dq "$OUT/$name/site/public/catalogs/opm/4.4/resources/volumes/index.html")
+  for h in 'href=#spec>' 'href=https://example.org/cat target=_blank' 'href=mailto:team@example.org>'; do
+    printf '%s' "$s" | grep -qF -- "$h" || why="${why:+$why; }catalog page lacks $h"
+  done
+  if [ -z "$why" ]; then ok "$name" "https (any case), mailto, relative, root-absolute, #fragment and autolinks still render in both hooks"
+  else bad "$name" "$why" "$OUT/$name/log"; fi
+fi
+
+# ---------------------------------------------------------------------------
 # Docs bundles (openspec pull-reference-bundles; docs-kit C15, C16), in the
 # fixture build: v1.0 reads all six repositories from their fixture bundles;
 # each page carries its manifest's data (C8): Edit to main at its edit path,

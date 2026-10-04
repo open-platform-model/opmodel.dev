@@ -1,0 +1,34 @@
+{{- /* Why a link destination may not be written as an href, or "" when it
+       may (issue #34). Takes the hook's .Destination, which Hugo passes as
+       the page wrote it: goldmark's own renderer would decode it as
+       util.URLEscape(dest, true) does (backslash escapes, then numeric,
+       then named character references), so this decodes the same way,
+       repeated until nothing changes, and then does what a browser's URL
+       parser does (drop tabs and line breaks anywhere, strip leading
+       control characters and blanks). It refuses a scheme other than http,
+       https or mailto (in any case) and a protocol-relative //host (or a
+       backslash form a browser reads as one). Relative paths and #fragments
+       pass. safeURL only stops html/template filtering the href; the
+       template's normalising adds percent escapes and cannot make a scheme,
+       so the decoded text is the one to judge. docs-kit's markup check
+       (internal/mdsafe) refuses the same at pull; this is the site's own
+       guard. Each hook calls errorf with the reason, naming its page. */ -}}
+{{- $d := . -}}
+{{- range seq 16 -}}
+  {{- $n := $d | replaceRE "\\\\([!-/:-@\\[-`{-~])" "$1" | htmlUnescape -}}
+  {{- if eq $n $d -}}{{- break -}}{{- end -}}
+  {{- $d = $n -}}
+{{- end -}}
+{{- $u := $d | replaceRE `[\t\n\r]` "" | replaceRE `^[\x00-\x20]+` "" -}}
+{{- $why := "" -}}
+{{- if or (hasPrefix $u "//") (hasPrefix $u `\\`) (hasPrefix $u `/\`) -}}
+  {{- $why = "it is protocol-relative" -}}
+{{- else -}}
+  {{- with findRESubmatch `^([A-Za-z][A-Za-z0-9+.-]*):` $u 1 -}}
+    {{- $s := index (index . 0) 1 -}}
+    {{- if not (in (slice "http" "https" "mailto") (lower $s)) -}}
+      {{- $why = printf "it has the scheme %s:" $s -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $why -}}

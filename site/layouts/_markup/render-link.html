@@ -4,8 +4,11 @@
        write root-absolute links (/docs/<section>/<page>/), which become
        /<version>/docs/... here, and /enhancements/... links, which resolve
        to the unversioned Enhancements section; a file-relative link (what cobra's
-       GenMarkdownTree writes) resolves against the page's directory. External
-       (scheme), #fragment and mailto: links pass through. The anchor markup
+       GenMarkdownTree writes) resolves against the page's directory. A
+       destination with a scheme other than http, https or mailto, or a
+       protocol-relative //host, fails the build (opm/link-unsafe.html, issue
+       #34). External (http, https), #fragment and mailto: links pass
+       through. The anchor markup
        below the resolution is upstream's, unchanged.
        A /catalogs/ link (the bare tab root /catalogs/<name>/, or a major
        alias /catalogs/<name>/<MAJOR>/<page>/; opm-docs lint, at
@@ -15,6 +18,10 @@
        major or page, a build without the Catalogs section included, fails
        the build naming task bundles:pull. */ -}}
 {{- $dest := .Destination -}}
+{{- with partial "opm/link-unsafe.html" $dest -}}
+  {{- $src := "a generated page" -}}{{- with $.PageInner.File -}}{{- $src = .Filename -}}{{- end -}}
+  {{- errorf "unsafe link %q in %s (version %s): %s; a page links with http, https or mailto, a path or a #fragment" $dest $src $.PageInner.Site.Version.Name . -}}
+{{- end -}}
 {{- $url := urls.Parse $dest -}}
 {{- $internal := and $dest (not $url.Scheme) (not (hasPrefix $dest "#")) (not (hasPrefix $dest "mailto:")) -}}
 {{- $enh := and $internal (or (eq $url.Path "/enhancements") (hasPrefix $url.Path "/enhancements/")) -}}
