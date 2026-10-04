@@ -388,8 +388,13 @@ jobs:
   # reference. CI-only: it uploads only the edge lock, pages-deploy does not
   # need it, and it cannot change what is published. It pulls its own
   # bundles, so it waits for no job. The four product checkouts stay because
-  # explicit mode checks every root before a container starts. Dates are not
-  # its subject: shallow checkouts, OPM_REQUIRE_DATES off.
+  # explicit mode checks every root before a container starts, and the
+  # summary compares each edge bundle's commit with them. Dates are not its
+  # subject: shallow checkouts, OPM_REQUIRE_DATES off. Never make it a
+  # required status check: it reads other repositories' moving edge bundles,
+  # so it turns red for reasons no opmodel.dev pull request can fix (a
+  # product's main, a lagging edge publish, a GHCR outage, a catalog bundle
+  # site/bundles.frozen.json pins only for the published build).
   sources-main:
     name: Source pages on main (not published)
     runs-on: ubuntu-latest
@@ -464,6 +469,20 @@ jobs:
         # (anonymous, read-only: no token), build in explicit mode. The task
         # sets OPM_REQUIRE_DATES=0 and the other build variables itself.
         run: task build:edge
+      - name: The build read the edge docs bundles
+        # Without OPM_DOCS_BUNDLES=1 an explicit build reads every product
+        # from its git checkout and still passes, so the stamp must show
+        # cli, core, library and opm-operator read from pulled (not local)
+        # edge bundles, and no other kind of bundle.
+        run: |
+          stamp=site/public/build-stamp.json
+          if ! jq -e '(.versions["v1.0"].bundles // []) as $b
+              | (["cli", "core", "library", "opm-operator"] - [$b[].project]) == []
+                and ($b | all(.version == "edge" and (.local | not)))' "$stamp" >/dev/null; then
+            echo "::error::The edge build did not read cli, core, library and opm-operator from pulled edge bundles; the stamp's v1.0 bundles are below."
+            jq '.versions["v1.0"].bundles // []' "$stamp"
+            exit 1
+          fi
       - name: Upload the edge lock
         # The digests this run read, also when the build failed after the
         # pull: OPM_BUNDLES_FROZEN=<this lock> task build:edge replays it.
@@ -478,27 +497,38 @@ jobs:
           retention-days: 7
       - name: Summary
         # The edge docs bundles and catalog segments this run read, from the
-        # lock (written by the pull even when the build then failed).
+        # lock (written by the pull even when the build then failed). Each
+        # docs bundle's commit is compared with its repository's main
+        # checkout: the job checks what edge points at, so a product whose
+        # edge publish failed or lags is checked at an older commit, and a
+        # warning says so.
         if: always()
         run: |
           lock=site/.edge/bundles/lock.json
-          {
-            echo '### Every main, from edge docs bundles (not published)'
-            echo
-            if [ ! -f "$lock" ]; then
-              echo 'The edge pull wrote no lock: see the job log (a missing edge bundle names its repository).'
-              exit 0
-            fi
-            echo '| Project | Role | Tag | Version | Digest | Commit |'
-            echo '|---|---|---|---|---|---|'
-            jq -r '.docs // [] | .[]
-              | "| \(.project) | \(.role) | \(.tag // "") | \(.version) | \(if .local then "local" else .digest[0:19] end) | \(if .signer then "[\(.commit[0:12])](\(.signer.repository)/commit/\(.commit))" else .commit[0:12] end) |"' "$lock"
-            echo
-            echo '| Catalog | Segment | Version | Revision | Digest | Commit |'
-            echo '|---|---|---|---|---|---|'
-            jq -r '.bundles[]
-              | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' "$lock"
-          } >> "$GITHUB_STEP_SUMMARY"
+          summary() { printf '%s\n' "$@" >> "$GITHUB_STEP_SUMMARY"; }
+          summary '### Every main, from edge docs bundles (not published)' ''
+          if [ ! -f "$lock" ]; then
+            summary 'The edge pull wrote no lock: edge-config.sh, the image build or the pull failed (a missing edge bundle, a signature, lint or collision). See the "Build every main from the edge docs bundles" step log.'
+            exit 0
+          fi
+          summary '| Project | Role | Tag | Version | Digest | Commit | Main checkout |' '|---|---|---|---|---|---|---|'
+          jq -r '.docs // [] | .[] | [.project, .role, (.tag // ""), .version,
+              (if .local then "local" else .digest[0:19] end), .commit, (.signer.repository // "")] | join("|")' "$lock" |
+            while IFS='|' read -r project role tag version digest commit repo; do
+              case "$project" in catalog-opm-docs) tree=catalog_opm ;; *) tree=$project ;; esac
+              head=$(git -C "../$tree" rev-parse HEAD 2>/dev/null || true)
+              if [ "$commit" = "$head" ]; then
+                main='same commit'
+              else
+                main="**differs: ${head:0:12}**"
+                echo "::warning::sources-main checked $project at its edge bundle's commit ${commit:0:12}, but its main checkout is at ${head:-(none)}: its edge publish failed or lags, so this run did not check $project's main."
+              fi
+              if [ -n "$repo" ]; then c="[${commit:0:12}]($repo/commit/$commit)"; else c=${commit:0:12}; fi
+              summary "| $project | $role | $tag | $version | $digest | $c | $main |"
+            done
+          summary '' '| Catalog | Segment | Version | Revision | Digest | Commit |' '|---|---|---|---|---|---|'
+          jq -r '.bundles[]
+            | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' "$lock" >> "$GITHUB_STEP_SUMMARY"
 
   # The interim GitHub Pages deploy (README.md, "GitHub Pages (interim)"). It
   # publishes the Pages artifact the build job uploaded; it checks nothing out
