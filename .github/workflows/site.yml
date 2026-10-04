@@ -1,7 +1,7 @@
-# Builds and tests the site exactly as the Taskfile does locally. The build
-# checks six source repositories, checked out beside opmodel.dev as they sit in
-# the workspace, so OPM_WS (the parent of the opmodel.dev checkout) is
-# $GITHUB_WORKSPACE. README.md "CI" names the local equivalents.
+# Builds and tests the site exactly as the Taskfile does locally. Every job
+# checks out only opmodel.dev: every source page arrives in a signed docs
+# bundle (task bundles:pull), so no job reads another repository.
+# README.md "CI" names the local equivalents.
 name: Site
 
 on:
@@ -10,12 +10,12 @@ on:
   push:
     branches: [main]
   schedule:
-    # Nightly. v1.0 is a line version (site/versions.conf), resolved again on
-    # every build, so the nightly run of main publishes what moved upstream:
-    # new releases and docs revisions (the docs bundles of the newest cli 1.0
-    # release and of the library, core and opm-operator releases it pins, of
-    # the newest opm 1.0 release and of the newest opm-v4.* catalog release,
-    # tab and docs). The sources-main job checks every source repository's
+    # Nightly. The docs bundles of v1.0 (site/bundles.cue versions) are
+    # resolved again on every pull, so the nightly run of main publishes what
+    # moved upstream: new releases and docs revisions (the docs bundles of the
+    # newest cli 1.0 release and of the library, core and opm-operator
+    # releases it pins, of the newest opm 1.0 release and of the newest
+    # opm-v4.* catalog release, tab and docs). The sources-main job checks every source repository's
     # main together (task build:edge: every repository's edge docs bundle,
     # linted in bundle mode by opm-docs pull; build checks, links) and
     # publishes nothing. No source repository dispatches here; gh workflow
@@ -28,12 +28,13 @@ permissions:
   contents: read
 
 env:
-  # A page without a git date fails the build. Dates are computed on the host
-  # by versions:prepare (materialise.sh), where git can read every source, so
-  # a real build's container runs no git. CI can require them because every
-  # source is a full clone (fetch-depth: 0), so every page has history. Locally
-  # a page that is not committed yet has no date, so a local build leaves this
-  # off.
+  # A site-owned page without a git date fails the build. The dates are
+  # computed on the host (gen-site-dates.sh, run by task build), where git
+  # works in a worktree too, so the build's container runs no git. CI can
+  # require them because opmodel.dev is a full clone (fetch-depth: 0), so
+  # every page has history; every other page is dated by its docs bundle's
+  # manifest. Locally a page that is not committed yet has no date, so a
+  # local build leaves this off.
   OPM_REQUIRE_DATES: '1'
   # The interim GitHub Pages site, until the Cloudflare deploy replaces it
   # (README.md, "GitHub Pages (interim)"). Never name it OPM_BASE_URL here:
@@ -65,58 +66,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: opmodel.dev
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out opm
-        # fetch-depth: 0 brings every tag and every branch, the branches as
-        # refs/remotes/origin/*, into each source checkout: the version
-        # resolver reads them for a line version (the newest tag of a line,
-        # origin/main, release/*) and refuses a shallow checkout.
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm
-          ref: main
-          path: opm
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/core
-          ref: main
-          path: core
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out catalog_opm
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/catalog_opm
-          ref: main
-          path: catalog_opm
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out cli
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/cli
-          ref: main
-          path: cli
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out library
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/library
-          ref: main
-          path: library
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out opm-operator
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm-operator
-          ref: main
-          path: opm-operator
           fetch-depth: 0
           persist-credentials: false
 
@@ -161,20 +110,20 @@ jobs:
             exit 1
           fi
       - name: Summary
-        # Every version's resolved refs: the ref the stamp names, where its
-        # docs tree came from, the commit built and the rule that chose it
-        # (not the checkout heads, which a line version does not read).
+        # What the build read: opmodel.dev's commit, then every docs bundle
+        # by digest (the Enhancements section, the Catalogs tab and each
+        # site version's docs bundles).
         run: |
           {
             echo '### Site build'
             echo
-            echo '| Version | Repository | Ref | Docs from | Commit | Rule |'
-            echo '|---|---|---|---|---|---|'
-            jq -r '.versions | to_entries[] | .key as $v | .value.refs | to_entries[]
-              | "| \($v) | \(.key) | \(.value.ref) | \(.value.docs // "") | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
+            echo "opmodel.dev $(jq -r '.site // "(no commit)"' site/public/build-stamp.json)"
+            echo
+            echo '| Section | Ref | Commit | Bundle |'
+            echo '|---|---|---|---|'
             # The Enhancements section: its bundle's commit and digest.
             jq -r '.sections // {} | to_entries[] | select(.value.ref)
-              | "| (unversioned) | \(.key) | \(.value.ref) | | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
+              | "| \(.key) | \(.value.ref) | [\(.value.sha[0:12])](https://github.com/open-platform-model/\(.key)/commit/\(.value.sha)) | \(.value.how) |"' site/public/build-stamp.json
             if jq -e '.sections.catalogs' site/public/build-stamp.json >/dev/null; then
               if jq -e '.sections.catalogs.frozen' site/public/build-stamp.json >/dev/null; then
                 echo '::warning::The docs bundles were pulled frozen (site/bundles.frozen.json): the Catalogs tab and the docs bundles of the site versions show pinned digests, not the newest tags. Delete the file once upstream is fixed.'
@@ -190,7 +139,7 @@ jobs:
               jq -r '.sections.catalogs.bundles[]
                 | "| \(.project) | \(.segment) | \(.version) | \(.revision) | \(if .local then "local" else .digest[0:19] end) | \(.commit[0:12]) |"' site/public/build-stamp.json
             fi
-            # The docs bundles a version reads instead of git (docs-kit C16).
+            # The docs bundles each site version reads (docs-kit C16).
             if jq -e '[.versions[] | .bundles // empty] | length > 0' site/public/build-stamp.json >/dev/null; then
               echo
               echo '### Docs bundles'
@@ -215,30 +164,8 @@ jobs:
           path: opmodel.dev/site/public/build-stamp.json
           if-no-files-found: error
           retention-days: 90
-      - name: Upload the frozen manifest
-        # The build as an anchored manifest at the refs it resolved: check out
-        # opmodel.dev at the commit it names, copy it outside site/.versions/
-        # and run OPM_VERSIONS_MANIFEST=<the copy> task build to rebuild the
-        # same trees. Not on pull requests: their run builds GitHub's
-        # temporary merge commit, which the header would name and which goes
-        # away. Its own artifact, so build-stamp.json stays at the root of
-        # build-stamp; include-hidden-files, because upload-artifact skips
-        # paths under a dot directory such as .versions. It also holds the
-        # docs bundles' lock, .bundles/lock.json beside .versions/frozen.conf:
-        # copied to site/bundles.frozen.json, it pins task bundles:pull to the
-        # digests this build read (README, "The Catalogs section").
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: build-manifest
-          path: |
-            opmodel.dev/site/.versions/frozen.conf
-            opmodel.dev/site/.bundles/lock.json
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 90
       - name: Build for GitHub Pages (interim)
-        # The same sources, dates and checks, for the project site's path, into
+        # The same bundles, dates and checks, for the project site's path, into
         # site/public/ after every step that reads the default build has run.
         # It runs on pull requests too, so a change that breaks the path fails
         # there.
@@ -267,62 +194,13 @@ jobs:
     defaults:
       run:
         working-directory: opmodel.dev
-    # task qa builds site/public itself and that build checks all six source
-    # roots, so this job runs beside build with the same seven checkouts
-    # instead of downloading the site-public artifact.
+    # task qa builds site/public itself, from the bundles the build job read
+    # (below), instead of downloading the site-public artifact.
     steps:
       - name: Check out opmodel.dev
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: opmodel.dev
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out opm
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm
-          ref: main
-          path: opm
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/core
-          ref: main
-          path: core
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out catalog_opm
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/catalog_opm
-          ref: main
-          path: catalog_opm
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out cli
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/cli
-          ref: main
-          path: cli
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out library
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/library
-          ref: main
-          path: library
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check out opm-operator
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm-operator
-          ref: main
-          path: opm-operator
           fetch-depth: 0
           persist-credentials: false
 
@@ -360,19 +238,17 @@ jobs:
   # task build:edge (openspec add-edge-build) pulls cli (the anchor), core,
   # library, opm-operator, opm and catalog-opm-docs from their edge docs
   # bundles (each publishes one on every push to main, generated reference
-  # included) and the Catalogs tab at its newest digests, then runs an
-  # explicit-mode build (OPM_VERSIONS=v1.0=/src, OPM_DOCS_BUNDLES=1). The
-  # pull lints every page in bundle mode (opm-docs); the build runs every
-  # check and the link crawl, so a page broken on main fails here before it
-  # is released.
-  # A missing edge bundle fails the pull (exit 2, naming the repository);
-  # there is no fallback to git, whose main no longer holds the generated
-  # reference. CI-only: it uploads only the edge lock, pages-deploy does not
-  # need it, and it cannot change what is published. It pulls its own
-  # bundles, so it waits for no job. The checkouts of the bundled repositories stay because
-  # explicit mode checks every root before a container starts, and the
-  # summary compares each edge bundle's commit with them. Dates are not its
-  # subject: shallow checkouts, OPM_REQUIRE_DATES off. Never make it a
+  # included) and the Catalogs tab at its newest digests, then builds over
+  # that pull (OPM_BUNDLES=site/.edge/bundles). The pull lints every page in
+  # bundle mode (opm-docs); the build runs every check and the link crawl, so
+  # a page broken on main fails here before it is released.
+  # A missing edge bundle fails the pull (exit 2, naming the repository).
+  # CI-only: it uploads only the edge lock, pages-deploy does not need it,
+  # and it cannot change what is published. It pulls its own bundles, so it
+  # waits for no job. Like every job it checks out only opmodel.dev; the
+  # summary asks GitHub for each repository's main head (git ls-remote) to
+  # compare with the commit each edge bundle was built from. Dates are not
+  # its subject: a shallow checkout, OPM_REQUIRE_DATES off. Never make it a
   # required status check: it reads other repositories' moving edge bundles,
   # so it turns red for reasons no opmodel.dev pull request can fix (a
   # product's main, a lagging edge publish, a GHCR outage, a catalog bundle
@@ -393,63 +269,21 @@ jobs:
         with:
           path: opmodel.dev
           persist-credentials: false
-      - name: Check out opm
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm
-          ref: main
-          path: opm
-          persist-credentials: false
-      - name: Check out core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/core
-          ref: main
-          path: core
-          persist-credentials: false
-      - name: Check out catalog_opm
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/catalog_opm
-          ref: main
-          path: catalog_opm
-          persist-credentials: false
-      - name: Check out cli
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/cli
-          ref: main
-          path: cli
-          persist-credentials: false
-      - name: Check out library
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/library
-          ref: main
-          path: library
-          persist-credentials: false
-      - name: Check out opm-operator
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: open-platform-model/opm-operator
-          ref: main
-          path: opm-operator
-          persist-credentials: false
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
           version: 3.52.0
       - name: Build every main from the edge docs bundles
         # Derive site/.edge/bundles.cue, pull it into site/.edge/bundles/
-        # (anonymous, read-only: no token), build in explicit mode. The task
-        # sets OPM_REQUIRE_DATES=0 and the other build variables itself.
+        # (anonymous, read-only: no token), build over it. The task sets
+        # OPM_REQUIRE_DATES=0 and the other build variables itself.
         run: task build:edge
       - name: The build read the edge docs bundles
-        # Without OPM_DOCS_BUNDLES=1 an explicit build reads every product
-        # from its git checkout and still passes, so the stamp must show
-        # cli, core, library, opm-operator, opm and catalog-opm-docs read
-        # from pulled (not local) edge bundles, and no other kind of bundle,
-        # and the Enhancements section from its pulled bundle.
+        # A build over another lock (a local bundle, a stale
+        # site/.edge/bundles/) would pass too, so the stamp must show cli,
+        # core, library, opm-operator, opm and catalog-opm-docs read from
+        # pulled (not local) edge bundles, and no other kind of bundle, and
+        # the Enhancements section from its pulled bundle.
         run: |
           stamp=site/public/build-stamp.json
           if ! jq -e '(.versions["v1.0"].bundles // []) as $b
@@ -475,10 +309,10 @@ jobs:
       - name: Summary
         # The edge docs bundles and catalog segments this run read, from the
         # lock (written by the pull even when the build then failed). Each
-        # docs bundle's commit is compared with its repository's main
-        # checkout: the job checks what edge points at, so a product whose
-        # edge publish failed or lags is checked at an older commit, and a
-        # warning says so.
+        # docs bundle's commit is compared with its repository's main head
+        # (git ls-remote, anonymous): the job checks what edge points at, so
+        # a product whose edge publish failed or lags is checked at an older
+        # commit, and a warning says so.
         if: always()
         run: |
           lock=site/.edge/bundles/lock.json
@@ -488,17 +322,18 @@ jobs:
             summary 'The edge pull wrote no lock: edge-config.sh, the image build or the pull failed (a missing edge bundle, a signature, lint or collision). See the "Build every main from the edge docs bundles" step log.'
             exit 0
           fi
-          summary '| Project | Role | Tag | Version | Digest | Commit | Main checkout |' '|---|---|---|---|---|---|---|'
+          summary '| Project | Role | Tag | Version | Digest | Commit | Main head |' '|---|---|---|---|---|---|---|'
           jq -r '.docs // [] | .[] | [.project, .role, (.tag // ""), .version,
               (if .local then "local" else .digest[0:19] end), .commit, (.signer.repository // "")] | join("|")' "$lock" |
             while IFS='|' read -r project role tag version digest commit repo; do
               case "$project" in catalog-opm-docs) tree=catalog_opm ;; *) tree=$project ;; esac
-              head=$(git -C "../$tree" rev-parse HEAD 2>/dev/null || true)
+              url=${repo:-https://github.com/open-platform-model/$tree}
+              head=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1 || true)
               if [ "$commit" = "$head" ]; then
                 main='same commit'
               else
                 main="**differs: ${head:0:12}**"
-                echo "::warning::sources-main checked $project at its edge bundle's commit ${commit:0:12}, but its main checkout is at ${head:-(none)}: its edge publish failed or lags, so this run did not check $project's main."
+                echo "::warning::sources-main checked $project at its edge bundle's commit ${commit:0:12}, but its main is at ${head:-(unknown)}: its edge publish failed or lags, so this run did not check $project's main."
               fi
               if [ -n "$repo" ]; then c="[${commit:0:12}]($repo/commit/$commit)"; else c=${commit:0:12}; fi
               summary "| $project | $role | $tag | $version | $digest | $c | $main |"

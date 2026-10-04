@@ -12,10 +12,11 @@
 // ("catalog-opm": {...}); keep every tab key quoted.
 //
 // docs (docs-kit C16) names the projects that may be placed in a site
-// version's /docs/, each with the only repository allowed to sign it. A site
-// version reads a repository from its docs bundle exactly when versions names
-// its project for that version (the lock's "docs" entries; site/versions.conf
-// mirrors the set as from-bundles); docs without versions pulls nothing.
+// version's /docs/, each with the only repository allowed to sign it, and
+// versions is the list of site versions: each version's pages are the docs
+// bundles of the projects it names (the lock's "docs" entries), and nothing
+// else is read from any repository. site/versions.conf gives each version
+// only its label, weight and default, and must name the same versions.
 // run-in-image.sh reads these keys the same way: keep every docs key and
 // every site-version key quoted.
 registry: "ghcr.io/open-platform-model/docs"

@@ -1,7 +1,9 @@
 #!/bin/sh
 # The site build. Runs inside the build image (site/Dockerfile) with the
-# repo at /work/repo and each source root read-only at /src/<repo>, with no
-# network (site/scripts/run-in-image.sh build). Every step fails the build.
+# repo at /work/repo, with no network (site/scripts/run-in-image.sh build).
+# It reads no repository but this one: every page outside site/content/
+# comes from the docs bundles of the lock (site/.bundles/, or OPM_BUNDLES).
+# Every step fails the build.
 #
 #   build-all.sh [--public DIR] [--check DIR]
 #
@@ -12,11 +14,11 @@
 #
 # Env: SITE_DIR           the site tree to build (default: this script's site/,
 #                         /work/repo/site); test-site.sh points it at a copy
-#      OPM_VERSIONS       name=root ...: an explicit version set (fixture builds); each
-#                         root holds <repo>/docs/site. Unset: the versions that
-#                         task versions:prepare resolved into .versions/versions.tsv
-#      OPM_REQUIRE_DATES  1: a page without a git date fails the build
-#      OPM_BUILD_REFS     repo=sha ..., resolved on the host (the build stamp)
+#      OPM_BUNDLES        the unpacked docs bundles with their lock.json (default
+#                         SITE_DIR/.bundles, which must be pulled for bundles.cue)
+#      OPM_VERSIONS_CONF  the site versions' display keys (default versions.conf)
+#      OPM_REQUIRE_DATES  1: a site-owned page without a date fails the build
+#      OPM_SITE_COMMIT    this repository's commit, resolved on the host (the build stamp)
 #      OPM_BASE_URL       the site's base URL for this build: an absolute http(s)
 #                         URL ending in /, which may carry a path
 #                         (https://example.org/docs/). Passed to hugo as
@@ -29,7 +31,6 @@ set -eu
 SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 SITE_DIR=${SITE_DIR:-$(cd "$SCRIPTS/.." && pwd)}
 export SITE_DIR
-REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 t0=$(date +%s)
 step() { printf '\n== %s\n' "$*"; }
@@ -63,7 +64,8 @@ CALLER=build-all
 echo "build-all: versions $VERSIONS (default $DEFAULT)"
 if [ -n "$ENH_DIR" ]; then echo "build-all: enhancements section from $ENH_DIR (commit $ENH_SHA, $ENH_HOW)"
 else echo "build-all: no enhancements section"; fi
-if [ -n "$CAT_DIR" ]; then echo "build-all: catalogs section from $CAT_DIR ($CAT_FROM)"
+echo "build-all: docs bundles from $CAT_DIR ($CAT_FROM)"
+if [ -n "$CATALOGS" ]; then echo "build-all: catalogs section from $CAT_DIR ($CAT_FROM)"
 else echo "build-all: no catalogs section"; fi
 
 step "drift guard: overridden theme files unchanged upstream"
@@ -72,37 +74,17 @@ sh "$SCRIPTS/check-overrides.sh"
 step "vendored files match their pins"
 sh "$SCRIPTS/check-vendored.sh"
 
-# Which repositories each version reads from a docs bundle instead of git
-# (data/opm/docs-bundles.json, from the lock's "docs" key): the source lint,
-# the dates, the mounts and the page-set checks skip their git trees.
-# gen-catalogs.sh first: it checks the lock both read.
+# The docs bundles each version reads (data/opm/docs-bundles.json, from the
+# lock's "docs" key) and the Catalogs section's data (data/opm/catalogs.json).
+# gen-catalogs.sh first: it checks the lock both read. opm-docs pull linted
+# every bundle page against the dialect, so the build lints nothing.
 step "docs bundles"
 sh "$SCRIPTS/gen-catalogs.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-docs-bundles.sh" $VERSIONS
 
-step "source lint"
-# Only git-sourced trees: opm-docs pull linted every bundle page in bundle mode.
-dirs=""
-for pair in $VERSIONS; do
-  v=${pair%%=*}; root=${pair#*=}
-  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' data/opm/docs-bundles.json) "
-  for r in $REPOS; do
-    case "$fromb" in *" $r "*) ;; *) dirs="$dirs $root/$r/docs/site" ;; esac
-  done
-done
-# A build whose every version reads every repository from docs bundles has
-# no git tree to lint (the pull linted every bundle page).
-if [ -n "$dirs" ]; then
-  # shellcheck disable=SC2086 # the roots hold no spaces
-  sh "$SCRIPTS/lint-sources.sh" $dirs
-else
-  echo "source lint: no git tree to lint; every repository comes from a docs bundle, which opm-docs pull linted"
-fi
-
 step "dates, stamp, mounts, collisions"
-# shellcheck disable=SC2086
-sh "$SCRIPTS/gen-lastmod.sh" $VERSIONS
+sh "$SCRIPTS/check-site-dates.sh"
 # shellcheck disable=SC2086
 sh "$SCRIPTS/gen-stamp.sh" $VERSIONS
 # shellcheck disable=SC2086
@@ -123,7 +105,7 @@ printf '/ /latest/ 302\n/latest/* /%s/:splat 302\n' "$DEFAULT" > "$PUBLIC/_redir
 # stubs): /catalogs/<name>/ to the newest minor, /catalogs/<name>/<MAJOR>/
 # and below to the newest minor of that major; none to edge, and none
 # starting with /latest/.
-if [ -n "$CAT_DIR" ]; then
+if [ -n "$CATALOGS" ]; then
   jq -r '.catalogs[] | .root as $r | (if .newest != "" then "\($r) \($r)\(.newest)/ 302" else empty end),
     (.majors | to_entries[] | "\($r)\(.key)/ \($r)\(.value)/ 302", "\($r)\(.key)/* \($r)\(.value)/:splat 302")' \
     data/opm/catalogs.json >> "$PUBLIC/_redirects"
@@ -131,8 +113,7 @@ fi
 printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s/latest/"><title>Open Platform Model</title><a href="%s/latest/">%s/latest/</a>\n' "$BASE_PATH" "$BASE_PATH" "$BASE_PATH" > "$PUBLIC/index.html"
 cp "$PUBLIC/$DEFAULT/404.html" "$PUBLIC/404.html"
 cp data/opm/build.json "$PUBLIC/build-stamp.json"
-for pair in $VERSIONS; do
-  v=${pair%%=*}
+for v in $VERSIONS; do
   pagefind --site "$PUBLIC/$v" --root-selector 'main#content > .content' \
     --exclude-selectors '.hextra-page-context-menu, .opm-type-badge, .hextra-code-copy-btn, figure svg' \
     --quiet
@@ -150,7 +131,7 @@ fi
 
 # Each catalog segment (every minor and edge) has its own bundle, so a search
 # stays in the minor being read (layouts/_partials/scripts/search.html).
-if [ -n "$CAT_DIR" ]; then
+if [ -n "$CATALOGS" ]; then
   [ -f "$PUBLIC/catalogs/index.html" ] || fail "CATALOGS FAIL: $PUBLIC/catalogs/index.html was not built"
   for d in $(jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\(.segment)"' data/opm/catalogs.json); do
     [ -f "$PUBLIC$d/index.html" ] || fail "CATALOGS FAIL: $PUBLIC$d/index.html was not built"
@@ -173,7 +154,7 @@ done
 grep -qxF '/ /latest/ 302' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send / to /latest/"
 # The catalog aliases: their _redirects lines and stubs exist exactly when
 # the build has the section, and neither names edge.
-if [ -n "$CAT_DIR" ]; then
+if [ -n "$CATALOGS" ]; then
   for c in $(jq -r '.catalogs[] | "\(.name):\(.newest):\(.majors | keys | join(","))"' data/opm/catalogs.json); do
     n=${c%%:*}; newest=${c#*:}; newest=${newest%%:*}; majors=${c##*:}
     if [ -n "$newest" ]; then
@@ -256,10 +237,9 @@ $(echo "$cdn" | sed 's/^/  /')"
 echo "supply: every loaded URL is relative or under $BASE_URL; no CDN reference"
 
 step "summary"
-for pair in $VERSIONS; do
-  v=${pair%%=*}
+for v in $VERSIONS; do
   echo "$v: $(find "$PUBLIC/$v" -name index.html ! -path "$PUBLIC/$v/pagefind/*" | wc -l | tr -d ' ') pages"
 done
 [ -z "$ENH_DIR" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
-[ -z "$CAT_DIR" ] || echo "catalogs: $(find "$PUBLIC/catalogs" -name index.html ! -path '*/pagefind/*' | wc -l | tr -d ' ') pages"
+[ -z "$CATALOGS" ] || echo "catalogs: $(find "$PUBLIC/catalogs" -name index.html ! -path '*/pagefind/*' | wc -l | tr -d ' ') pages"
 echo "build-all: OK in $(( $(date +%s) - t0 )) s -> $SITE_DIR/$PUBLIC ($(find "$PUBLIC" -type f | wc -l | tr -d ' ') files, $(du -sh "$PUBLIC" | cut -f1))"

@@ -1,2 +1,2 @@
-+ build-all: site/bundles.cue names the Catalogs tabs, but site/.bundles/ holds no lock.json; run task bundles:pull
++ build-all: site/.bundles/ holds no lock.json; run task bundles:pull
 - == drift guard

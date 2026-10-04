@@ -1,2 +1,2 @@
 + gen-docs-bundles: v1.0: core 2.0.0-beta.3 (local): _versions/v1.0/core/content/ holds pages its manifest.json does not list: concepts/stray.md
-- == source lint
+- == dates, stamp, mounts, collisions

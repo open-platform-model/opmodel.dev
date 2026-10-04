@@ -5,18 +5,20 @@ locale = 'en-US'
 theme = 'hextra'
 enableRobotsTXT = true
 disableKinds = ['taxonomy', 'term', 'rss']
-# Hugo's GitInfo cannot see the source repos (directory mounts, not modules);
-# scripts/gen-lastmod.sh writes data/opm/lastmod.json instead.
+# Off: the build container cannot read a worktree's git. Site-owned pages are
+# dated on the host (scripts/gen-site-dates.sh -> data/opm/lastmod.json);
+# every other page by its docs bundle's manifest.
 enableGitInfo = false
 # Every internal link goes through layouts/_markup/render-link.html, which
 # fails the build on a page that does not exist in the current version.
 refLinksErrorLevel = 'error'
 
-# Every version under /<version>/. The versions come from site/versions.conf:
-# scripts/gen-mounts.sh writes defaultContentVersion, [versions] and
-# params.opm.versions (name and label) into config/{production,development}/
-# hugo.toml, and the mounts that feed each version into module.toml beside it
-# (all gitignored).
+# Every version under /<version>/. The versions are those the docs bundles'
+# lock names (site/bundles.cue versions), with their labels, weights and
+# default from site/versions.conf: scripts/gen-mounts.sh writes
+# defaultContentVersion, [versions] and params.opm.versions (name and label)
+# into config/{production,development}/hugo.toml, and the mounts that feed
+# each version into module.toml beside it (all gitignored).
 defaultContentVersionInSubdir = true
 
 [outputs]
@@ -117,7 +119,6 @@ defaultContentVersionInSubdir = true
     github = 'https://github.com/open-platform-model'
     # Sidebar groups outside the current page's path start collapsed.
     collapseInactive = true
-    repos = ['opm', 'core', 'catalog_opm', 'cli', 'library', 'opm-operator']
     # The only host whose pages may be indexed. A build for any other base URL
     # host carries a robots noindex tag (layouts/_partials/custom/head-end.html).
     indexedHost = 'opmodel.dev'

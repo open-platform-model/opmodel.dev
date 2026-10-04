@@ -1,2 +1,2 @@
 + gen-docs-bundles: v1.0: core 2.0.0-beta.3 (local): the lock says version 2.0.0-beta.3, _versions/v1.0/core/manifest.json says 2.0.0-beta.4
-- == source lint
+- == dates, stamp, mounts, collisions

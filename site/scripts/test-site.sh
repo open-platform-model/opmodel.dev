@@ -1,76 +1,68 @@
 #!/bin/sh
-# Regression tests for the site build: the fixture workspace builds green and
-# renders the page dialect, the source lint rejects every form the dialect
-# forbids, and every build check fails when it should. Runs in the build image
-# with no network (site/scripts/run-in-image.sh test). It reads only fixtures
-# under site/tests/, never a source checkout, and writes only under
-# site/.check/tests/: each case runs on its own copies of the fixture
-# workspace and of the site (the directories a build reads, and the top-level files), with
-# SITE_DIR pointing at the copy, so a test run never touches site/public/ or a
-# real build's generated config. Scratch files go to the container's own
-# /tmp (mktemp), never to a host path.
+# Regression tests for the site build: the fixture docs bundles build green
+# and render the page dialect, and every build check fails when it should.
+# Runs in the build image with no network (site/scripts/run-in-image.sh
+# test). It reads only fixtures under site/tests/, and writes only under
+# site/.check/tests/: each case runs on its own copy of the site (the
+# directories a build reads, and the top-level files) with the fixture
+# bundles as its .bundles/, with SITE_DIR pointing at the copy, so a test run
+# never touches site/public/ or a real build's generated config. Scratch
+# files go to the container's own /tmp (mktemp), never to a host path. The
+# page dialect is not tested here: opm-docs lint enforces it at pull (docs-kit
+# C11), and docs-kit holds its conformance set.
 #
-#   site/tests/fixtures/ws/<repo>/docs/site/   the fixture workspace, in the dialect
-#   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge), the
-#                                              version history (catalog-opm/history.json), the
-#                                              docs bundles of site version v1.0
-#                                              (_versions/v1.0/{cli,core,library,opm-operator,opm,
-#                                              catalog-opm-docs}, docs-kit C15, C16: cli the anchor
-#                                              with pins, opm and catalog-opm-docs by their own
-#                                              tags) and
-#                                              the lock an all-local opm-docs pull writes over
-#                                              them; the tests first re-pull them offline with
-#                                              the pinned opm-docs and fail unless the result is
-#                                              byte-identical, then every site copy holds that
-#                                              pulled tree as .bundles/, with
-#                                              tests/fixtures/bundles.cue as bundles.cue. Only a
-#                                              build that asks for the docs bundles keeps the
-#                                              lock's "docs" entries (copy_site CASE docs, or
-#                                              CASE_DOCS_BUNDLES=1 in a check case's env); every
-#                                              other build reads all six repositories from git
+#   site/tests/fixtures/bundles/               docs bundles: the Catalogs tab (catalog-opm 4.4,
+#                                              4.5, edge) with its version history
+#                                              (catalog-opm/history.json), the docs bundles of
+#                                              site version v1.0 (_versions/v1.0/{cli,core,
+#                                              library,opm-operator,opm,catalog-opm-docs},
+#                                              docs-kit C15, C16: cli the anchor with pins, opm
+#                                              and catalog-opm-docs by their own tags), the
+#                                              Enhancements section bundle (enhancements/edge,
+#                                              docs-kit C21) and the lock an all-local opm-docs
+#                                              pull writes over them; the tests first re-pull
+#                                              them offline with the pinned opm-docs and fail
+#                                              unless the result is byte-identical, then every
+#                                              site copy holds that pulled tree as .bundles/,
+#                                              with tests/fixtures/bundles.cue as bundles.cue
 #   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
 #                                              entry, an archived one and the 0000
 #                                              template), the source of the section
-#                                              bundle fixture below; no build reads it
-#   site/tests/fixtures/bundles/enhancements/edge/
-#                                              the Enhancements section bundle (docs-kit
-#                                              C21) that opm-docs build writes from
-#                                              ws/enhancements committed as one commit
-#                                              (README "The Enhancements section" has the
-#                                              command); every fixture build reads it
-#   site/tests/subpath/env                     the base URL the fixture workspace also
-#                                              builds under (a two-segment path)
-#   site/tests/lint/<case>/                    lint cases
+#                                              bundle fixture; no build reads it
+#   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library,
+#                                              opm-operator, opm and catalog-opm-docs (manifest
+#                                              version edge), pulled offline under the derived
+#                                              config and built through OPM_BUNDLES
+#   site/tests/bundle-page.sh                  helpers that edit a copy of the fixture bundles
+#                                              (add or drop a page, drop the tabs, add a version)
+#   site/tests/subpath/env                     the base URL the fixture bundles also build
+#                                              under (a two-segment path)
 #   site/tests/checks/<case>/                  build-check cases; edge-*/ hold the edge build's
 #                                              cases (openspec add-edge-build), run in their own
 #                                              section: edge-config.sh's input and expected output,
 #                                              and run-in-image.sh pull's under a stub docker
-#   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library,
-#                                              opm-operator and opm (manifest version edge), pulled offline
-#                                              under the derived config and built in explicit mode
-#   site/tests/dialect/                        a tree whose build must render the dialect
+#   site/tests/dialect/                        pages whose build must render the dialect
 #
 # A case directory holds any of:
-#   <repo>/docs/site/...  pages laid over the copy of the fixture workspace
+#   bundles/<project>/<path>  a page laid into the copy's v1.0 docs bundle of <project>, at
+#                         content/<path>, and listed in its manifest (bundle-page.sh add_page)
 #   site/...              files laid over the copy of the site (site-owned pages, config)
-#   setup.sh              run after the copies, with SITE and WS set to them
-#   env                   KEY=VALUE lines exported for the build (checks only);
-#                         CASE_MANIFEST=1 builds without OPM_VERSIONS (manifest mode);
-#                         CASE_DOCS_BUNDLES=1 keeps the fixture docs bundles, so v1.0
-#                         reads cli, core, library, opm-operator and opm from them
-#   expect                lint: one "<path>:<line>: <message>" line per violation,
-#                         none for a clean tree; checks: "+ text" lines the failed
-#                         build must print and "- text" lines it must not
+#   setup.sh              run after the copies, with SITE set to the site copy and BP to
+#                         bundle-page.sh
+#   env                   KEY=VALUE lines exported for the build (checks only)
+#   expect                "+ text" lines the failed build must print and "- text" lines
+#                         it must not
 #
 # Prints "ok" or "FAIL" per case; exits 1 on any unexpected result.
 set -u
 SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 SITE=$(cd "$SCRIPTS/.." && pwd)
 TESTS=$SITE/tests
-WS=$TESTS/fixtures/ws
 OUT=$SITE/.check/tests
-REPOS="opm core catalog_opm cli library opm-operator"
-# Only the git-dates case turns this on; CI may export it for real builds.
+BP=$TESTS/bundle-page.sh
+# shellcheck source=../tests/bundle-page.sh
+. "$BP"
+# Only the site-dates-missing case turns this on; CI may export it for real builds.
 export OPM_REQUIRE_DATES=0
 # A case sets a base URL only through its own env file; CI's Pages build
 # exports one for real builds.
@@ -80,7 +72,7 @@ pass=0; fail=0
 ok() { echo "ok   $1: $2"; pass=$((pass + 1)); }
 bad() { echo "FAIL $1: $2"; fail=$((fail + 1)); [ -z "${3:-}" ] || tail -n 15 "$3" | sed 's/^/     | /'; }
 
-# copy_site CASE [docs]: the site at OUT/CASE/site: the directories a build reads and
+# copy_site CASE: the site at OUT/CASE/site: the directories a build reads and
 # the top-level files, never generated output (public/, .check/, ...), tests/
 # or anything an old checkout left behind (site/dist/, site/.astro/, site/src/).
 copy_site() {
@@ -92,53 +84,37 @@ copy_site() {
   for e in "$SITE"/* "$SITE"/.[!.]*; do
     [ -f "$e" ] && cp "$e" "$d/"
   done
-  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles"
+  rm -rf "$d/config/production" "$d/config/development" "$d/data/opm" "$d/.hugo_build.lock" "$d/.bundles" "$d/.gen"
   # The fixture docs bundles as opm-docs pulled them (BUNDLES, the
-  # all-local pull below), with the bundles.cue they were pulled for, so
-  # every build has the Catalogs section: explicit mode reads .bundles/ when
-  # it holds lock.json.
+  # all-local pull below), with the bundles.cue they were pulled for: every
+  # build reads its pages from them.
   cp -R "$BUNDLES" "$d/.bundles"
   cp "$TESTS/fixtures/bundles.cue" "$d/bundles.cue"
-  # Without "docs", the copy's lock has no "docs" key and no _versions/:
-  # every version reads all six repositories from git (the lock alone
-  # decides, gen-docs-bundles.sh), and the config digest still matches.
-  if [ "${2:-}" != docs ]; then
-    rm -rf "$d/.bundles/_versions"
-    jq 'del(.docs)' "$BUNDLES/lock.json" > "$d/.bundles/lock.json"
-  fi
   return 0
 }
 
-# copy_ws CASE: the fixture workspace at OUT/CASE/ws.
-copy_ws() {
-  mkdir -p "$OUT/$1/ws"
-  cp -R "$WS/." "$OUT/$1/ws/"
-}
-
-# overlay CASE DIR: lay DIR's repo trees over the workspace copy and its site/
-# tree over the site copy, then run its setup.sh.
+# overlay CASE DIR: lay DIR's bundles/<project>/ pages into the copy's v1.0
+# docs bundles and its site/ tree over the site copy, then run its setup.sh.
 overlay() {
-  for r in $REPOS; do
-    [ -d "$2/$r" ] && cp -R "$2/$r" "$OUT/$1/ws/"
-  done
+  if [ -d "$2/bundles" ]; then
+    for pd in "$2"/bundles/*/; do
+      pr=${pd%/}; pr=${pr##*/}
+      (cd "$pd" && find . -type f | sed 's#^\./##') | while IFS= read -r f; do
+        add_page "$OUT/$1/site/.bundles" "$pr" "$f" "$pd$f" || echo "overlay: $1: could not add $pr/$f" >&2
+      done
+    done
+  fi
   if [ -d "$2/site" ]; then cp -R "$2/site/." "$OUT/$1/site/"; fi
-  if [ -f "$2/setup.sh" ]; then SITE=$OUT/$1/site WS=$OUT/$1/ws sh "$2/setup.sh"; fi
+  if [ -f "$2/setup.sh" ]; then SITE=$OUT/$1/site BP=$BP sh "$2/setup.sh"; fi
   return 0
 }
 
-roots() { for r in $REPOS; do printf ' %s/%s/docs/site' "$1" "$r"; done; }
-
-# build CASE ROOT [ENVFILE]: build-all.sh on the case's site copy, into its log.
+# build CASE [ENVFILE]: build-all.sh on the case's site copy, into its log.
 build() {
   (
     # shellcheck disable=SC1090 # the case's own env file
-    if [ -n "${3:-}" ] && [ -f "$3" ]; then set -a; . "$3"; set +a; fi
-    # CASE_MANIFEST=1 (a case's env file) builds in manifest mode, without
-    # OPM_VERSIONS; its setup.sh writes the site copy's .versions/.
-    v=v1.0=$2; [ -z "${CASE_MANIFEST:-}" ] || v=""
-    # A case with the docs bundles reads them in explicit mode too.
-    [ -z "${CASE_DOCS_BUNDLES:-}" ] || export OPM_DOCS_BUNDLES=1
-    SITE_DIR=$OUT/$1/site OPM_VERSIONS=$v sh "$SCRIPTS/build-all.sh"
+    if [ -n "${2:-}" ] && [ -f "$2" ]; then set -a; . "$2"; set +a; fi
+    SITE_DIR=$OUT/$1/site sh "$SCRIPTS/build-all.sh"
   ) > "$OUT/$1/log" 2>&1
 }
 
@@ -238,56 +214,13 @@ docs_pull_case docs-pull-pin-missing 2 "v1.0: cli 1.0.0-beta.9 (local) pins no v
   jq "del(.docs[] | select(.project == \"cli\") | .pins.library)" lock.json > l && mv l lock.json'
 
 # ---------------------------------------------------------------------------
-# Lint: each case prints exactly the violations its expect file names, each
-# with its file and line, and exits 1 (0 for a clean tree).
-for c in "$TESTS"/lint/*/; do
-  c=${c%/}; name=lint/${c##*/}
-  copy_ws "$name"; overlay "$name" "$c"
-  log=$OUT/$name/log
-  # shellcheck disable=SC2046 # roots holds no spaces
-  sh "$SCRIPTS/lint-sources.sh" $(roots "$OUT/$name/ws") > "$log" 2>&1; rc=$?
-  n=$(grep -c . "$c/expect")
-  why=""
-  if [ "$n" -eq 0 ]; then
-    [ $rc -eq 0 ] || why="expected a clean tree (exit $rc)"
-  else
-    [ $rc -eq 1 ] || why="expected exit 1 (exit $rc)"
-    grep -q "^opm-dialect-lint: $n violation(s)$" "$log" || why="${why:+$why; }expected exactly $n violation(s)"
-    while IFS= read -r e; do
-      awk -v w="$OUT/$name/ws/$e" 'index($0, w) == 1 { f = 1 } END { exit !f }' "$log" || why="${why:+$why; }missing: $e"
-    done < "$c/expect"
-  fi
-  # Parity with docs-kit (C11): the pinned opm-docs lint over the same
-  # roots, paths relative to the workspace copy, must report the same
-  # violations: as many lines, each starting with one expect line (the
-  # expect lines are prefixes, as for the shell lint), and exit 2 (0 clean).
-  # shellcheck disable=SC2046 # repo names hold no spaces
-  (cd "$OUT/$name/ws" && opm-docs lint $(for r in $REPOS; do printf ' %s/docs/site' "$r"; done)) > "$OUT/$name/opm-docs.log" 2>&1; drc=$?
-  grep -E '^[^ ]+:[0-9]+: ' "$OUT/$name/opm-docs.log" > "$OUT/$name/opm-docs.out"
-  if [ "$n" -eq 0 ]; then
-    [ $drc -eq 0 ] && [ ! -s "$OUT/$name/opm-docs.out" ] || why="${why:+$why; }opm-docs lint: expected a clean tree (exit $drc)"
-  else
-    [ $drc -eq 2 ] || why="${why:+$why; }opm-docs lint: expected exit 2 (exit $drc)"
-    awk 'NR == FNR { if ($0 != "") e[++ne] = $0; next } { o[++no] = $0 }
-      END { if (ne != no) { print "count " no " != " ne; bad = 1 }
-            for (i = 1; i <= ne; i++) { f = 0; for (j = 1; j <= no; j++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "missing: " e[i]; bad = 1 } }
-            for (j = 1; j <= no; j++) { f = 0; for (i = 1; i <= ne; i++) if (index(o[j], e[i]) == 1) f = 1; if (!f) { print "extra: " o[j]; bad = 1 } }
-            exit bad }' "$c/expect" "$OUT/$name/opm-docs.out" > "$OUT/$name/opm-docs.diff" ||
-      why="${why:+$why; }opm-docs lint differs: $(head -n 2 "$OUT/$name/opm-docs.diff" | tr '\n' ' ')"
-  fi
-  if [ "$n" -eq 0 ]; then first=clean; else first=$(head -n 1 "$c/expect"); fi
-  if [ "$n" -gt 1 ]; then first="$first (+$((n - 1)) more)"; fi
-  if [ -z "$why" ]; then ok "$name" "$first (shell lint and opm-docs lint)"; else bad "$name" "$why" "$log"; fi
-done
-
-# ---------------------------------------------------------------------------
-# The fixture workspace builds green and renders the dialect.
+# The fixture bundles build green and render the dialect.
 name=fixture
 copy_site "$name"
-build "$name" "$WS"; rc=$?
+build "$name"; rc=$?
 log=$OUT/$name/log
 P=$OUT/$name/site/public/v1.0
-if [ $rc -eq 0 ]; then ok "$name" "the fixture workspace builds green"; else bad "$name" "the fixture build failed (exit $rc)" "$log"; fi
+if [ $rc -eq 0 ]; then ok "$name" "the fixture bundles build green"; else bad "$name" "the fixture build failed (exit $rc)" "$log"; fi
 
 if [ $rc -eq 0 ]; then
   # GitHub alerts with a bold title line become Hextra alerts; no marker is left.
@@ -324,8 +257,7 @@ if [ $rc -eq 0 ]; then
 
   # Order is weight, then title: in a source section and across the sections.
   # Reference is its own tab: the docs tree leaves it out, and the Reference
-  # home's tree holds it (its order is asserted on the docs-bundles build,
-  # whose bundles carry the generated reference).
+  # home's tree holds it (its order is asserted with the docs bundles below).
   nav=$OUT/$name/site/.check/v1.0/nav-order.txt
   rnav=$OUT/$name/site/.check/v1.0/nav-order-reference.txt
   prev=0; order_ok=1
@@ -624,7 +556,7 @@ if [ $rc -eq 0 ]; then
   st=$OUT/$name/site/public/build-stamp.json
   got=$(jq -r '.sections.catalogs | "\(.from) \(.frozen) \(.lock | test("^sha256:[0-9a-f]{64}$")) \([.bundles[] | "\(.project)/\(.segment)/\(.version)/\(.local)"] | join(","))"' "$st" 2>/dev/null)
   hd=sha256:$(sha256sum "$BUNDLES/catalog-opm/history.json" | cut -c1-64)
-  if [ "$got" = "explicit false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
+  if [ "$got" = "bundles false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
      [ "$(jq -r '.sections.catalogs.history | map("\(.project) \(.digest)") | join(",")' "$st")" = "catalog-opm $hd" ] &&
      [ "$(jq -r '.sections.enhancements | "\(.ref) \(.sha) \(.local)"' "$st")" = "edge eddf92c16f02dddf146a6068b38a6ae03f1c4f77 true" ]; then
     ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest, every bundle (local) and the history digest; sections.enhancements names the section bundle (edge, its commit, local)"
@@ -646,8 +578,8 @@ dump_hook() {
     > "$OUT/$1/site/layouts/_partials/custom/page-end.html"
 }
 name=catalogs/history-params
-copy_site "$name"; copy_ws "$name"; dump_hook "$name"
-build "$name" "$OUT/$name/ws"; rc=$?
+copy_site "$name"; dump_hook "$name"
+build "$name"; rc=$?
 if [ $rc -ne 0 ]; then bad "$name" "the build with history.json failed (exit $rc)" "$OUT/$name/log"
 else
   why=""
@@ -720,9 +652,9 @@ else
   else bad "$name/rendered" "$why"; fi
 fi
 name=catalogs/history-stale
-copy_site "$name"; copy_ws "$name"; dump_hook "$name"
+copy_site "$name"; dump_hook "$name"
 jq 'del(.history)' "$OUT/$name/site/.bundles/lock.json" > "$OUT/$name/site/.bundles/lock.tmp" && mv "$OUT/$name/site/.bundles/lock.tmp" "$OUT/$name/site/.bundles/lock.json"
-build "$name" "$OUT/$name/ws"; rc=$?
+build "$name"; rc=$?
 if [ $rc -ne 0 ]; then bad "$name" "the build with an unrecorded history.json failed (exit $rc)" "$OUT/$name/log"
 elif [ "$(jq -c '.catalogs[0].history' "$OUT/$name/site/data/opm/catalogs.json")" = null ] &&
      [ -z "$(hist_of "$name" /catalogs/opm/4.4/traits/backup-v1alpha1/)" ] &&
@@ -734,23 +666,17 @@ elif [ "$(jq -c '.catalogs[0].history' "$OUT/$name/site/data/opm/catalogs.json")
 else bad "$name" "an unrecorded history.json reached catalogs.json or a page" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------
-# Manifest mode (no OPM_VERSIONS, a resolved .versions/versions.tsv, as
-# task build runs) with bundles.cue and a lock pulled for it: the section is
-# required and read from site/.bundles/, CAT_FROM manifest.
-name=catalogs/manifest
+# A frozen pull's marker (run-in-image.sh writes <bundles>/frozen): the stamp
+# says "frozen": true, and the section still comes from site/.bundles/.
+name=catalogs/frozen
 copy_site "$name"
-mkdir -p "$OUT/$name/site/.versions/v1.0"
-cp -R "$WS/." "$OUT/$name/site/.versions/v1.0/"
-rm -rf "$OUT/$name/site/.versions/v1.0/enhancements"
-printf 'v1.0\tv1.0 (manifest)\t1\ttrue\tanchored\n' > "$OUT/$name/site/.versions/versions.tsv"
-# As a frozen pull leaves it: the marker run-in-image.sh writes.
 echo site/bundles.frozen.json > "$OUT/$name/site/.bundles/frozen"
-(SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+build "$name"; rc=$?
 st=$OUT/$name/site/public/build-stamp.json
-if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (manifest)" "$OUT/$name/log" &&
-   [ "$(jq -r '.sections.catalogs | "\(.from) \(.frozen)"' "$st")" = "manifest true" ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
-  ok "$name" "manifest mode with bundles.cue and its lock builds the section from site/.bundles/ (manifest); a frozen pull's marker shows as "frozen": true"
-else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ (exit $rc)" "$OUT/$name/log"; fi
+if [ $rc -eq 0 ] && grep -qF "build-all: catalogs section from $OUT/$name/site/.bundles (bundles)" "$OUT/$name/log" &&
+   [ "$(jq -r '.sections.catalogs | "\(.from) \(.frozen)"' "$st")" = "bundles true" ] && [ -f "$OUT/$name/site/public/catalogs/opm/4.5/index.html" ]; then
+  ok "$name" "a frozen pull's marker shows as \"frozen\": true; the section comes from site/.bundles/ (bundles)"
+else bad "$name" "the build failed, did not read site/.bundles/, or lost the frozen marker (exit $rc)" "$OUT/$name/log"; fi
 
 # ---------------------------------------------------------------------------
 # The picker with two catalogs: lab, a second catalog with only an edge build
@@ -758,13 +684,13 @@ else bad "$name" "the manifest-mode build failed or did not read site/.bundles/ 
 # project order (catalog-lab first); lab's card links its edge landing, says
 # "No release yet" and has no main link of its own.
 name=catalogs/picker-two
-copy_site "$name"; copy_ws "$name"
+copy_site "$name"
 B=$OUT/$name/site/.bundles
 mkdir -p "$B/catalog-lab" && cp -R "$B/catalog-opm/edge" "$B/catalog-lab/edge"
 sed -i 's/"project": "catalog-opm"/"project": "catalog-lab"/; s#"root": "/catalogs/opm/"#"root": "/catalogs/lab/"#' "$B/catalog-lab/edge/manifest.json"
 find "$B/catalog-lab/edge/content" -name '*.md' -exec sed -i 's#/catalogs/opm/#/catalogs/lab/#g' {} +
 jq '.bundles += [.bundles[] | select(.project == "catalog-opm" and .segment == "edge") | .project = "catalog-lab" | .root = "/catalogs/lab/" | .dir = "catalog-lab/edge"]' "$B/lock.json" > "$B/lock.tmp" && mv "$B/lock.tmp" "$B/lock.json"
-build "$name" "$OUT/$name/ws"; rc=$?
+build "$name"; rc=$?
 if [ $rc -ne 0 ]; then bad "$name" "the build with a second, edge-only catalog failed (exit $rc)" "$OUT/$name/log"
 else
   why=""
@@ -785,11 +711,14 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# The fixture workspace without docs bundles: no Catalogs section and no tab.
+# A lock without tab bundles: no Catalogs section and no tab. The two
+# fixture pages that link the tab go too.
 name=no-catalogs
-copy_site "$name"; copy_ws "$name"
-rm -rf "$OUT/$name/site/.bundles" "$OUT/$name/site/bundles.cue" "$OUT/$name/ws/core/docs/site/concepts/catalog-links.md"
-build "$name" "$OUT/$name/ws"; rc=$?
+copy_site "$name"
+drop_tabs "$OUT/$name/site/.bundles"
+drop_page "$OUT/$name/site/.bundles" core concepts/catalog-links.md
+drop_page "$OUT/$name/site/.bundles" catalog-opm-docs authoring/attach-the-fixture-trait.md
+build "$name"; rc=$?
 P=$OUT/$name/site/public/v1.0
 if [ $rc -ne 0 ]; then bad "$name" "the build without bundles failed (exit $rc)" "$OUT/$name/log"
 else
@@ -802,18 +731,16 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Docs bundles (openspec pull-reference-bundles; docs-kit C15, C16): with the
-# lock's docs entries, v1.0 reads cli, core, library and opm-operator from
-# their fixture bundles, not from the workspace's docs/site/; each page carries
-# its manifest's data (C8): Edit to main at its edit path, View source at the
-# bundle's commit, the manifest's lastmod; a generated page has no Edit.
+# Docs bundles (openspec pull-reference-bundles; docs-kit C15, C16), in the
+# fixture build: v1.0 reads all six repositories from their fixture bundles;
+# each page carries its manifest's data (C8): Edit to main at its edit path,
+# View source at the bundle's commit, the manifest's lastmod; a generated page
+# has no Edit.
 name=docs-bundles
-copy_site "$name" docs; copy_ws "$name"
-echo CASE_DOCS_BUNDLES=1 > "$OUT/$name/env"
-build "$name" "$OUT/$name/ws" "$OUT/$name/env"; rc=$?
-P=$OUT/$name/site/public/v1.0
-log=$OUT/$name/log
-if [ $rc -ne 0 ]; then bad "$name" "the build with docs bundles failed (exit $rc)" "$log"
+D=$OUT/fixture
+P=$D/site/public/v1.0
+log=$D/log
+if [ ! -f "$P/index.html" ]; then bad "$name" "the fixture build failed (see fixture)" "$log"
 else
   why=""
   grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli 1.0.0-beta.9, core 2.0.0-beta.3, library 1.0.0-beta.3, opm-operator 1.0.0-beta.7, catalog-opm-docs 4.5.1, opm 1.0.0-beta.2)' "$log" || why="gen-docs-bundles did not name the six bundles"
@@ -824,19 +751,20 @@ else
   done
   grep -qF "Fixture: generated by the cli bundle" "$P/docs/reference/cli/index.html" || why="${why:+$why; }reference/cli/ is not the cli bundle's"
   grep -qF "Fixture: generated by the core bundle" "$P/docs/reference/definitions/index.html" || why="${why:+$why; }reference/definitions/ is not the core bundle's"
-  grep -qF 'gen-mounts: wrote' "$log" && ! grep -q '/ws/cli/docs/site' "$OUT/$name/site/config/production/module.toml" &&
-    grep -qF "$OUT/$name/site/.bundles/_versions/v1.0/cli/content" "$OUT/$name/site/config/production/module.toml" || why="${why:+$why; }module.toml still mounts the git cli tree, or not the bundle"
-  rnav=$OUT/$name/site/.check/v1.0/nav-order-reference.txt
+  m=$D/site/config/production/module.toml
+  for pr in cli core library opm-operator opm catalog-opm-docs; do
+    grep -qF "$D/site/.bundles/_versions/v1.0/$pr/content" "$m" || why="${why:+$why; }module.toml does not mount the $pr bundle"
+  done
+  [ "$(grep -c 'target = "content/docs"' "$m")" = 6 ] || why="${why:+$why; }module.toml mounts something other than the six bundles at content/docs"
+  rnav=$D/site/.check/v1.0/nav-order-reference.txt
   d=$(line_of /v1.0/docs/reference/definitions/ "$rnav"); cl=$(line_of /v1.0/docs/reference/cli/ "$rnav"); ga=$(line_of /v1.0/docs/reference/go-api/ "$rnav")
   [ "$d" -gt 0 ] && [ "$d" -lt "$cl" ] && [ "$cl" -lt "$ga" ] || why="${why:+$why; }the Reference tree is not definitions, cli, go-api in weight order"
-  ! grep -q '/ws/opm/docs/site\|/ws/catalog_opm/docs/site' "$OUT/$name/site/config/production/module.toml" &&
-    grep -qF "$OUT/$name/site/.bundles/_versions/v1.0/opm/content" "$OUT/$name/site/config/production/module.toml" || why="${why:+$why; }module.toml still mounts the git opm or catalog_opm tree, or not opm's bundle"
   [ -f "$P/docs/authoring/attach-the-fixture-trait/index.html" ] && dq "$P/docs/reference/fixture-contract/index.html" | grep -qF 'href=https://github.com/open-platform-model/catalog_opm/blob/c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4/docs/site/reference/fixture-contract.md' || why="${why:+$why; }catalog_opm's pages are not its bundle's"
   dq "$P/docs/authoring/attach-the-fixture-trait/index.html" | grep -qF 'href=/catalogs/opm/4.5/traits/backup/' || why="${why:+$why; }catalog-opm-docs' /catalogs/opm/4/ link does not resolve to the newest minor"
   for f in docs docs/start docs/start/quickstart; do
     dq "$P/$f/index.html" | grep -qF 'href=https://github.com/open-platform-model/opm/blob/0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a/docs/site/' || why="${why:+$why; }/v1.0/$f/ is not opm's bundle page (no View source at its commit)"
   done
-  if [ -z "$why" ]; then ok "$name/pages" "v1.0 publishes the six bundles' pages at /docs/ (opm's landing and Start here, catalog_opm's how-to linking the catalog by its major, among them), the Reference tree in weight order (definitions, cli, go-api), and the workspace's git trees of those repositories are not mounted"
+  if [ -z "$why" ]; then ok "$name/pages" "v1.0 publishes the six bundles' pages at /docs/ (opm's landing and Start here, catalog_opm's how-to linking the catalog by its major, among them), the Reference tree in weight order (definitions, cli, go-api); module.toml mounts exactly the six bundles at content/docs"
   else bad "$name/pages" "$why" "$log"; fi
 
   why=""
@@ -863,7 +791,7 @@ else
   else bad "$name/page-data" "$why"; fi
 
   why=""
-  st=$OUT/$name/site/public/build-stamp.json
+  st=$D/site/public/build-stamp.json
   got=$(jq -r '.versions["v1.0"].bundles | map("\(.project)/\(.role)/\(.version)/\(.local)") | join(",")' "$st" 2>/dev/null)
   [ "$got" = "cli/anchor/1.0.0-beta.9/true,core/pinned/2.0.0-beta.3/true,library/pinned/1.0.0-beta.3/true,opm-operator/pinned/1.0.0-beta.7/true,catalog-opm-docs/tag/4.5.1/true,opm/tag/1.0.0-beta.2/true" ] || why="the stamp's v1.0 bundles are \"$got\""
   [ "$(jq -c '.versions["v1.0"].bundles[0].pins' "$st")" = '{"core":"2.0.0-beta.3","library":"1.0.0-beta.3","opm-operator":"1.0.0-beta.7"}' ] || why="${why:+$why; }the stamp lacks cli's pins"
@@ -874,46 +802,41 @@ else
   else bad "$name/stamp" "$why" "$st"; fi
 fi
 
-# Explicit mode without OPM_DOCS_BUNDLES=1: the lock names v1.0's docs
-# bundles, but an author previewing docs/site in place sees the git trees.
-name=docs-bundles/explicit-git
-copy_site "$name" docs; copy_ws "$name"
-build "$name" "$OUT/$name/ws"; rc=$?
-if [ $rc -ne 0 ]; then bad "$name" "the explicit build that ignores the docs bundles failed (exit $rc)" "$OUT/$name/log"
-elif grep -qF "explicit mode reads every repository from git and ignores the lock's docs bundles" "$OUT/$name/log" &&
-     [ ! -e "$OUT/$name/site/public/v1.0/docs/reference/go-api" ] &&
-     grep -qF "$OUT/$name/ws/cli/docs/site" "$OUT/$name/site/config/production/module.toml" &&
-     ! grep -qF '_versions/' "$OUT/$name/site/config/production/module.toml"; then
-  ok "$name" "explicit mode mounts every git tree and no docs bundle unless OPM_DOCS_BUNDLES=1"
-else bad "$name" "explicit mode read the docs bundles without OPM_DOCS_BUNDLES=1" "$OUT/$name/log"; fi
-
-# Manifest mode with two versions: v0.9 (default) reads all six repositories
-# from git; v1.0 (not the default) mirrors the lock in from-bundles and
-# reads all six from their bundles (one row with empty repository fields). A
-# bundle page shows Edit on a version that is not the default (it names
-# main).
-name=docs-bundles/manifest
-copy_site "$name" docs
-V=$OUT/$name/site/.versions
-mkdir -p "$V/v0.9" "$V/v1.0"
-cp -R "$WS/." "$V/v0.9/"; rm -rf "$V/v0.9/enhancements"
-printf '# from-bundles\tv1.0\tcli core library opm-operator opm catalog_opm\nv0.9\tv0.9 (git)\t1\ttrue\tanchored\nv1.0\tv1.0 (bundles)\t2\tfalse\tline\t\t\t\t\t\n' > "$V/versions.tsv"
-(SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+# Two site versions from bundles: v0.9 (bundle-page.sh add_version, a copy
+# of v1.0's bundles with an older cli and without the library's
+# embed-the-kernel page) is the default, v1.0 the other; versions.conf gives
+# both their display keys. Each publishes its own bundles' pages; a bundle
+# page shows Edit on a version that is not the default (it names main); the
+# stamp gives each version its bundles.
+name=docs-bundles/two-versions
+copy_site "$name"
+B=$OUT/$name/site/.bundles
+add_version "$B" v0.9
+drop_page "$B" library embedding/embed-the-kernel.md
+# drop_page acts on every version; v1.0 gets the page back from the fixture.
+cp "$BUNDLES/_versions/v1.0/library/manifest.json" "$B/_versions/v1.0/library/manifest.json"
+cp "$BUNDLES/_versions/v1.0/library/content/embedding/embed-the-kernel.md" "$B/_versions/v1.0/library/content/embedding/"
+jq '.version = "1.0.0-beta.8" | .source.ref = "v1.0.0-beta.8"' "$B/_versions/v0.9/cli/manifest.json" > "$B/m" && mv "$B/m" "$B/_versions/v0.9/cli/manifest.json"
+jq '(.docs[] | select(.site == "v0.9" and .project == "cli") | .version) = "1.0.0-beta.8"' "$B/lock.json" > "$B/l" && mv "$B/l" "$B/lock.json"
+printf '[version "v0.9"]\n\tlabel = v0.9 (test)\n\tweight = 1\n\tdefault = true\n[version "v1.0"]\n\tlabel = v1.0 (bundles)\n\tweight = 2\n' > "$OUT/$name/site/versions.conf"
+build "$name"; rc=$?
 R=$OUT/$name/site/public
-if [ $rc -ne 0 ]; then bad "$name" "the manifest-mode build with from-bundles failed (exit $rc)" "$OUT/$name/log"
+if [ $rc -ne 0 ]; then bad "$name" "the two-version build failed (exit $rc)" "$OUT/$name/log"
 else
   why=""
-  [ -f "$R/v1.0/docs/reference/go-api/index.html" ] || why="v1.0 has no go-api page"
-  [ ! -e "$R/v0.9/docs/reference/go-api" ] || why="${why:+$why; }v0.9 has the library bundle's go-api page"
-  [ ! -e "$R/v0.9/docs/reference/cli" ] && [ -f "$R/v0.9/docs/operating/deploy-a-fixture/index.html" ] || why="${why:+$why; }v0.9 lacks the git cli's page, or has a cli reference no git tree holds"
-  grep -qF "Fixture: generated by the cli bundle" "$R/v1.0/docs/reference/cli/index.html" || why="${why:+$why; }v1.0's reference/cli/ is not the bundle's"
+  [ -f "$R/v1.0/docs/embedding/embed-the-kernel/index.html" ] || why="v1.0 has no embed-the-kernel page"
+  [ ! -e "$R/v0.9/docs/embedding/embed-the-kernel" ] || why="${why:+$why; }v0.9 has the page its bundle dropped"
+  [ -f "$R/v0.9/docs/reference/go-api/index.html" ] && [ -f "$R/v0.9/docs/start/quickstart/index.html" ] || why="${why:+$why; }v0.9 lacks a page its bundles hold"
   dq "$R/v1.0/docs/concepts/fixture-concept/index.html" | grep -qF 'href=https://github.com/open-platform-model/core/edit/main/docs/site/concepts/fixture-concept.md' || why="${why:+$why; }a bundle page of the non-default v1.0 has no Edit"
-  dq "$R/v1.0/docs/reference/fixture-contract/index.html" | grep -qF 'href=https://github.com/open-platform-model/catalog_opm/edit/main/docs/site/reference/fixture-contract.md' || why="${why:+$why; }catalog_opm's bundle page of the non-default v1.0 has no Edit"
   dq "$R/v1.0/docs/start/quickstart/index.html" | grep -qF 'href=https://github.com/open-platform-model/opm/edit/main/docs/site/start/quickstart.md' || why="${why:+$why; }opm's bundle page of the non-default v1.0 has no Edit"
-  [ "$(jq -r '.versions["v0.9"] | has("bundles")' "$R/build-stamp.json")" = false ] || why="${why:+$why; }the stamp gives v0.9 bundles"
-  [ "$(jq -r '.versions["v1.0"].bundles | length' "$R/build-stamp.json")" = 6 ] || why="${why:+$why; }the stamp does not give v1.0 six bundles"
-  [ "$(jq -r '.versions["v1.0"].refs | length' "$R/build-stamp.json")" = 0 ] || why="${why:+$why; }the stamp gives v1.0, which has no git row, git refs"
-  if [ -z "$why" ]; then ok "$name" "v0.9 reads git, v1.0 its from-bundles repositories from bundles (go-api only there); a bundle page of the non-default version keeps Edit"
+  ! grep -q 'Edit this page' "$R/v1.0/docs/concepts/index.html" || why="${why:+$why; }a site-owned page of the non-default v1.0 has Edit"
+  grep -q 'Edit this page' "$R/v0.9/docs/concepts/index.html" || why="${why:+$why; }a site-owned page of the default v0.9 has no Edit"
+  [ "$(jq -r '[.versions["v0.9", "v1.0"].bundles | length] | join(" ")' "$R/build-stamp.json")" = "6 6" ] || why="${why:+$why; }the stamp does not give each version six bundles"
+  [ "$(jq -r '.versions["v0.9"].bundles[0].version' "$R/build-stamp.json")" = 1.0.0-beta.8 ] || why="${why:+$why; }the stamp does not name v0.9's older cli"
+  [ "$(refresh_of "$R/latest/index.html")" = /v0.9/ ] || why="${why:+$why; }/latest/ does not go to the default v0.9"
+  got=$(tr '\n' ' ' < "$R/v1.0/docs/index.html" | grep -o 'opm-version-item[^>]*><span>[^<]*' | sed 's/.*<span>//' | tr '\n' '|')
+  [ "$got" = "v0.9 (test)|v1.0 (bundles)|" ] || why="${why:+$why; }the switch lists \"$got\""
+  if [ -z "$why" ]; then ok "$name" "v0.9 (default) and v1.0 each publish their own bundles' pages; a bundle page of the non-default version keeps Edit, a site page does not; the stamp names each version's bundles; the switch follows versions.conf"
   else bad "$name" "$why" "$OUT/$name/log"; fi
 fi
 
@@ -921,7 +844,7 @@ fi
 # The edge build (openspec add-edge-build): edge-config.sh derives the pull
 # config from bundles.cue, run-in-image.sh pull takes another config and
 # output (OPM_BUNDLES_CONFIG, OPM_BUNDLES_OUT) and never reads OPM_BUNDLES,
-# and the explicit build reads the five edge docs bundles. The case
+# and the build reads the six edge docs bundles. The case
 # data is in tests/checks/edge-*/ (the build-check loop below skips them);
 # "CASE" in an expect line is that case's directory.
 # expect_log CASE LOG: the case's "+ text" / "- text" lines against LOG;
@@ -1035,18 +958,18 @@ elif ! sum "$OUT/edge/saved" | cmp -s "$OUT/edge/saved.before" -; then
   bad "checks/$c" "the tree OPM_BUNDLES names changed" "$OUT/edge/$c.log"
 else ok "checks/$c" "under OPM_BUNDLES_CONFIG the committed bundles.frozen.json is not applied, with a line saying so; the pull writes site/.edge/bundles/ only"; fi
 
-# The edge build: the explicit build with OPM_DOCS_BUNDLES=1 over that pull
-# (OPM_BUNDLES, as task build:edge passes it) reads the six edge bundles;
+# The edge build: the build over that pull (OPM_BUNDLES, as task build:edge
+# passes it) reads the six edge bundles;
 # the stamp names cli as the anchor and the others as tags, each at version
 # edge with its commit (a local entry records no tag).
 name=edge/build
-copy_site "$name"; copy_ws "$name"
-printf 'CASE_DOCS_BUNDLES=1\nOPM_BUNDLES=%s\n' "$ER/site/.edge/bundles" > "$OUT/$name/env"
+copy_site "$name"
+printf 'OPM_BUNDLES=%s\n' "$ER/site/.edge/bundles" > "$OUT/$name/env"
 if [ ! -f "$EL" ]; then bad "$name" "no edge pull to build from (see checks/edge-frozen-skipped)"
 else
-  build "$name" "$OUT/$name/ws" "$OUT/$name/env"; rc=$?
+  build "$name" "$OUT/$name/env"; rc=$?
   st=$OUT/$name/site/public/build-stamp.json
-  if [ $rc -ne 0 ]; then bad "$name" "the explicit build over the edge bundles failed (exit $rc)" "$OUT/$name/log"
+  if [ $rc -ne 0 ]; then bad "$name" "the build over the edge bundles failed (exit $rc)" "$OUT/$name/log"
   else
     why=""
     grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli edge, catalog-opm-docs edge, core edge, library edge, opm edge, opm-operator edge)' "$OUT/$name/log" || why="gen-docs-bundles did not name the six edge bundles"
@@ -1107,17 +1030,17 @@ elif ! sum "$PR/saved-bundles" | cmp -s "$OUT/edge/$c.before" -; then bad "check
 else ok "checks/$c" "a plain pull with OPM_BUNDLES exported writes site/.bundles/ and leaves that tree byte-identical"; fi
 
 # ---------------------------------------------------------------------------
-# The fixture workspace under a two-segment base path (tests/subpath/env): the
+# The fixture bundles under a two-segment base path (tests/subpath/env): the
 # build is green with the crawl's base-path rules, and every URL a reader, a
 # crawler or the search palette meets carries /opm/docs/.
 name=subpath
 copy_site "$name"
-build "$name" "$WS" "$TESTS/subpath/env"; rc=$?
+build "$name" "$TESTS/subpath/env"; rc=$?
 log=$OUT/$name/log
 R=$OUT/$name/site/public
 P=$R/v1.0
 B=https://pages.example/opm/docs
-if [ $rc -eq 0 ]; then ok "$name" "the fixture workspace builds green under $B/"; else bad "$name" "the subpath build failed (exit $rc)" "$log"; fi
+if [ $rc -eq 0 ]; then ok "$name" "the fixture bundles build green under $B/"; else bad "$name" "the subpath build failed (exit $rc)" "$log"; fi
 
 if [ $rc -eq 0 ]; then
   if [ "$(refresh_of "$R/index.html")" = /opm/docs/latest/ ] && dq "$R/index.html" | grep -qF 'href=/opm/docs/latest/>' &&
@@ -1179,8 +1102,8 @@ fi
 # the line after a CUE "" is tokenised, not swallowed by a string
 # (layouts/_markup/render-codeblock-cue.html).
 name=dialect
-copy_site "$name"; copy_ws "$name"; overlay "$name" "$TESTS/dialect"
-build "$name" "$OUT/$name/ws"; rc=$?
+copy_site "$name"; overlay "$name" "$TESTS/dialect"
+build "$name"; rc=$?
 f=$OUT/$name/site/public/v1.0/docs/start/dialect/index.html
 if [ $rc -ne 0 ]; then bad "$name" "the dialect build failed (exit $rc)" "$OUT/$name/log"
 else
@@ -1220,12 +1143,14 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# The dialect tree as two versions: the Enhancements section lives in the
+# The dialect pages in two versions: the Enhancements section lives in the
 # default version's page tree only, and a source link into it resolves to the
 # same unversioned URL from the other version too.
 name=dialect-two-versions
-copy_site "$name"; copy_ws "$name"; overlay "$name" "$TESTS/dialect"
-(SITE_DIR=$OUT/$name/site OPM_VERSIONS="v1.0=$OUT/$name/ws v0.9=$OUT/$name/ws" sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
+copy_site "$name"; overlay "$name" "$TESTS/dialect"
+add_version "$OUT/$name/site/.bundles" v0.9
+printf '\n[version "v0.9"]\n\tlabel = v0.9\n\tweight = 2\n' >> "$OUT/$name/site/versions.conf"
+build "$name"; rc=$?
 if [ $rc -ne 0 ]; then bad "$name" "the two-version dialect build failed (exit $rc)" "$OUT/$name/log"
 else
   why=""
@@ -1244,9 +1169,8 @@ for c in "$TESTS"/checks/*/; do
   c=${c%/}; name=checks/${c##*/}
   # The edge cases run above, in their own section.
   case ${c##*/} in edge-*) continue ;; esac
-  docs=""; if [ -f "$c/env" ] && grep -qx 'CASE_DOCS_BUNDLES=1' "$c/env"; then docs=docs; fi
-  copy_site "$name" $docs; copy_ws "$name"; overlay "$name" "$c"
-  build "$name" "$OUT/$name/ws" "$c/env"; rc=$?
+  copy_site "$name"; overlay "$name" "$c"
+  build "$name" "$c/env"; rc=$?
   log=$OUT/$name/log
   why=""
   [ $rc -ne 0 ] || why="the build passed"

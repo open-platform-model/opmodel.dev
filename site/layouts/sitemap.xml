@@ -1,5 +1,6 @@
-{{- /* Hugo's sitemap, per version, plus <lastmod> from data/opm/lastmod.json
-       (Hugo's own .Lastmod is empty: GitInfo cannot see the mounted repos).
+{{- /* Hugo's sitemap, per version, plus <lastmod>: a site-owned page's from
+       data/opm/lastmod.json (gen-site-dates.sh; Hugo's GitInfo is off, since
+       the container cannot read a worktree's git).
        Hextra ships no sitemap template, so this copies nothing. The
        Enhancements section belongs to no version, so no version's sitemap
        lists it. The Catalogs section, in the default version's tree, lists
@@ -21,7 +22,7 @@
     <lastmod>{{ (time .).Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
     {{- end -}}
     {{- else -}}
-    {{- with $src.key -}}{{- with index hugo.Data.opm.lastmod . -}}{{- with index . site.Version.Name }}
+    {{- with $src.key -}}{{- with hugo.Data.opm.lastmod -}}{{- with index . $src.key }}
     <lastmod>{{ (time .).Format "2006-01-02T15:04:05Z07:00" | safeHTML }}</lastmod>
     {{- end -}}{{- end -}}{{- end }}
     {{- end -}}

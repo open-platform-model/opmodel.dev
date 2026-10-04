@@ -3,14 +3,13 @@
 public/
 /resources/
 .hugo_build.lock
-# Inputs generated per build: git dates and the build stamp (data/opm/), the
-# content mounts (config/{production,development}/), the generated reference
-# (.gen/<version>/) and prepared versions (.versions/<version>/).
+# Inputs generated per build: the site-owned pages' dates and the build stamp
+# (data/opm/), the content mounts (config/{production,development}/) and the
+# section pages and version table (.gen/).
 data/opm/
 config/production/
 config/development/
 .gen/
-.versions/
 # Check output and test-site.sh's copies (.check/), screenshots (.shots/).
 .check/
 .shots/

@@ -1,45 +1,33 @@
 {{- /* Where a page's source lives: {key, repo, path, editURL, viewURL, ref,
-       refText}, or an empty dict for a page with no content file. A file
-       under <root>/<repo>/docs/site/<path> (in a normal build
-       /src/<repo>/docs/site/<path>, for an anchored or a line version
-       .versions/<version>/<repo>/docs/site/<path>) belongs to that repo,
-       found from the <repo>/docs/site/ path segment, so archives, fixture
-       roots and test copies map the same way. Any other content file is
-       site-owned: opmodel.dev, site/content/<path>. The key matches
-       data/opm/lastmod.json.
-       viewURL is set only when the page's version is anchored or line
-       (data/opm/build.json, from site/versions.conf), never from the version
-       name, which is no git ref. An anchored version points at the ref it
-       resolved for the repo, a tag or a SHA. A line version points at the SHA
-       of the tree it archived, since a branch it read moves; refText is the
-       ref when that tree is the tag itself (docs "tag"), else the SHA.
-       refText shows a SHA as seven hex characters. "Edit" goes where a fix to
-       that tree lands: in a line version the branch the docs came from (main
-       or release/...), otherwise main.
+       refText}, or an empty dict for a page with no content file.
+       A page of a docs bundle (a file under
+       <bundles>/_versions/<version>/<project>/content/<path>, mounted by
+       gen-mounts.sh; docs-kit C15, C16), which is every page of a version
+       outside site/content/, takes its data from the bundle's manifest,
+       through data/opm/docs-bundles.json (gen-docs-bundles.sh), per docs-kit
+       C8: editURL https://github.com/<source.repo>/edit/main/<edit> when the
+       page has edit (an authored page whose file main still has; never a
+       generated one), shown on every version, since the link names main,
+       where a fix lands (docs-kit DESIGN decision 19); viewURL the page's
+       source at source.commit, when it has one, named by the release tag
+       (source.ref; an edge build by its commit); lastmod the manifest's, or
+       none. Its key is empty: its date is not a git date. "bundle" is true.
        A page of the Enhancements section names its file in the enhancements
        repository (repoPath) instead: viewURL at the commit the section was
        built from (data/opm/build.json's sections.enhancements), when the
        build names one, and no editURL, since an entry changes through its
-       own review, not a page edit. Its key is empty: its date is the entry's
-       updated date, not a git date.
+       own review, not a page edit. Its key is empty: its date is not a git
+       date but the bundle's (the entry's updated date on its own page, the
+       manifest's lastmod on a document).
        A page of the Catalogs section names the file its bundle says it came
        from (params.catalog.source) in the catalog's repository, viewURL at
        the commit the bundle was built from, and no editURL: an edit lands on
        main and reaches a released minor only through a docs revision. A
        page without a source gets no link. Its key is empty: its date is the
        manifest's lastmod (the page's Lastmod).
-       A page of a docs bundle (a file under
-       <bundles>/_versions/<version>/<project>/content/<path>, mounted by
-       gen-mounts.sh for a repository the version reads from its bundle;
-       docs-kit C15, C16) takes its data from the bundle's manifest, through
-       data/opm/docs-bundles.json (gen-docs-bundles.sh), per docs-kit C8:
-       editURL https://github.com/<source.repo>/edit/main/<edit> when the
-       page has edit (an authored page whose file main still has; never a
-       generated one), shown on every version, since the link names main,
-       where a fix lands (docs-kit DESIGN decision 19); viewURL the page's
-       source at source.commit, when it has one, named by the release tag
-       (source.ref; an edge build by its commit); lastmod the manifest's, or
-       none. Its key is empty: its date is not a git date. "bundle" is true. */ -}}
+       Any other content file is site-owned: opmodel.dev, site/content/<path>,
+       editURL on main, no viewURL; its key matches data/opm/lastmod.json
+       (gen-site-dates.sh). */ -}}
 {{- $out := dict -}}
 {{- if eq .Section "catalogs" -}}
   {{- $c := .Params.catalog | default dict -}}
@@ -75,35 +63,9 @@
 {{- end -}}
 {{- if $out.bundle -}}{{- return $out -}}{{- end -}}
 {{- with .File -}}
-  {{- $fn := replace .Filename "\\" "/" -}}
-  {{- $repo := "opmodel.dev" -}}
   {{- $path := printf "site/content/%s" (replace .Path "\\" "/") -}}
-  {{- with findRESubmatch `/(opm|core|catalog_opm|cli|library|opm-operator)/docs/site/(.+)$` $fn 1 -}}
-    {{- $repo = index (index . 0) 1 -}}
-    {{- $path = printf "docs/site/%s" (index (index . 0) 2) -}}
-  {{- end -}}
-  {{- $base := printf "%s/%s" site.Params.opm.github $repo -}}
-  {{- $ref := "" -}}
-  {{- $view := "" -}}
-  {{- $refText := "" -}}
-  {{- $editRef := "main" -}}
-  {{- with hugo.Data.opm -}}{{- with .build -}}{{- with .versions -}}{{- with index . site.Version.Name -}}
-    {{- $kind := .kind -}}
-    {{- with .refs -}}{{- with index . $repo -}}
-      {{- $docs := .docs | default "" -}}
-      {{- if eq $kind "anchored" -}}
-        {{- $ref = .ref -}}{{- $view = .ref -}}{{- $refText = .ref -}}
-      {{- else if eq $kind "line" -}}
-        {{- $ref = .ref -}}{{- $view = .sha -}}
-        {{- $refText = cond (eq $docs "tag") .ref .sha -}}
-        {{- if or (eq $docs "main") (hasPrefix $docs "release/") -}}{{- $editRef = $docs -}}{{- end -}}
-      {{- end -}}
-    {{- end -}}{{- end -}}
-  {{- end -}}{{- end -}}{{- end -}}{{- end -}}
-  {{- if findRE `^[0-9a-f]{40}$` $refText -}}{{- $refText = substr $refText 0 7 -}}{{- end -}}
-  {{- $out = dict "key" (printf "%s/%s" $repo $path) "repo" $repo "path" $path
-        "editURL" (printf "%s/edit/%s/%s" $base $editRef $path)
-        "viewURL" (cond (ne $view "") (printf "%s/blob/%s/%s" $base $view $path) "")
-        "ref" $ref "refText" $refText -}}
+  {{- $out = dict "key" (printf "opmodel.dev/%s" $path) "repo" "opmodel.dev" "path" $path
+        "editURL" (printf "%s/opmodel.dev/edit/main/%s" site.Params.opm.github $path)
+        "viewURL" "" "ref" "" "refText" "" -}}
 {{- end -}}
 {{- return $out -}}

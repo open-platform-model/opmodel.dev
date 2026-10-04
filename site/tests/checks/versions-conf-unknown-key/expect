@@ -1,0 +1,2 @@
++ build-all: versions.conf: version v1.0 has the key cli-line; only label, weight and default are allowed
+- == drift guard

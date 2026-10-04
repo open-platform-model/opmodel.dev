@@ -1,33 +1,22 @@
 #!/bin/sh
-# Writes the Hugo module mounts and the versions config for a set of versions.
+# Writes the Hugo module mounts and the versions config for the site versions.
 #
-#   gen-mounts.sh OUT VERSION=ROOT [VERSION=ROOT ...]    (OUT relative to SITE_DIR)
+#   gen-mounts.sh OUT VERSION [VERSION ...]    (OUT relative to SITE_DIR; reads CAT_DIR)
 #
-# Each ROOT holds <repo>/docs/site for the six source repos (a source = main
-# version passes /src, an anchored or a line one its archive in
-# .versions/<version>).
-# The site-owned content/ is mounted once, for every version; each repo's
-# docs/site/ is mounted at content/docs for its own version. Version names are
-# listed exactly: in a version glob, * does not cross ".". There is no file
-# filter and no index.md remap: the source lint has already rejected every
-# form Hugo would misread. A version's generated reference, when
-# SITE_DIR/.gen/<version>/ exists, is mounted at content for that version (its
-# tree starts at docs/reference/...).
-#
-# A repository a version reads from a docs bundle (data/opm/docs-bundles.json,
-# written by gen-docs-bundles.sh from the lock's "docs" key; docs-kit C16) is
-# mounted from the bundle instead: <CAT_DIR>/<dir>/content at content/docs
-# for that version, read-only, and that repository's docs/site/ is not
-# mounted for that version. The catalogs mount below matches only
+# The site-owned content/ is mounted once, for every version. Every page of a
+# version outside content/ comes from a docs bundle (data/opm/docs-bundles.json,
+# written by gen-docs-bundles.sh from the lock's "docs" key; docs-kit C16):
+# each bundle's <CAT_DIR>/<dir>/content is mounted at content/docs for its
+# version, read-only. Version names are listed exactly: in a version glob, *
+# does not cross ".". There is no file filter and no index.md remap: opm-docs
+# pull linted every bundle page against the dialect, which rejects every form
+# Hugo would misread. The catalogs mount below matches only
 # <project>/<segment>/ (a * does not cross /), so the tab adapter never sees
 # _versions/<v>/<project>/.
 #
 # Beside OUT (config/<env>/module.toml) it writes config/<env>/hugo.toml: the
 # default version, each version's weight and its label (params.opm.versions,
-# in weight order). They come from .versions/versions.tsv (site/versions.conf,
-# resolved on the host) unless OPM_VERSIONS is set; then, and with no
-# versions.tsv, the label is the name, the weight the position, and the first
-# version is the default.
+# in weight order), from .gen/versions.tsv (sections.sh, from versions.conf).
 #
 # The enhancements section, when ENH_DIR names its section bundle
 # (sections.sh, from the lock entry rooted at /enhancements/; docs-kit C21):
@@ -52,9 +41,10 @@
 # config/_default/hugo.toml, which stays the one place the other entries
 # are written).
 #
-# The Catalogs section, when CAT_DIR names the docs bundles (sections.sh sets
-# it; gen-catalogs.sh has written data/opm/catalogs.json from their lock): the
-# bundles are mounted at assets/bundles, only manifest.json, content/ and
+# The Catalogs section, when CATALOGS is set (sections.sh: the lock names a
+# tab bundle; gen-catalogs.sh has written data/opm/catalogs.json from it): the
+# bundles are mounted at assets/bundles (always: the enhancements adapter
+# reads its bundle there too), only manifest.json, content/ and
 # data/*.json of each <project>/<segment>/, and each <project>/history.json
 # (docs-kit C13; read only when the lock records it) (all of content/, so the adapter
 # sees, and refuses, a file there that is no listed page; a narrower glob
@@ -66,21 +56,18 @@
 # the tab exists only in a build with the section.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
-REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 out=$1; shift
 
 names=""
-for pair in "$@"; do names="$names${names:+, }\"${pair%%=*}\""; done
+for v in "$@"; do names="$names${names:+, }\"$v\""; done
 
 # The versions config: "<name>\t<label>\t<weight>\t<default>" per version.
-if [ -z "${OPM_VERSIONS:-}" ] && [ -f .versions/versions.tsv ]; then
-  list=$(for pair in "$@"; do
-    awk -F'\t' -v v="${pair%%=*}" '!/^#/ && $1 == v { print $1 "\t" $2 "\t" $3 "\t" $4; exit }' .versions/versions.tsv
-  done)
-else
-  list=$(n=0; for pair in "$@"; do n=$((n + 1)); v=${pair%%=*}; printf '%s\t%s\t%s\t%s\n' "$v" "$v" "$n" "$([ $n = 1 ] && echo true || echo false)"; done)
-fi
+[ -f .gen/versions.tsv ] || { echo "gen-mounts: .gen/versions.tsv is missing (sections.sh writes it)" >&2; exit 1; }
+list=$(for v in "$@"; do
+  awk -F'\t' -v v="$v" '$1 == v { print; f = 1; exit } END { if (!f) exit 1 }' .gen/versions.tsv ||
+    { echo "gen-mounts: .gen/versions.tsv has no version $v" >&2; exit 1; }
+done) || exit 1
 def=$(printf '%s\n' "$list" | awk -F'\t' 'NF == 4 && $4 == "true" { print $1; exit }')
 [ -n "$def" ] || { echo "gen-mounts: no versions, or no default version" >&2; exit 1; }
 
@@ -131,9 +118,7 @@ fi
 DB=data/opm/docs-bundles.json
 [ -f "$DB" ] || { echo "gen-mounts: $DB is missing (gen-docs-bundles.sh runs first)" >&2; exit 1; }
 bundles_of() { jq -r --arg v "$1" '.versions[$v] // {} | .[] | "\(.tree)\t\(.dir)"' "$DB"; }
-if jq -e '.versions | length > 0' "$DB" >/dev/null && [ -z "${CAT_DIR:-}" ]; then
-  echo "gen-mounts: $DB names docs bundles, but CAT_DIR is not set" >&2; exit 1
-fi
+[ -n "${CAT_DIR:-}" ] || { echo "gen-mounts: CAT_DIR is not set (sections.sh sets it)" >&2; exit 1; }
 
 mkdir -p "$(dirname "$out")"
 {
@@ -144,41 +129,32 @@ mkdir -p "$(dirname "$out")"
   done
   printf '[[mounts]]\n  source = "content"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = [%s]\n' "$names"
   if [ -n "$ENH_DIR" ]; then
-    [ -n "${CAT_DIR:-}" ] || { echo "gen-mounts: ENH_DIR is set, but CAT_DIR is not (the section bundle is read through the bundles mount)" >&2; exit 1; }
     for d in enhancements .gen/enhancements; do
       printf '[[mounts]]\n  source = "%s"\n  target = "content/enhancements"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
     done
   fi
-  if [ -n "${CAT_DIR:-}" ]; then
-    [ -f data/opm/catalogs.json ] || { echo "gen-mounts: CAT_DIR is set, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
-    # The bundles as assets, only the files a bundle may hold, where the
-    # adapter site/catalogs/_content.gotmpl reads them; the adapter and the
-    # section page into the default version only.
-    printf '[[mounts]]\n  source = "%s"\n  target = "assets/bundles"\n  files = [%s]\n' "$CAT_DIR" \
-      "'*/*/manifest.json', '*/*/content/**', '*/*/data/*.json', '*/history.json'"
+  # The bundles as assets, only the files a bundle may hold, where the
+  # adapters site/catalogs/_content.gotmpl and site/enhancements/_content.gotmpl
+  # read them.
+  printf '[[mounts]]\n  source = "%s"\n  target = "assets/bundles"\n  files = [%s]\n' "$CAT_DIR" \
+    "'*/*/manifest.json', '*/*/content/**', '*/*/data/*.json', '*/history.json'"
+  if [ -n "${CATALOGS:-}" ]; then
+    [ -f data/opm/catalogs.json ] || { echo "gen-mounts: the build has the Catalogs section, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
+    # The adapter and the section page into the default version only.
     for d in catalogs .gen/catalogs; do
       printf '[[mounts]]\n  source = "%s"\n  target = "content/catalogs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$d" "$def"
     done
   fi
-  for pair in "$@"; do
-    v=${pair%%=*}; root=${pair#*=}
-    if [ -d ".gen/$v" ]; then
-      printf '[[mounts]]\n  source = ".gen/%s"\n  target = "content"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$v" "$v"
-    fi
+  for v in "$@"; do
     fromb=$(bundles_of "$v")
-    for r in $REPOS; do
-      d=$(printf '%s\n' "$fromb" | awk -F'\t' -v r="$r" '$1 == r { print $2 }')
-      if [ -n "$d" ]; then
-        [ -d "$CAT_DIR/$d/content" ] || { echo "gen-mounts: $CAT_DIR/$d/content is missing (version $v, $r from its docs bundle)" >&2; exit 1; }
-        printf '[[mounts]]\n  source = "%s/%s/content"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$CAT_DIR" "$d" "$v"
-        continue
-      fi
-      [ -d "$root/$r/docs/site" ] || { echo "gen-mounts: $root/$r/docs/site is missing (version $v)" >&2; exit 1; }
-      printf '[[mounts]]\n  source = "%s/%s/docs/site"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$root" "$r" "$v"
-    done
+    [ -n "$fromb" ] || { echo "gen-mounts: $DB names no docs bundle for version $v" >&2; exit 1; }
+    printf '%s\n' "$fromb" | while IFS='	' read -r r d; do
+      [ -d "$CAT_DIR/$d/content" ] || { echo "gen-mounts: $CAT_DIR/$d/content is missing (version $v, $r from its docs bundle)" >&2; exit 1; }
+      printf '[[mounts]]\n  source = "%s/%s/content"\n  target = "content/docs"\n  [mounts.sites.matrix]\n    versions = ["%s"]\n' "$CAT_DIR" "$d" "$v"
+    done || exit 1
   done
 } > "$out"
-echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_DIR:+, the enhancements section in $def}${CAT_DIR:+, the catalogs section in $def})"
+echo "gen-mounts: wrote $out ($(grep -c '^\[\[mounts\]\]' "$out") mounts, versions $names${ENH_DIR:+, the enhancements section in $def}${CATALOGS:+, the catalogs section in $def})"
 
 cfg=$(dirname "$out")/hugo.toml
 {
@@ -190,11 +166,11 @@ printf '%s\n' "$list" | awk -F'\t' -v Q="'" '
     for (i = 1; i <= n; i++) printf "  [versions." Q "%s" Q "]\n    weight = %s\n", name[i], weight[i]
     for (i = 1; i <= n; i++) printf "[[params.opm.versions]]\n  name = " Q "%s" Q "\n  label = " Q "%s" Q "\n", name[i], label[i]
   }'
-if [ -n "$ENH_DIR" ] || [ -n "${CAT_DIR:-}" ]; then
+if [ -n "$ENH_DIR" ] || [ -n "${CATALOGS:-}" ]; then
   awk '/^\[menus\]/ { on = 1 } on && /^\[/ && !/^\[menus\]/ && !/^\[\[menus\./ { on = 0 } on' config/_default/hugo.toml | grep . ||
     { echo "gen-mounts: config/_default/hugo.toml has no [menus] table to copy" >&2; exit 1; }
-  [ -z "${CAT_DIR:-}" ] || printf "  [[menus.main]]\n    name = 'Catalogs'\n    pageRef = '/catalogs/'\n    weight = 3\n"
+  [ -z "${CATALOGS:-}" ] || printf "  [[menus.main]]\n    name = 'Catalogs'\n    pageRef = '/catalogs/'\n    weight = 3\n"
   [ -z "$ENH_DIR" ] || printf "  [[menus.main]]\n    name = 'Enhancements'\n    pageRef = '/enhancements/'\n    weight = 4\n"
 fi
 } > "$cfg"
-echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${CAT_DIR:+, the Catalogs tab}${ENH_DIR:+, the Enhancements tab})"
+echo "gen-mounts: wrote $cfg (default $(sed -n "s/^defaultContentVersion = '\(.*\)'$/\1/p" "$cfg")${CATALOGS:+, the Catalogs tab}${ENH_DIR:+, the Enhancements tab})"
