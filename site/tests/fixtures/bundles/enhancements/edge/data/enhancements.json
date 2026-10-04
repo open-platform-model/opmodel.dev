@@ -1,0 +1,138 @@
+{
+  "schema": "docs.opmodel.dev/data/enhancements/v1",
+  "repo": "open-platform-model/enhancements",
+  "entries": [
+    {
+      "id": "0001",
+      "slug": "fixture-live-entry",
+      "title": "Fixture Live Entry",
+      "summary": "A live draft entry of the fixture workspace.",
+      "status": "draft",
+      "category": "schema",
+      "affects": [
+        "core",
+        "cli"
+      ],
+      "created": "2026-09-01",
+      "updated": "2026-09-20",
+      "archived": false,
+      "dependsOn": [
+        "0002"
+      ],
+      "amends": [],
+      "supersedes": [],
+      "revives": [],
+      "supersededBy": null,
+      "page": "0001",
+      "documents": [
+        {
+          "slug": "problem",
+          "title": "Problem statement",
+          "page": "0001/problem",
+          "file": "0001/01-problem.md"
+        },
+        {
+          "slug": "design",
+          "title": "Design",
+          "page": "0001/design",
+          "file": "0001/02-design.md"
+        },
+        {
+          "slug": "decisions",
+          "title": "Decisions",
+          "page": "0001/decisions",
+          "file": "0001/03-decisions.md"
+        },
+        {
+          "slug": "graduation",
+          "title": "Graduation criteria",
+          "page": "0001/graduation",
+          "file": "0001/04-graduation.md"
+        },
+        {
+          "slug": "risks",
+          "title": "Risks and alternatives",
+          "page": "0001/risks",
+          "file": "0001/05-risks.md"
+        },
+        {
+          "slug": "operational",
+          "title": "Operational concerns",
+          "page": "0001/operational",
+          "file": "0001/06-operational.md"
+        },
+        {
+          "slug": "questions",
+          "title": "Open questions",
+          "page": "0001/questions",
+          "file": "0001/07-questions.md"
+        }
+      ]
+    },
+    {
+      "id": "0002",
+      "slug": "fixture-archived-entry",
+      "title": "Fixture Archived Entry",
+      "summary": "An archived entry of the fixture workspace.",
+      "status": "delivered",
+      "category": "tooling",
+      "affects": [
+        "core",
+        "cli"
+      ],
+      "created": "2026-09-01",
+      "updated": "2026-09-10",
+      "archived": true,
+      "dependsOn": [],
+      "amends": [],
+      "supersedes": [],
+      "revives": [],
+      "supersededBy": null,
+      "page": "0002",
+      "documents": [
+        {
+          "slug": "problem",
+          "title": "Problem statement",
+          "page": "0002/problem",
+          "file": "archive/0002/01-problem.md"
+        },
+        {
+          "slug": "design",
+          "title": "Design",
+          "page": "0002/design",
+          "file": "archive/0002/02-design.md"
+        },
+        {
+          "slug": "decisions",
+          "title": "Decisions",
+          "page": "0002/decisions",
+          "file": "archive/0002/03-decisions.md"
+        },
+        {
+          "slug": "graduation",
+          "title": "Graduation criteria",
+          "page": "0002/graduation",
+          "file": "archive/0002/04-graduation.md"
+        },
+        {
+          "slug": "risks",
+          "title": "Risks and alternatives",
+          "page": "0002/risks",
+          "file": "archive/0002/05-risks.md"
+        },
+        {
+          "slug": "operational",
+          "title": "Operational concerns",
+          "page": "0002/operational",
+          "file": "archive/0002/06-operational.md"
+        },
+        {
+          "slug": "questions",
+          "title": "Open questions",
+          "page": "0002/questions",
+          "file": "archive/0002/07-questions.md"
+        }
+      ]
+    }
+  ]
+}

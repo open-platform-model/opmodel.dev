@@ -7,5 +7,5 @@ for s in 4.4 4.5 edge; do
   # its pages link their own root, now /catalogs/twin/
   find "$SITE/.bundles/catalog-twin/$s/content" -name '*.md' -exec sed -i 's#/catalogs/opm/#/catalogs/twin/#g' {} +
 done
-jq '.bundles += [.bundles[] | .project = "catalog-twin" | .root = "/catalogs/twin/" | .dir = ("catalog-twin/" + .segment)]' "$SITE/.bundles/lock.json" > "$SITE/lock.tmp" && mv "$SITE/lock.tmp" "$SITE/.bundles/lock.json"
+jq '.bundles += [.bundles[] | select(.project == "catalog-opm") | .project = "catalog-twin" | .root = "/catalogs/twin/" | .dir = ("catalog-twin/" + .segment)]' "$SITE/.bundles/lock.json" > "$SITE/lock.tmp" && mv "$SITE/lock.tmp" "$SITE/.bundles/lock.json"
 printf '\nThe [twin catalog](/catalogs/twin/4.4/).\n' >> "$SITE/.bundles/catalog-opm/4.4/content/resources/volumes.md"

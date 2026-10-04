@@ -27,6 +27,13 @@ signer: {
 tabs: {
 	"catalog-opm": {repo: "open-platform-model/catalog_opm", root: "/catalogs/opm/", from: "4.5"}
 }
+// The Enhancements section (docs-kit C21): the enhancements repository's
+// section bundle, pulled at its edge tag only, unpacked to
+// site/.bundles/enhancements/edge/ and built at /enhancements/, outside every
+// site version.
+sections: {
+	"enhancements": {repo: "open-platform-model/enhancements", root: "/enhancements/"}
+}
 docs: {
 	"cli":          {repo: "open-platform-model/cli"}
 	"core":         {repo: "open-platform-model/core"}

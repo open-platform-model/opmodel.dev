@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): manifest.json lists pages content/ does not hold: 0001/risks.md
+- == hugo build

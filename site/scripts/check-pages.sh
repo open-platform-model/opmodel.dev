@@ -22,13 +22,13 @@
 #          _index.md, a swallowed page);
 #   stray  fails on a file under public/<version>/ that is not a known output
 #          type, or a .md that is not a page's Markdown output;
-#   enhancements  with ENH_TREE set (build-all.sh: the build has the
-#          Enhancements section), Q2 and stray for public/enhancements/, which
-#          belongs to no version: the section page, the graph when GRAPH.md
-#          exists, and per entry (NNNN/ and archive/NNNN/ holding config.yaml,
-#          but the 0000 template) /enhancements/NNNN/ and its seven documents;
-#          besides each page's index.html and index.md (its Markdown output)
-#          only the section's Pagefind bundle. Without ENH_TREE,
+#   enhancements  with ENH_DIR set (build-all.sh: the build has the
+#          Enhancements section, from its bundle), Q2 and stray for
+#          public/enhancements/, which belongs to no version: every page the
+#          bundle's manifest.json lists (docs-kit C8: content/x/_index.md is
+#          /enhancements/x/, content/x/y.md /enhancements/x/y/); besides each
+#          page's index.html and index.md (its Markdown output) only the
+#          section's Pagefind bundle. Without ENH_DIR,
 #          public/enhancements/ must not exist;
 #   catalogs  with CAT_DIR set (the build has the Catalogs section), Q2
 #          and stray for public/catalogs/, which belongs to no version: the
@@ -157,18 +157,9 @@ done
 
 if [ "$mode" = post ]; then
   E=$PUBLIC/enhancements
-  if [ -n "${ENH_TREE:-}" ]; then
-    {
-      echo /enhancements/
-      if [ -f "$ENH_TREE/GRAPH.md" ]; then echo /enhancements/graph/; fi
-      for c in "$ENH_TREE"/[0-9][0-9][0-9][0-9]/config.yaml "$ENH_TREE"/archive/[0-9][0-9][0-9][0-9]/config.yaml; do
-        [ -f "$c" ] || continue
-        id=${c%/config.yaml}; id=${id##*/}
-        [ "$id" != 0000 ] || continue
-        echo "/enhancements/$id/"
-        for d in problem design decisions graduation risks operational questions; do echo "/enhancements/$id/$d/"; done
-      done
-    } | sort > "$tmp/enh.want"
+  if [ -n "${ENH_DIR:-}" ]; then
+    jq -r '.pages[].path' "$ENH_DIR/manifest.json" |
+      sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#; s#^#/enhancements/#' | sort > "$tmp/enh.want"
     if [ -d "$E" ]; then
       (cd "$PUBLIC" && find enhancements -type f -name index.html ! -path 'enhancements/pagefind/*') | sed 's|^|/|; s|index\.html$||' | sort > "$tmp/enh.have"
     else

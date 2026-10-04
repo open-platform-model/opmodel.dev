@@ -61,7 +61,7 @@ CALLER=build-all
 . "$SCRIPTS/sections.sh"
 [ -n "$VERSIONS" ] && [ -n "$DEFAULT" ] || fail "build-all: no versions to build"
 echo "build-all: versions $VERSIONS (default $DEFAULT)"
-if [ -n "$ENH_TREE" ]; then echo "build-all: enhancements section from $ENH_TREE (${ENH_SHA:-no commit}, $ENH_HOW)"
+if [ -n "$ENH_DIR" ]; then echo "build-all: enhancements section from $ENH_DIR (commit $ENH_SHA, $ENH_HOW)"
 else echo "build-all: no enhancements section"; fi
 if [ -n "$CAT_DIR" ]; then echo "build-all: catalogs section from $CAT_DIR ($CAT_FROM)"
 else echo "build-all: no catalogs section"; fi
@@ -140,7 +140,7 @@ for pair in $VERSIONS; do
 done
 # The Enhancements section has its own bundle, so the docs search never
 # returns a design (layouts/_partials/scripts/search.html picks it).
-if [ -n "$ENH_TREE" ]; then
+if [ -n "$ENH_DIR" ]; then
   [ -f "$PUBLIC/enhancements/index.html" ] || fail "ENHANCEMENTS FAIL: $PUBLIC/enhancements/index.html was not built"
   pagefind --site "$PUBLIC/enhancements" --root-selector 'main#content > .content' \
     --exclude-selectors '.hextra-page-context-menu, .hextra-code-copy-btn, .opm-enh-status, .opm-enh-meta' \
@@ -260,6 +260,6 @@ for pair in $VERSIONS; do
   v=${pair%%=*}
   echo "$v: $(find "$PUBLIC/$v" -name index.html ! -path "$PUBLIC/$v/pagefind/*" | wc -l | tr -d ' ') pages"
 done
-[ -z "$ENH_TREE" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
+[ -z "$ENH_DIR" ] || echo "enhancements: $(find "$PUBLIC/enhancements" -name index.html ! -path "$PUBLIC/enhancements/pagefind/*" | wc -l | tr -d ' ') pages"
 [ -z "$CAT_DIR" ] || echo "catalogs: $(find "$PUBLIC/catalogs" -name index.html ! -path '*/pagefind/*' | wc -l | tr -d ' ') pages"
 echo "build-all: OK in $(( $(date +%s) - t0 )) s -> $SITE_DIR/$PUBLIC ($(find "$PUBLIC" -type f | wc -l | tr -d ' ') files, $(du -sh "$PUBLIC" | cut -f1))"

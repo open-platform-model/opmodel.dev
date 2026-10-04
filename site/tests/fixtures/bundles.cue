@@ -1,6 +1,9 @@
 tabs: {
 	"catalog-opm": {repo: "open-platform-model/catalog_opm", root: "/catalogs/opm/", from: "4.4"}
 }
+sections: {
+	"enhancements": {repo: "open-platform-model/enhancements", root: "/enhancements/"}
+}
 docs: {
 	"cli":          {repo: "open-platform-model/cli"}
 	"core":         {repo: "open-platform-model/core"}

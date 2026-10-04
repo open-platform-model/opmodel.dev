@@ -57,15 +57,17 @@ section     .gen/enhancements/_index.md = content/_index.md with "url: /enhancem
 
 `sections.sh`: the section exists when the lock has a `/enhancements/` entry (manifest mode) or `OPM_BUNDLES` holds `enhancements/edge/` (explicit and fixture mode); `ENH_TREE`, `ENH_PATHS`, `ENH_REF`, `ENH_HOW` give way to `ENH_DIR` and the lock entry. `gen-stamp.sh` `sections.enhancements` becomes `{project, digest, commit, local}`.
 
+**As built (2026-10-04).** Three simplifications, each keeping the behaviour above. (1) No new mount: the catalogs mount of `CAT_DIR` at `assets/bundles` already holds `enhancements/edge/{manifest.json,content/**,data/*.json}`, so the adapter reads `bundles/enhancements/edge/`. (2) The page params keep their old flat names (`status`, `category`, `affects`, `created`, `updated`, `dependsOn`, `amends`, `supersedes`, `revives`, `supersededBy`, `enhId`, `repoPath`), because C21 D4's field names are the same. So `opm/enh-status.html` and `opm/source.html` read the data unchanged: `repoPath` is the page's manifest `source`, and `sections.enhancements.sha` is the bundle's commit. (3) The page's `type` from its front matter is dropped, so the section's own layouts and Mermaid hook still apply. `gen-stamp.sh` writes `{project, ref, sha, how, digest, local}`, keeping `ref`, `sha` and `how` for the footer and the CI summary. The bundle checks (placement, content against manifest, a data entry per entry page) run in `gen-mounts.sh`. Also as built: the section cut over in one step (no period with both paths), so the git path and its `[section]` resolver code, archive, root mount and CI checkouts went in the same PR.
+
 ### 3. Fixtures
 
 ```text
 site/tests/fixtures/bundles/_versions/v1.0/catalog-opm-docs/   a catalog how-to page linking /catalogs/opm/4/ and a /docs/ page of opm
 site/tests/fixtures/bundles/_versions/v1.0/opm/                _index.md (the /docs/ landing), start/_index.md, one concept page
-site/tests/fixtures/sections/enhancements/edge/                hand-written to C21 (section 1); moved into bundles/enhancements/edge/ in section 4
+site/tests/fixtures/bundles/enhancements/edge/                 opm-docs build output of ws/enhancements committed as one commit (as built: not hand-written)
 ```
 
-The two docs fixtures pull through the tool pinned since `pull-reference-bundles` section 2 (`--local catalog-opm-docs@v1.0=...`, `--local opm@v1.0=...`) and join the drift test in section 1. The enhancements fixture is the current `site/tests/fixtures/ws/enhancements/` run through D2/D3 by hand: one live and one archived entry, the graph, a Mermaid fence, a link of each kind already resolved. Section 4 re-pulls it with `--local enhancements@edge=...` and the drift test covers it.
+The two docs fixtures pull through the tool pinned since `pull-reference-bundles` section 2 (`--local catalog-opm-docs@v1.0=...`, `--local opm@v1.0=...`) and join the drift test in section 1. The enhancements fixture is the current `site/tests/fixtures/ws/enhancements/` run through D2/D3 by hand: one live and one archived entry, the graph, a Mermaid fence, a link of each kind already resolved. Section 4 re-pulls it with `--local enhancements@edge=...` and the drift test covers it. As built, the enhancements fixture is not hand-written: `opm-docs build` (the pinned 0.6.0) writes it from `site/tests/fixtures/ws/enhancements/` committed in a throwaway repository with fixed author and dates, so the fixture is exactly what the producer writes, and no hand-written tree can drift from C21 (README "The Enhancements section").
 
 ### 4. Lint
 
