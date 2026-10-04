@@ -184,7 +184,7 @@ def main():
         (f"/{version}/docs/reference/", "reference tab", None),
     ]
     # The generated Reference, one page per producing repository, where the
-    # version has it: from git, or from a docs bundle (pull-reference-bundles).
+    # version has it (its docs bundle).
     for ref in ("cli/", "cli/opm-module/", "definitions/", "operator-resources/", "go-api/"):
         if (PUBLIC / version / "docs" / "reference" / ref / "index.html").is_file():
             extras.append((f"/{version}/docs/reference/{ref}", "reference page", None))

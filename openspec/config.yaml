@@ -63,7 +63,8 @@ context: |
   - The site builds, serves and is tested only inside the Docker images the Taskfile defines.
     Never run `hugo`, `npm`, `npx` or `node` on the host, and never commit `node_modules/`.
     Builds run without network access; theme features that load code from a CDN stay off.
-  - Source repos are mounted read-only into the build; the build never writes to them.
+  - Docs bundles are mounted read-only (`OPM_BUNDLES` at `/bundles`, or `site/.bundles/`);
+    the build reads no other repository and writes only under `site/`.
 
   ### V. Simplicity & YAGNI
   Start simple. Complexity MUST be justified with a clear rationale.
@@ -106,7 +107,8 @@ context: |
   ## Validation Gates (before merge)
   1. `task check` — `task openspec:check` (`openspec validate --all --strict --no-interactive`)
      is green.
-  2. `task build` — the full site build in Docker, with its checks, succeeds.
+  2. `task bundles:pull build` — the docs bundles pulled for the current `site/bundles.cue`,
+     then the full site build in Docker, with its checks, succeeds.
   3. `task test:site` — every build check still fails on its fixture.
   4. `task qa` — screenshots (light, dark, phone width) plus the accessibility and search smoke
      tests. Required whenever anything visual changes; read the screenshots.

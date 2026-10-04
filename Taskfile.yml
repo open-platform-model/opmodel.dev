@@ -178,10 +178,12 @@ tasks:
     cmds:
       - docker run --rm --network none --user "$(id -u):$(id -g)" --volume "{{.ROOT_DIR}}:/repo:ro" --workdir /repo {{.ACTIONLINT_IMAGE}} -color {{.CLI_ARGS}}
 
+  # site/.versions/ is the retired resolver's output (retire-git-pipeline):
+  # cleaned for one release cycle so old checkouts lose it; remove it after.
   clean:
     desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:
-      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.check/ site/.shots/ site/.bundles/ site/.cache/ site/.edge/
+      - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/ site/.edge/
 
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.

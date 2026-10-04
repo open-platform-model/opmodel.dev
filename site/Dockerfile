@@ -14,13 +14,14 @@ ARG HUGO_VERSION=0.167.0
 ARG HUGO_SHA256=4d84519b9f619e6d4c3fb45a50157abeabeb724f859c60605f44c23def6e1169
 ARG PAGEFIND_VERSION=1.5.2
 ARG PAGEFIND_SHA256=afb824a9e7f64905a934900481cea5be679c03975e527329e0e5e6cc70f5feda
-# opm-docs pulls the signed docs bundles of the Catalogs tab (task
-# bundles:pull, the only step that runs it with network) and re-pulls the test
-# fixtures offline (test-site.sh). The SHA-256 is the linux_amd64 archive's
-# line in the release's checksums.txt, checked by hand against a second
-# download (docs-kit contract C12, build-image pattern). A bump re-syncs the
-# /catalogs/ lint fixtures from docs-kit's conformance set at the same tag
-# (site/tests/lint/link-catalogs/SOURCE).
+# opm-docs pulls, verifies and lints every signed docs bundle of
+# site/bundles.cue (task bundles:pull, the only step that runs it with
+# network), re-pulls the test fixtures offline and rebuilds the Enhancements
+# fixture (test-site.sh). The SHA-256 is the linux_amd64 archive's line in
+# the release's checksums.txt, checked by hand against a second download
+# (docs-kit contract C12, build-image pattern). The page dialect is
+# docs-kit's C11, enforced by this binary; the site keeps no copy of its
+# conformance cases.
 ARG OPM_DOCS_VERSION=0.6.0
 ARG OPM_DOCS_SHA256=fb4df993f76c1d2f62d6dfd769760c1669f0143956b2bad71658f17686cc8475
 WORKDIR /dl
@@ -35,7 +36,10 @@ RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}
  && tar -xzf opm-docs.tgz opm-docs \
  && ./hugo version && ./pagefind --version && ./opm-docs version
 
-# git dates the pages (scripts/gen-lastmod.sh). busybox-extras brings the
+# git builds the Enhancements fixture bundle from a throwaway repository
+# (tests/fixtures/regen-enhancements.sh) and the shallow-clone test of
+# scripts/gen-site-dates.sh, which dates the site-owned pages on the host;
+# no build step runs it. busybox-extras brings the
 # static httpd that serves site/public/ for preview; it is pinned to the
 # busybox build the base image carries, so a newer Alpine package fails the
 # image build instead of floating. jq reads the docs bundles' lock and

@@ -30,11 +30,12 @@ permissions:
 env:
   # A site-owned page without a git date fails the build. The dates are
   # computed on the host (gen-site-dates.sh, run by task build), where git
-  # works in a worktree too, so the build's container runs no git. CI can
-  # require them because opmodel.dev is a full clone (fetch-depth: 0), so
-  # every page has history; every other page is dated by its docs bundle's
-  # manifest. Locally a page that is not committed yet has no date, so a
-  # local build leaves this off.
+  # works in a worktree too, so the build's container runs no git. It dates
+  # nothing in a shallow clone (one commit would date every page), so the
+  # build and browser jobs fetch opmodel.dev's full history (fetch-depth: 0)
+  # and this catches a lost one; every other page is dated by its docs
+  # bundle's manifest. Locally a page that is not committed yet has no
+  # date, so a local build leaves this off.
   OPM_REQUIRE_DATES: '1'
   # The interim GitHub Pages site, until the Cloudflare deploy replaces it
   # (README.md, "GitHub Pages (interim)"). Never name it OPM_BASE_URL here:
@@ -81,22 +82,26 @@ jobs:
       - name: Lint the workflows
         run: task ci:lint
       - name: Pull the docs bundles
-        # The Catalogs tab's signed docs bundles (site/bundles.cue): opm-docs
-        # in the build image resolves, verifies and unpacks them into
+        # Every signed docs bundle of site/bundles.cue (the site versions'
+        # docs projects, the Catalogs tab, the Enhancements section): opm-docs
+        # in the build image resolves, verifies, lints and unpacks them into
         # site/.bundles/ with lock.json. Anonymous: the packages are public,
         # so no token and no permission. task build never pulls.
         run: task bundles:pull
       - name: Upload the docs bundles' lock
         # The digests this build reads, so the browser job pulls exactly
-        # them (--frozen) and QA checks what deploys. Every
-        # event; include-hidden-files, because .bundles is a dot directory.
+        # them (--frozen) and QA checks what deploys. With build-stamp it is
+        # the build's record, kept as long (90 days): committed as
+        # site/bundles.frozen.json it rebuilds this run's pages, or recovers
+        # from a bad bundle. Every event; include-hidden-files, because
+        # .bundles is a dot directory.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundles-lock
           path: opmodel.dev/site/.bundles/lock.json
           include-hidden-files: true
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 90
       - name: Check, build and test the site
         run: task ci
       - name: The build leaves the tree clean
@@ -329,9 +334,12 @@ jobs:
             while IFS='|' read -r project role tag version digest commit repo; do
               case "$project" in catalog-opm-docs) tree=catalog_opm ;; *) tree=$project ;; esac
               url=${repo:-https://github.com/open-platform-model/$tree}
-              head=$(git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1 || true)
+              head=$(GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote "$url" refs/heads/main 2>/dev/null | cut -f1 || true)
               if [ "$commit" = "$head" ]; then
                 main='same commit'
+              elif [ -z "$head" ]; then
+                main='could not read main'
+                echo "::warning::sources-main could not read $project's main head from $url (git ls-remote failed); its edge commit was not compared."
               else
                 main="**differs: ${head:0:12}**"
                 echo "::warning::sources-main checked $project at its edge bundle's commit ${commit:0:12}, but its main is at ${head:-(unknown)}: its edge publish failed or lags, so this run did not check $project's main."

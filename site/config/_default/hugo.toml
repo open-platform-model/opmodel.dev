@@ -101,8 +101,8 @@ defaultContentVersionInSubdir = true
   # remote icons are switched off here. Math (KaTeX, MathJax) loads only
   # through a Goldmark extension this site leaves off (Hugo's default).
   # Asciinema and PhotoSwipe load only for Hextra's asciinema and gallery
-  # shortcodes, which the source lint rejects (it allows only the opm/
-  # figures), and check 11 fails on any CDN URL in the output.
+  # shortcodes, which opm-docs lint rejects at task bundles:pull (docs-kit
+  # C11 allows only the opm/ figures), and check 11 fails on any CDN URL in the output.
   [params.imageZoom]
     enable = false
   # Mermaid is vendored (assets/lib/mermaid/, pinned in vendored.sha256), so
