@@ -1,4 +1,0 @@
-# version	label	weight	default	kind	repo	ref	sha	how	docs
-# site	a97d2486b831fecaf80453f40473c02eff12faf8
-# from-bundles	v1.0	cli core library opm-operator opm catalog_opm
-v1.0	v1.0 (beta)	1	true	line					
