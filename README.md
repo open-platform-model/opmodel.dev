@@ -29,7 +29,7 @@ site/.bundles/            (signed docs bundles, task bundles:pull from ghcr.io/o
 
 Everything runs in Docker. The build image (`site/Dockerfile`) holds Hugo 0.167.0, Pagefind 1.5.2, opm-docs 0.6.0 (docs-kit), git and jq, each pinned; a build runs with no network, and only `task bundles:pull` runs `opm-docs` with it. The QA image (`site/tests/browser/Dockerfile`) holds Chromium, Playwright and axe-core for the screenshots and the smoke tests. Image tags come from the Dockerfile hashes (`opmodel-dev-hugo:<12 hex>`, `opmodel-dev-qa:<12 hex>`).
 
-There is one version, `v1.0` (beta): the docs bundles of the newest cli `1.0` release and of exactly the library, core and opm-operator releases it pins, the newest `opm-v4` catalog tag and opm's `main`, resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
+There is one version, `v1.0` (beta): the docs bundles of the newest cli `1.0` release and of exactly the library, core and opm-operator releases it pins, opm's newest 1.0 release, and the newest `opm-v4` catalog release (catalog_opm's `docs/site` from its `catalog-opm-docs` bundle), resolved again on every build (see Site versions). Every version lives under `/<version>/`; `/latest/` points at the default version and `/` at `/latest/`. How versions map to component releases is an open question (enhancement 0021:OQ15).
 
 ## Prerequisites
 

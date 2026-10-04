@@ -1,4 +1,4 @@
-> **Gates.** Sections 1 and 2 need `serve-docs-from-bundles` section 1 merged and change nothing the real build reads; they may be committed before the gate. Sections 3 and 4 start at **G3.4**: `serve-docs-from-bundles` sections 2, 3 and 4 merged (v1.0's `from-bundles` names all six repositories and the Enhancements section is bundle-built). One PR; its merge is docs-kit's **G3.5**.
+> **Gates.** Sections 1 and 2 need `serve-docs-from-bundles` sections 2 and 4 merged (its section 1 was folded into its producer sections on 2026-10-04) and change nothing the real build reads; they may be committed before the gate. Sections 3 and 4 start at **G3.4**: `serve-docs-from-bundles` sections 2, 3 and 4 merged (v1.0's `from-bundles` names all six repositories and the Enhancements section is bundle-built). One PR; its merge is docs-kit's **G3.5**.
 
 ## 1. Spike: dates for site-owned pages
 
