@@ -29,7 +29,7 @@ Documentation site implementation status and roadmap.
 Since 2026-10-02 the site generates nothing: each repository generates its reference pages from its own source and commits them under `docs/site/reference/`, with a staleness check there. The removed `docgen` tool read the retired v0 catalog.
 
 - [ ] cli: every `opm` command and flag, at `/docs/reference/cli/`
-- [ ] opm-operator: the four operator resources, at `/docs/reference/operator-resources/`
+- [ ] opm-operator: the four operator resources, at `/docs/reference/operator/`
 - [x] catalog_opm: one page per abstraction member, now the Catalogs tab, built from signed docs bundles (openspec `add-catalogs-tab`)
 - [x] Remove the Catalogs transition (the mount exclusion of catalog_opm's Reference copies of the members, the two-entry legacy link map and the build's listing), 2026-10-03, after catalog_opm#127 deleted the pages and cli#280 and opm#20 replaced the last old links
 - [ ] core: the definitions, at `/docs/reference/definitions/`

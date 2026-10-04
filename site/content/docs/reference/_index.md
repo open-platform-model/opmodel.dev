@@ -1,6 +1,6 @@
 ---
 title: Reference
-description: "Reference for OPM's definitions, CLI commands, operator resources and Go API."
+description: "Reference for OPM's definitions, CLI commands, operator resources and library."
 weight: 7
 ---
 
