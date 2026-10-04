@@ -6,12 +6,12 @@ Once `serve-docs-from-bundles` has merged, no site version reads a source reposi
 
 Named as in docs-kit's `docs/orchestration.md` (PR #13, `plan/phases-1b-2-3`).
 
-- **Section 1 (spike) and section 2: no producer gate.** They need `serve-docs-from-bundles` sections 2 and 4 merged (every fixture can be a bundle; its section 1 was folded into its producer sections on 2026-10-04) and change nothing the real build reads.
-- **Sections 3 and 4: G3.4**, the opm and enhancements bundles published and `v1.0` reading them: `serve-docs-from-bundles` sections 2, 3 and 4 merged. Merging this change is docs-kit's **G3.5**, which starts docs-kit `retire-lint-conformance-binding`.
+- **G3.4 held when this change was implemented (2026-10-04):** `serve-docs-from-bundles` is merged and archived (opmodel.dev#42, #43, #45); v1.0 reads all six repositories, the Catalogs tab and the Enhancements section from bundles, and the edge build reads every `main` from edge bundles. All four sections landed in one PR, so the earlier split (sections 1 and 2 ungated, 3 and 4 at G3.4) no longer matters.
+- Merging this change is docs-kit's **G3.5**, which starts docs-kit `retire-lint-conformance-binding`.
 
 ## What Changes
 
-- **Deleted:** `site/scripts/{resolve-versions,materialise,gen-lastmod,lint-sources}.sh`; `site/tests/versions/test-resolve.sh` and the resolver fixtures; `site/tests/lint/` and the shell-lint half of `test-site.sh`; the fixture workspace `site/tests/fixtures/ws/` (its pages become bundle fixtures); `frozen.conf` and the `build-manifest` artifact (the lock and a committed `site/bundles.frozen.json` replace them); the `versions:prepare`, `versions:check`, `versions:fetch` and `lint:sources` tasks; the six source checkouts and the source-root mounts (`OPM_WS`, `OPM_SRC_*`, `OPM_SRC_WORKTREE`); the git branches of `gen-mounts.sh`, `gen-stamp.sh`, `sections.sh` and `opm/source.html`; the byte-identical dialect contract copy in `openspec/changes/deploy-site/orchestration.md`.
+- **Deleted:** `site/scripts/{resolve-versions,materialise,gen-lastmod,lint-sources}.sh`; `site/tests/versions/test-resolve.sh` and the resolver fixtures; `site/tests/lint/` and the shell-lint half of `test-site.sh`; the fixture workspace's six repository trees `site/tests/fixtures/ws/<repo>/` (their pages were already bundle fixtures; `ws/enhancements/` stays as the source `regen-enhancements.sh` rebuilds the section fixture from); `frozen.conf` and the `build-manifest` artifact (the lock and a committed `site/bundles.frozen.json` replace them); the `versions:prepare`, `versions:check`, `versions:fetch` and `lint:sources` tasks; the six source checkouts and the source-root mounts (`OPM_WS`, `OPM_SRC_*`, `OPM_SRC_WORKTREE`); the git branches of `gen-mounts.sh`, `gen-stamp.sh`, `sections.sh`, `check-pages.sh`, `opm/source.html`, `opm/build-stamp.html` and `components/last-updated.html` (and the dead `.gen/<version>/` reference mount); the byte-identical dialect contract copy in `openspec/changes/deploy-site/orchestration.md`.
 - **Reduced:** `site/versions.conf` keeps only what C16 has no place for: each site version's `label`, `weight` and `default`. The version list itself is `bundles.cue` `versions`; the build fails when the two name different versions.
 - **Replaced:** site-owned page dates (today from `materialise.sh`) by the mechanism section 1's spike picks; live editing of a source repository's pages (`OPM_VERSIONS=v1.0=/src task serve`) by `opm-docs serve`, or `opm-docs serve --site` through this repository's `task bundles:pull` and `task serve` with `OPM_BUNDLES_LOCAL`.
 - **BREAKING (for contributors, not readers):** `OPM_VERSIONS`, `OPM_SRC_*`, `OPM_WS` and the `versions:*` tasks stop existing.
@@ -34,9 +34,10 @@ network                 task image, task qa:image, task versions:fetch, task bun
 
 ```text
 site/versions.conf      [version "v1.0"] label = v1.0 (beta), weight = 1, default = true      (names must equal bundles.cue versions)
-site/scripts/           gen-mounts.sh (bundles + site content), gen-site-dates.sh (if section 1 picks the host step)
+site/scripts/           gen-mounts.sh (bundles + site content), gen-site-dates.sh (host), check-site-dates.sh
 site/.versions/         none
-site/tests/             fixtures/bundles/ (every source page), versions/check-two-versions.sh (two bundle-backed versions)
+site/tests/             fixtures/bundles/ (every source page), fixtures/ws/enhancements/ (the section fixture's source),
+                        bundle-page.sh, versions/check-two-versions.sh (two bundle-backed versions)
 Taskfile                bundles:pull, build, serve, versions:test (two bundle versions), ...
 .github/workflows/      site.yml checks out opmodel.dev only; bundles-lock artifact is the build record
 network                 task image, task qa:image, task bundles:pull
