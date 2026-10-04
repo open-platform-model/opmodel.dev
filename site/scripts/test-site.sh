@@ -14,8 +14,9 @@
 #   site/tests/fixtures/bundles/               docs bundles (catalog-opm 4.4, 4.5, edge), the
 #                                              version history (catalog-opm/history.json), the
 #                                              docs bundles of site version v1.0
-#                                              (_versions/v1.0/{cli,core,library,opm-operator},
-#                                              docs-kit C15, C16: cli the anchor with pins) and
+#                                              (_versions/v1.0/{cli,core,library,opm-operator,opm},
+#                                              docs-kit C15, C16: cli the anchor with pins, opm
+#                                              by its own tag) and
 #                                              the lock an all-local opm-docs pull writes over
 #                                              them; the tests first re-pull them offline with
 #                                              the pinned opm-docs and fail unless the result is
@@ -37,8 +38,8 @@
 #                                              cases (openspec add-edge-build), run in their own
 #                                              section: edge-config.sh's input and expected output,
 #                                              and run-in-image.sh pull's under a stub docker
-#   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library and
-#                                              opm-operator (manifest version edge), pulled offline
+#   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library,
+#                                              opm-operator and opm (manifest version edge), pulled offline
 #                                              under the derived config and built in explicit mode
 #   site/tests/dialect/                        a tree whose build must render the dialect
 #
@@ -50,7 +51,7 @@
 #   env                   KEY=VALUE lines exported for the build (checks only);
 #                         CASE_MANIFEST=1 builds without OPM_VERSIONS (manifest mode);
 #                         CASE_DOCS_BUNDLES=1 keeps the fixture docs bundles, so v1.0
-#                         reads cli, core, library and opm-operator from them
+#                         reads cli, core, library, opm-operator and opm from them
 #   expect                lint: one "<path>:<line>: <message>" line per violation,
 #                         none for a clean tree; checks: "+ text" lines the failed
 #                         build must print and "- text" lines it must not
@@ -808,7 +809,7 @@ log=$OUT/$name/log
 if [ $rc -ne 0 ]; then bad "$name" "the build with docs bundles failed (exit $rc)" "$log"
 else
   why=""
-  grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli 1.0.0-beta.9, core 2.0.0-beta.3, library 1.0.0-beta.3, opm-operator 1.0.0-beta.7)' "$log" || why="gen-docs-bundles did not name the four bundles"
+  grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli 1.0.0-beta.9, core 2.0.0-beta.3, library 1.0.0-beta.3, opm-operator 1.0.0-beta.7, opm 1.0.0-beta.2)' "$log" || why="gen-docs-bundles did not name the five bundles"
   for f in docs/reference/cli docs/reference/cli/opm-module docs/reference/definitions docs/reference/definitions/module \
     docs/reference/go-api docs/reference/operator-resources docs/embedding/embed-the-kernel docs/embedding/load-a-fixture \
     docs/operating/deploy-a-fixture docs/operating/the-fixture-operator docs/concepts/fixture-concept docs/reference/fixture-contract; do
@@ -821,7 +822,12 @@ else
   rnav=$OUT/$name/site/.check/v1.0/nav-order-reference.txt
   d=$(line_of /v1.0/docs/reference/definitions/ "$rnav"); cl=$(line_of /v1.0/docs/reference/cli/ "$rnav"); ga=$(line_of /v1.0/docs/reference/go-api/ "$rnav")
   [ "$d" -gt 0 ] && [ "$d" -lt "$cl" ] && [ "$cl" -lt "$ga" ] || why="${why:+$why; }the Reference tree is not definitions, cli, go-api in weight order"
-  if [ -z "$why" ]; then ok "$name/pages" "v1.0 publishes the four bundles' pages at /docs/, the Reference tree in weight order (definitions, cli, go-api), and the workspace's git trees of those repositories are not mounted"
+  ! grep -q '/ws/opm/docs/site' "$OUT/$name/site/config/production/module.toml" &&
+    grep -qF "$OUT/$name/site/.bundles/_versions/v1.0/opm/content" "$OUT/$name/site/config/production/module.toml" || why="${why:+$why; }module.toml still mounts the git opm tree, or not its bundle"
+  for f in docs docs/start docs/start/quickstart; do
+    dq "$P/$f/index.html" | grep -qF 'href=https://github.com/open-platform-model/opm/blob/0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a/docs/site/' || why="${why:+$why; }/v1.0/$f/ is not opm's bundle page (no View source at its commit)"
+  done
+  if [ -z "$why" ]; then ok "$name/pages" "v1.0 publishes the five bundles' pages at /docs/ (opm's landing and Start here among them), the Reference tree in weight order (definitions, cli, go-api), and the workspace's git trees of those repositories are not mounted"
   else bad "$name/pages" "$why" "$log"; fi
 
   why=""
@@ -842,13 +848,15 @@ else
   r=$(dq "$P/docs/reference/operator-resources/index.html")
   printf '%s' "$r" | grep -qF 'href=https://github.com/open-platform-model/opm-operator/edit/main/docs/site/reference/operator-resources.md' || why="${why:+$why; }the completed operator page lacks Edit"
   tr -d '\n ' < "$P/sitemap.xml" | grep -qF '<loc>https://opmodel.dev/v1.0/docs/concepts/fixture-concept/</loc><lastmod>2026-09-23T12:30:00Z</lastmod>' || why="${why:+$why; }the sitemap lacks fixture-concept's manifest lastmod"
+  r=$(dq "$P/docs/start/quickstart/index.html")
+  printf '%s' "$r" | grep -qF 'href=https://github.com/open-platform-model/opm/edit/main/docs/site/start/quickstart.md' || why="${why:+$why; }opm's quickstart lacks Edit to main"
   if [ -z "$why" ]; then ok "$name/page-data" "Edit to main at the manifest's edit path (completed pages too), none without one or on a generated page; View source at the bundle commit, named by its release; the manifest's lastmod on the page and in the sitemap"
   else bad "$name/page-data" "$why"; fi
 
   why=""
   st=$OUT/$name/site/public/build-stamp.json
   got=$(jq -r '.versions["v1.0"].bundles | map("\(.project)/\(.role)/\(.version)/\(.local)") | join(",")' "$st" 2>/dev/null)
-  [ "$got" = "cli/anchor/1.0.0-beta.9/true,core/pinned/2.0.0-beta.3/true,library/pinned/1.0.0-beta.3/true,opm-operator/pinned/1.0.0-beta.7/true" ] || why="the stamp's v1.0 bundles are \"$got\""
+  [ "$got" = "cli/anchor/1.0.0-beta.9/true,core/pinned/2.0.0-beta.3/true,library/pinned/1.0.0-beta.3/true,opm-operator/pinned/1.0.0-beta.7/true,opm/tag/1.0.0-beta.2/true" ] || why="the stamp's v1.0 bundles are \"$got\""
   [ "$(jq -c '.versions["v1.0"].bundles[0].pins' "$st")" = '{"core":"2.0.0-beta.3","library":"1.0.0-beta.3","opm-operator":"1.0.0-beta.7"}' ] || why="${why:+$why; }the stamp lacks cli's pins"
   r=$(dq "$P/docs/start/quickstart/index.html")
   printf '%s' "$r" | grep -qF 'docs bundles' &&
@@ -872,7 +880,7 @@ else bad "$name" "explicit mode read the docs bundles without OPM_DOCS_BUNDLES=1
 
 # Manifest mode with two versions: v0.9 (default) reads all six repositories
 # from git; v1.0 (not the default) mirrors the lock in from-bundles and
-# reads opm and catalog_opm from git, the other four from their bundles. A
+# reads catalog_opm from git, the other five from their bundles. A
 # bundle page shows Edit on a version that is not the default (it names
 # main); a git page of that version does not.
 name=docs-bundles/manifest
@@ -880,8 +888,8 @@ copy_site "$name" docs
 V=$OUT/$name/site/.versions
 mkdir -p "$V/v0.9" "$V/v1.0"
 cp -R "$WS/." "$V/v0.9/"; rm -rf "$V/v0.9/enhancements"
-for r in opm catalog_opm; do cp -R "$WS/$r" "$V/v1.0/"; done
-printf '# from-bundles\tv1.0\tcli core library opm-operator\nv0.9\tv0.9 (git)\t1\ttrue\tanchored\nv1.0\tv1.0 (bundles)\t2\tfalse\tanchored\n' > "$V/versions.tsv"
+cp -R "$WS/catalog_opm" "$V/v1.0/"
+printf '# from-bundles\tv1.0\tcli core library opm-operator opm\nv0.9\tv0.9 (git)\t1\ttrue\tanchored\nv1.0\tv1.0 (bundles)\t2\tfalse\tanchored\n' > "$V/versions.tsv"
 (SITE_DIR=$OUT/$name/site sh "$SCRIPTS/build-all.sh") > "$OUT/$name/log" 2>&1; rc=$?
 R=$OUT/$name/site/public
 if [ $rc -ne 0 ]; then bad "$name" "the manifest-mode build with from-bundles failed (exit $rc)" "$OUT/$name/log"
@@ -892,9 +900,10 @@ else
   [ ! -e "$R/v0.9/docs/reference/cli" ] && [ -f "$R/v0.9/docs/operating/deploy-a-fixture/index.html" ] || why="${why:+$why; }v0.9 lacks the git cli's page, or has a cli reference no git tree holds"
   grep -qF "Fixture: generated by the cli bundle" "$R/v1.0/docs/reference/cli/index.html" || why="${why:+$why; }v1.0's reference/cli/ is not the bundle's"
   dq "$R/v1.0/docs/concepts/fixture-concept/index.html" | grep -qF 'href=https://github.com/open-platform-model/core/edit/main/docs/site/concepts/fixture-concept.md' || why="${why:+$why; }a bundle page of the non-default v1.0 has no Edit"
-  grep -qF 'Edit this page' "$R/v1.0/docs/start/quickstart/index.html" && why="${why:+$why; }a git page of the non-default anchored v1.0 has Edit"
+  grep -qF 'Edit this page' "$R/v1.0/docs/reference/fixture-contract/index.html" && why="${why:+$why; }a git page of the non-default anchored v1.0 has Edit"
+  dq "$R/v1.0/docs/start/quickstart/index.html" | grep -qF 'href=https://github.com/open-platform-model/opm/edit/main/docs/site/start/quickstart.md' || why="${why:+$why; }opm's bundle page of the non-default v1.0 has no Edit"
   [ "$(jq -r '.versions["v0.9"] | has("bundles")' "$R/build-stamp.json")" = false ] || why="${why:+$why; }the stamp gives v0.9 bundles"
-  [ "$(jq -r '.versions["v1.0"].bundles | length' "$R/build-stamp.json")" = 4 ] || why="${why:+$why; }the stamp does not give v1.0 four bundles"
+  [ "$(jq -r '.versions["v1.0"].bundles | length' "$R/build-stamp.json")" = 5 ] || why="${why:+$why; }the stamp does not give v1.0 five bundles"
   if [ -z "$why" ]; then ok "$name" "v0.9 reads git, v1.0 its from-bundles repositories from bundles (go-api only there); a bundle page of the non-default version keeps Edit, a git page does not"
   else bad "$name" "$why" "$OUT/$name/log"; fi
 fi
@@ -1003,7 +1012,7 @@ cp -R "$TESTS/fixtures/bundles" "$OUT/edge/saved"
 sum() { (cd "$1" && find . -type f -exec sha256sum {} + | sort); }
 sum "$OUT/edge/saved" > "$OUT/edge/saved.before"
 edgelocal=""
-for p in cli core library opm-operator; do edgelocal="$edgelocal $p@v1.0=$TESTS/fixtures/edge/$p"; done
+for p in cli core library opm-operator opm; do edgelocal="$edgelocal $p@v1.0=$TESTS/fixtures/edge/$p"; done
 ( sh "$ER/site/scripts/edge-config.sh" &&
   PATH=$EB:$PATH OPM_BUNDLES_CONFIG=site/.edge/bundles.cue OPM_BUNDLES_OUT=site/.edge/bundles \
     OPM_BUNDLES_LOCAL="$tablocal$edgelocal" OPM_BUNDLES=$OUT/edge/saved sh "$ER/site/scripts/run-in-image.sh" pull
@@ -1018,7 +1027,7 @@ elif ! sum "$OUT/edge/saved" | cmp -s "$OUT/edge/saved.before" -; then
 else ok "checks/$c" "under OPM_BUNDLES_CONFIG the committed bundles.frozen.json is not applied, with a line saying so; the pull writes site/.edge/bundles/ only"; fi
 
 # The edge build: the explicit build with OPM_DOCS_BUNDLES=1 over that pull
-# (OPM_BUNDLES, as task build:edge passes it) reads the four edge bundles;
+# (OPM_BUNDLES, as task build:edge passes it) reads the five edge bundles;
 # the stamp names cli as the anchor and the others as tags, each at version
 # edge with its commit (a local entry records no tag).
 name=edge/build
@@ -1031,12 +1040,13 @@ else
   if [ $rc -ne 0 ]; then bad "$name" "the explicit build over the edge bundles failed (exit $rc)" "$OUT/$name/log"
   else
     why=""
-    grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli edge, core edge, library edge, opm-operator edge)' "$OUT/$name/log" || why="gen-docs-bundles did not name the four edge bundles"
+    grep -qF 'gen-docs-bundles: wrote data/opm/docs-bundles.json (v1.0: cli edge, core edge, library edge, opm edge, opm-operator edge)' "$OUT/$name/log" || why="gen-docs-bundles did not name the five edge bundles"
     grep -qF "build-all: catalogs section from $ER/site/.edge/bundles (OPM_BUNDLES)" "$OUT/$name/log" || why="${why:+$why; }the Catalogs section is not the edge pull's"
     got=$(jq -r '.versions["v1.0"].bundles | map("\(.project)/\(.role)/\(.version)/\(.local)/\(.commit[0:4])") | join(",")' "$st" 2>/dev/null)
-    [ "$got" = "cli/anchor/edge/true/e1e1,core/tag/edge/true/e0e0,library/tag/edge/true/e2e2,opm-operator/tag/edge/true/e3e3" ] || why="${why:+$why; }the stamp's v1.0 bundles are \"$got\""
+    [ "$got" = "cli/anchor/edge/true/e1e1,core/tag/edge/true/e0e0,library/tag/edge/true/e2e2,opm/tag/edge/true/e4e4,opm-operator/tag/edge/true/e3e3" ] || why="${why:+$why; }the stamp's v1.0 bundles are \"$got\""
     [ -f "$OUT/$name/site/public/v1.0/docs/reference/go-api/index.html" ] || why="${why:+$why; }no go-api page from the library edge bundle"
-    if [ -z "$why" ]; then ok "$name" "v1.0 reads cli (anchor), core, library and opm-operator (tags) from their edge bundles; the stamp records each at version edge with its commit"
+    dq "$OUT/$name/site/public/v1.0/docs/start/index.html" | grep -qF 'href=https://github.com/open-platform-model/opm/blob/e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4/docs/site/start/_index.md' || why="${why:+$why; }Start here is not the opm edge bundle's"
+    if [ -z "$why" ]; then ok "$name" "v1.0 reads cli (anchor), core, library, opm-operator and opm (tags) from their edge bundles; the stamp records each at version edge with its commit"
     else bad "$name" "$why" "$OUT/$name/log"; fi
   fi
 fi

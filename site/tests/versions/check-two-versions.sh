@@ -172,12 +172,12 @@ check "the v0.9 stamp names the six test SHAs" [ -z "$stamp_bad" -a -n "$stamp" 
 why="no View source link at the test SHA for:$view_bad"
 check "v0.9 View source links carry the test SHAs" [ -z "$view_bad" ]
 
-# v1.0 is a line version for opm and catalog_opm: every expected ref, SHA and
+# v1.0 is a line version for catalog_opm: every expected ref, SHA and
 # docs source is read from versions.tsv, never written here, since the lines
-# move. cli, core, library and opm-operator come from their docs bundles
+# move. cli, core, library, opm-operator and opm come from their docs bundles
 # (from-bundles): their versions, commits and pages are read from
 # data/opm/docs-bundles.json, which the build wrote from the lock.
-GIT10="opm catalog_opm"; BUN10="cli core library opm-operator"
+GIT10="catalog_opm"; BUN10="cli core library opm-operator opm"
 DB=$SITE/data/opm/docs-bundles.json
 row10() { awk -F'\t' -v r="$1" -v c="$2" '!/^#/ && $1 == "v1.0" && $6 == r { print $c }' "$TSV"; }
 stamp10=$(tr '\n' ' ' < "$P/v1.0/docs/index.html" | grep -o '<div class="\{0,1\}opm-build-stamp.*' | sed 's#</footer>.*##')
@@ -195,15 +195,15 @@ done
 fb=$(awk -F'\t' '$1 == "# from-bundles" && $2 == "v1.0" { print $3 }' "$TSV")
 for r in $BUN10; do [ -z "$(row10 "$r" 8)" ] || kind_bad="$kind_bad $r(a git row)"; done
 why="not kind line, or a git row for a bundle repository:$kind_bad; from-bundles \"$fb\""
-check "versions.tsv resolves v1.0's opm and catalog_opm as a line, mirrors from-bundles, and gives the four bundle repositories no row" [ -z "$kind_bad" -a -n "$(row10 opm 8)" -a "$fb" = "cli core library opm-operator" ]
+check "versions.tsv resolves v1.0's catalog_opm as a line, mirrors from-bundles, and gives the five bundle repositories no row" [ -z "$kind_bad" -a -n "$(row10 catalog_opm 8)" -a "$fb" = "cli core library opm-operator opm" ]
 why="the stamp misses:$stamp10_bad"
-check "the v1.0 stamp links opm's and catalog_opm's resolved SHAs" [ -z "$stamp10_bad" -a -n "$stamp10" ]
+check "the v1.0 stamp links catalog_opm's resolved SHA" [ -z "$stamp10_bad" -a -n "$stamp10" ]
 why="no View source link at the resolved SHA for:$view10_bad"
 check "v1.0 View source links of git pages carry blob/<resolved SHA>/docs/site/" [ -z "$view10_bad" ]
 why="wrong edit target:$edit10_bad"
 check "v1.0 edit links of git pages go to the branch the docs came from, else main" [ -z "$edit10_bad" ]
 
-# The four docs bundles: named in the stamp and the footer, no archive, every
+# The five docs bundles: named in the stamp and the footer, no archive, every
 # manifest page published in v1.0, Edit to main at the manifest's edit path
 # (generated pages none), View source at the bundle commit.
 bstamp_bad=""; bpage_bad=""; bedit_bad=""; bview_bad=""
@@ -233,7 +233,7 @@ rm -f "$OUT/.bundle-bad"
 why="missing:$bstamp_bad"
 check "the v1.0 stamp and build-stamp.json name each docs bundle's version and commit; no archive of those repositories" [ -z "$bstamp_bad" ]
 why="not published: $bpage_bad"
-check "every page of the four docs bundles publishes in v1.0" [ -z "$bpage_bad" ]
+check "every page of the five docs bundles publishes in v1.0" [ -z "$bpage_bad" ]
 why="wrong: $bedit_bad"
 check "a bundle page's Edit goes to main at its manifest edit path; a generated page has none" [ -z "$bedit_bad" ]
 why="wrong: $bview_bad"
@@ -247,7 +247,7 @@ check "v0.9 pages have no Edit this page link" [ -z "$edit09" ]
 noedit10=$(for r in $GIT10; do (cd "$SITE/.versions/v1.0/$r/docs/site" && find . -name '*.md' | sed 's#^\./##'); done |
   sed -E 's#(^|/)_index\.md$#\1#; s#\.md$#/#' | while IFS= read -r u; do grep -q "Edit this page" "$P/v1.0/docs/${u}index.html" 2>/dev/null || echo "$u"; done | head -n 3)
 why="no edit link on: $noedit10"
-check "v1.0 git pages (opm, catalog_opm) have an Edit this page link" [ -z "$noedit10" ]
+check "v1.0 git pages (catalog_opm) have an Edit this page link" [ -z "$noedit10" ]
 
 undated=$(for f in $pages09; do case "$f" in */404.html) continue ;; esac; grep -q '<time datetime=' "$f" || echo "${f#"$P"/}"; done | head -n 3)
 why="no date on: $undated"
@@ -308,7 +308,7 @@ fi
 why="differs from git ls-tree at the test SHA:$set_bad"
 check "each repo's v0.9 pages are exactly its pages at the test SHA (archive and published)" [ -z "$set_bad" ]
 why="the v1.0 archive differs from git ls-tree at the resolved SHA for:$set10_bad"
-check "opm's and catalog_opm's v1.0 archives are exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
+check "catalog_opm's v1.0 archive is exactly their pages at the resolved SHA" [ -z "$set10_bad" ]
 why="pages added after the test SHAs:${newer:- none, so nothing tells v0.9 from v1.0}; wrong for:$newer_bad"
 n_newer=$(printf '%s' "$newer" | wc -w | tr -d ' ')
 check "pages added between the test SHAs and v1.0's resolved SHAs publish in v1.0 only ($n_newer pages)" [ -n "$newer" -a -z "$newer_bad" ]

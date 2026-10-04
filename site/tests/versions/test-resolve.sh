@@ -223,8 +223,26 @@ run "$(manifest fb-cli-partial "$v
 	opm = $OPM_SHA")" -- --check
 expect fb-cli-partial 1 "from-bundles naming cli must name its pins too" "version v2.0: from-bundles names cli but not library" "version v2.0: from-bundles names cli but not opm-operator"
 run "$(manifest fb-unknown "$good
+	from-bundles = enhancements")" -- --check
+expect fb-unknown 1 "from-bundles names only the docs-bundle repositories" "version v2.0: from-bundles names enhancements; only cli, core, library, opm-operator and opm publish docs bundles"
+# opm from its bundle (openspec serve-docs-from-bundles): no opm key, no opm row.
+run "$(manifest fb-opm "$v
+	cli = v1.1.0
+	catalog = opm-v1.1.0
 	from-bundles = opm")" -- --check
-expect fb-unknown 1 "from-bundles names only the four docs-bundle repositories" "version v2.0: from-bundles names opm; only cli, core, library and opm-operator publish docs bundles"
+if [ "$rc" = 0 ] && ! printf '%s\n' "$out" | grep -q "^v2.0${TAB}.*${TAB}opm${TAB}"; then
+  expect fb-opm 0 "from-bundles = opm: no opm key and no opm row; cli and its pins and catalog_opm resolve" \
+    "${FBL}opm" "${TAB}cli${TAB}v1.1.0${TAB}" "${TAB}catalog_opm${TAB}opm-v1.1.0${TAB}"
+else bad fb-opm "exit $rc, or an opm row is left"; fi
+# shellcheck disable=SC2046 # env assignments hold no spaces
+env $(fixture_env) OPM_VERSIONS_MANIFEST="$T/manifests/fb-opm.conf" sh "$RESOLVE" --freeze > "$T/manifests/fb-opm-frozen.conf" 2>/dev/null
+run "$T/manifests/fb-opm-frozen.conf" -- --check
+if [ "$rc" = 0 ] && ! grep -q '	opm = ' "$T/manifests/fb-opm-frozen.conf"; then
+  expect fb-opm-freeze 0 "the frozen copy of a version reading opm from its bundle names no opm" "${FBL}opm"
+else bad fb-opm-freeze "exit $rc, or the frozen copy names an opm"; fi
+run "$(manifest fb-opm-key "$good
+	from-bundles = opm")" -- --check
+expect fb-opm-key 1 "from-bundles naming opm refuses an opm key" "version v2.0: from-bundles names opm, which excludes opm"
 run "$(manifest fb-override "$good
 	from-bundles = core
 	override = core v4.2.0 a test")" -- --check
@@ -444,6 +462,13 @@ if [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | grep -c "^v2.0${TAB}")" = 2 ]; t
     "# from-bundles${TAB}v2.0${TAB}cli core library opm-operator" \
     "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}" "${L}opm${TAB}main${TAB}$OPM_HEAD${TAB}line:main head${TAB}main"
 else bad line-fb "exit $rc, or rows other than catalog_opm and opm"; fi
+run "$(manifest line-fb-opm "$lv
+	catalog-line = opm-v1
+	from-bundles = cli core library opm-operator opm")" -- --check
+if [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | grep -c "^v2.0${TAB}")" = 1 ]; then
+  expect line-fb-opm 0 "a line version reading opm from its bundle resolves catalog_opm only, never opm's main" \
+    "# from-bundles${TAB}v2.0${TAB}cli core library opm-operator opm" "${L}catalog_opm${TAB}opm-v1.1.0${TAB}$CAT_A${TAB}"
+else bad line-fb-opm "exit $rc, or rows other than catalog_opm"; fi
 run "$(manifest line-fb-cli-line "$lgood
 	from-bundles = cli core library opm-operator")" -- --check
 expect line-fb-cli-line 1 "from-bundles naming cli and cli-line together are refused" "version v2.0: from-bundles names cli, which excludes cli-line"
