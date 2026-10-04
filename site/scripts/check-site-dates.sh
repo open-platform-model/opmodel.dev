@@ -1,9 +1,11 @@
 #!/bin/sh
 # Every site-owned page (content/) has its date in data/opm/lastmod.json,
 # which gen-site-dates.sh writes on the host before the build. Runs in the
-# build (build-all.sh, serve.sh). A page without one is counted and printed;
-# with OPM_REQUIRE_DATES=1 (CI) it fails the build. Without the file (a test
-# copy of the site, which no host step dated) every page counts as undated.
+# build (build-all.sh, serve.sh). A page without one (not committed yet, or
+# every page of a shallow clone, which gen-site-dates.sh refuses to date) is
+# counted and printed; with OPM_REQUIRE_DATES=1 (CI) it fails the build.
+# Without the file (a test copy of the site, which no host step dated) every
+# page counts as undated.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$SITE_DIR"
