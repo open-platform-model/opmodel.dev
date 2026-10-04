@@ -1,30 +1,14 @@
-{{- /* The footer stamp, from data/opm/build.json (scripts/gen-stamp.sh): the
-       version label, then the refs the version documents. An anchored version
-       (site/versions.conf pins fixed refs) and a line version (resolved from
-       release lines on every build) name them: "documents cli X, library L,
-       core Y, catalog Z, operator W, opm S", each with a link to the commit
-       whose tree was built and how it was found (the anchor, a line, a pin,
-       an override and its reason) as the link title. A ref that is a SHA shows
-       as seven hex characters. In a line version a tree read from a branch
-       (docs main or release/...) shows that branch and its commit: "opm main
-       4e582b8" when the ref is the branch itself, "core v2.0.0-beta.1 (docs
-       main f5c4463)" when the ref is the release the stamp names and the docs
-       come from a branch head; a tree read at its tag is that tag, so the text
-       is exact. A source = main version, and a fixture build, shows the commit
-       of each repo the build read, resolved on the host ("none" for a root
-       that is not its own git checkout). A page of the Enhancements section,
-       which belongs to no version, names instead the enhancements commit it
-       was built from (data/opm/build.json's sections.enhancements). A page
-       of the Catalogs section names its catalog and segment and the commit
-       its bundle was built from, with the bundle's digest (or "local") as
-       the link title. Called from the Hextra hook custom/footer.html with
-       the page. A version that reads some repositories from docs bundles
-       (data/opm/docs-bundles.json; docs-kit C16) names them after the git
-       refs, "docs bundles cli 1.0.0-beta.7, library 1.0.0-beta.3, ...", each
-       linking the commit its bundle was built from, with its role, tag and
-       digest (or "local") as the link title; the git list leaves them out,
-       and a version with no git ref (every repository from a bundle) shows
-       no "documents" list at all. */ -}}
+{{- /* The footer stamp, from data/opm/build.json (scripts/gen-stamp.sh). A
+       docs page names its version's label, then the docs bundles the version
+       reads (data/opm/docs-bundles.json; docs-kit C16), "docs bundles cli
+       1.0.0-beta.7, library 1.0.0-beta.3, ...", each linking the commit its
+       bundle was built from, with its role, tag and digest (or "local") as
+       the link title. A page of the Enhancements section, which belongs to
+       no version, names instead the enhancements commit it was built from
+       (data/opm/build.json's sections.enhancements). A page of the Catalogs
+       section names its catalog and segment and the commit its bundle was
+       built from, with the bundle's digest (or "local") as the link title.
+       Called from the Hextra hook custom/footer.html with the page. */ -}}
 {{- if and (eq .Section "catalogs") .Params.catalog -}}
   {{- $c := .Params.catalog -}}
   {{- $digest := "local" -}}
@@ -53,54 +37,10 @@
 {{- else -}}
 {{- $label := site.Version.Name -}}
 {{- range site.Params.opm.versions -}}{{- if eq .name site.Version.Name -}}{{- $label = .label | default .name -}}{{- end -}}{{- end -}}
-{{- $sources := dict -}}
-{{- $ver := dict -}}
 {{- $bundles := dict -}}
 {{- with hugo.Data.opm -}}{{- with index . "docs-bundles" -}}{{- with .versions -}}{{- with index . site.Version.Name -}}{{- $bundles = . -}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}
-{{- $btrees := slice -}}
-{{- range $bundles -}}{{- $btrees = $btrees | append .tree -}}{{- end -}}
-{{- with hugo.Data.opm -}}{{- with .build -}}
-  {{- $sources = .sources | default dict -}}
-  {{- with .versions -}}{{- with index . site.Version.Name -}}{{- $ver = . -}}{{- end -}}{{- end -}}
-{{- end -}}{{- end -}}
 <div class="opm-build-stamp" data-pagefind-ignore="all">
   <span>{{ $label }}</span>
-  {{ if or (eq $ver.kind "anchored") (eq $ver.kind "line") -}}
-  {{- $refs := $ver.refs | default dict -}}
-  {{- $shown := slice -}}
-  {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- if index $refs . -}}{{- $shown = $shown | append . -}}{{- end -}}{{- end -}}
-  {{- with $shown }}
-  <span class="opm-build-refs">documents
-  {{- range $i, $repo := $shown -}}
-    {{- $r := index $refs $repo -}}
-    {{- $text := $r.ref -}}
-    {{- if findRE `^[0-9a-f]{40}$` $r.ref -}}{{- $text = substr $r.ref 0 7 -}}{{- end -}}
-    {{- $docs := $r.docs | default "" -}}
-    {{- $branch := and (eq $ver.kind "line") (or (eq $docs "main") (hasPrefix $docs "release/")) -}}
-    {{- $name := index (dict "catalog_opm" "catalog" "opm-operator" "operator") $repo | default $repo -}}
-    {{- $url := printf "%s/%s/commit/%s" site.Params.opm.github $repo $r.sha -}}
-    {{- $title := replaceRE `^([a-z]+):` "$1: " $r.how -}}
-    {{- if $i }},{{ end }} <span class="opm-build-ref">{{ $name }}
-    {{- if and $branch (eq $r.ref $docs) }} {{ $docs }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ substr $r.sha 0 7 }}</code></a>
-    {{- else if $branch }} <code>{{ $text }}</code> (docs {{ $docs }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ substr $r.sha 0 7 }}</code></a>)
-    {{- else }} <a href="{{ $url }}" title="{{ $title }}"><code>{{ $text }}</code></a>
-    {{- end }}</span>
-  {{- end -}}
-  </span>
-  {{- end }}
-  {{- else -}}
-  {{ with $sources -}}
-  <span>built from</span>
-  {{ range $repo := site.Params.opm.repos -}}{{- if not (in $btrees $repo) -}}
-    {{- $sha := index $sources $repo | default "none" -}}
-    <span class="opm-build-ref">{{ $repo }} {{ if findRE `^[0-9a-f]{40}$` $sha -}}
-      <a href="{{ printf "%s/%s/commit/%s" site.Params.opm.github $repo $sha }}"><code>{{ substr $sha 0 7 }}</code></a>
-    {{- else -}}
-      <code>{{ $sha }}</code>
-    {{- end }}</span>
-  {{ end -}}{{- end -}}
-  {{- end }}
-  {{- end }}
   {{- with $bundles }}
   {{- $order := slice -}}
   {{- range slice "cli" "library" "core" "catalog_opm" "opm-operator" "opm" -}}{{- $t := . -}}{{- range $bundles -}}{{- if eq .tree $t -}}{{- $order = $order | append . -}}{{- end -}}{{- end -}}{{- end }}

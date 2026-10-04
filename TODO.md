@@ -14,9 +14,9 @@ Documentation site implementation status and roadmap.
 - [x] `Taskfile.yml` with build automation
 
 ### Hugo Site
-- [x] Hugo + Hextra v0.13.0 (vendored, neutral skin); site-owned pages in `site/content/`, the rest assembled from six source repos' `docs/site/`
+- [x] Hugo + Hextra v0.13.0 (vendored, neutral skin); site-owned pages in `site/content/`, the rest assembled from six source repos' signed docs bundles
 - [x] Docker build image; `task serve`, `task build`, `task preview` run in it, builds with no network
-- [x] One version, `v1.0` (beta), under `/v1.0/`: `/latest/` alias, per-version Pagefind search, page-set and output checks, source lint
+- [x] One version, `v1.0` (beta), under `/v1.0/`: `/latest/` alias, per-version Pagefind search, page-set and output checks; the page dialect is linted by `opm-docs pull` (docs-kit C11)
 
 ---
 

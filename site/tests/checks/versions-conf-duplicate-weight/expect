@@ -1,0 +1,2 @@
++ build-all: versions.conf: two versions have the weight 1
+- == drift guard

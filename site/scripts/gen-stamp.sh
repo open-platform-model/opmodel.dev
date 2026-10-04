@@ -1,126 +1,67 @@
 #!/bin/sh
 # Writes SITE_DIR/data/opm/build.json, the build stamp.
 #
-#   gen-stamp.sh [VERSION=ROOT ...]
+#   gen-stamp.sh VERSION [VERSION ...]
 #
-#   { "sources": { "opm": "<sha>", ... },
-#     "site": "<opmodel.dev sha>",
+#   { "site": "<opmodel.dev sha>",
 #     "sections": { "enhancements": { "project", "ref", "sha", "how", "digest", "local" },
 #                   "catalogs": { "lock": "...", "from": "...", "frozen": false, "bundles": [ ... ] } },
-#     "versions": { "<v>": { "label": "...", "default": true, "kind": "line",
-#                            "refs": { "<repo>": { "ref": "...", "sha": "...", "how": "...",
-#                                                  "docs": "..." } } } } }
+#     "versions": { "<v>": { "label": "...", "default": true, "bundles": [ ... ] } } }
 #
-# "sources" comes from OPM_BUILD_REFS ("repo=sha ...", resolved on the host by
-# run-in-image.sh; a root that is not its own git checkout is "none"; unset in
-# test-site.sh, so no source): each root's checked-out HEAD. Only a source =
-# main version, an explicit build and a fixture build read those trees; for
-# an anchored or a line version "versions.<v>.refs" and "site" are the
-# record. "versions" comes from .versions/versions.tsv (site/versions.conf,
-# resolved on the host) unless OPM_VERSIONS is set: kind "main" (every root at
-# HEAD), "anchored" (fixed refs) or "line" (resolved from release lines on
-# every build), each repo's ref (the release the stamp names), the SHA of the
-# tree built, how it was found (head, anchor, explicit, pin:<repo> <file>,
-# line:<rule>, override:<reason>, with "; docs: <rule>" for every released
-# repository (cli, library, opm-operator, core, catalog_opm) in a line
-# version) and, from column 10, where that tree came
-# from ("docs": tag, sha, main, release/<prefix>vX.Y, or worktree). "site" is
-# the opmodel.dev commit, from the "# site" line of versions.tsv; it is absent
-# when there is no versions.tsv. With OPM_VERSIONS set, or no versions.tsv,
-# the versions are the arguments, kind "explicit", label = name, the first the
-# default, no refs. "sections.enhancements" comes from ENH_REF, ENH_SHA,
-# ENH_HOW and ENH_DIGEST (set by sections.sh from the section bundle's lock
-# entry when the build has the section): {project, ref (edge), sha (the
-# commit the bundle was built from), how, digest ("" for a local bundle),
-# local}, and
-# "sections.catalogs" from data/opm/catalogs.json (gen-catalogs.sh, which runs
-# first) when CAT_DIR is set: {"lock": "sha256:...", "from": manifest |
-# explicit | OPM_BUNDLES, "frozen": true when the bundles came from a
-# frozen pull (run-in-image.sh writes <bundles>/frozen), "bundles": [{project, segment, version, revision,
+# "site" is the opmodel.dev commit the build ran from, OPM_SITE_COMMIT
+# (resolved on the host by run-in-image.sh, where git works in a worktree;
+# unset in test-site.sh, so the key is absent). Every other input is a docs
+# bundle, recorded by digest: the site reads no other repository.
+# "versions" comes from .gen/versions.tsv (sections.sh, from versions.conf):
+# each version's label, whether it is the default, and "bundles", the docs
+# bundles it reads (data/opm/docs-bundles.json, gen-docs-bundles.sh, which
+# runs first; docs-kit C16): [{project, role, tag, version, revision, digest,
+# commit, local, pins}] in the lock's order, digest "" for a local bundle,
+# pins {} but on an anchor. "sections.enhancements" comes from ENH_REF,
+# ENH_SHA, ENH_HOW and ENH_DIGEST (set by sections.sh from the section
+# bundle's lock entry when the build has the section): {project, ref (edge),
+# sha (the commit the bundle was built from), how, digest ("" for a local
+# bundle), local}, and "sections.catalogs" from data/opm/catalogs.json
+# (gen-catalogs.sh, which runs first) when the build has the Catalogs
+# section: {"lock": "sha256:...", "from": bundles | OPM_BUNDLES, "frozen":
+# true when the bundles came from a frozen pull (run-in-image.sh writes
+# <bundles>/frozen), "bundles": [{project, segment, version, revision,
 # digest, commit, local}], "history": [{project, digest}]}, digest "" for a
 # local bundle, history one entry per project whose history.json the lock
 # records (docs-kit C13), the key absent when none does; "sections" is absent
-# without either section. "versions.<v>.bundles" lists the docs bundles the
-# version reads instead of git (data/opm/docs-bundles.json, gen-docs-bundles.sh,
-# which runs first; docs-kit C16): [{project, role, tag, version, revision,
-# digest, commit, local, pins}] in the lock's order, digest "" for a local
-# bundle, pins {} but on an anchor; the key is absent for a version that reads
-# every repository from git. layouts/_partials/opm/build-stamp.html shows it in the
-# footer, opm/source.html builds "View source" and "Edit" links from the
-# refs, and build-all.sh publishes it as public/build-stamp.json.
+# without either section. layouts/_partials/opm/build-stamp.html shows it in
+# the footer, and build-all.sh publishes it as public/build-stamp.json.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$SITE_DIR"
 mkdir -p data/opm
-site=""
-if [ -z "${OPM_VERSIONS:-}" ] && [ -f .versions/versions.tsv ]; then
-  rows=$(awk -F'\t' '!/^#/' .versions/versions.tsv)
-  site=$(awk -F'\t' '$1 == "# site" { print $2; exit }' .versions/versions.tsv)
-  case "$site" in
-    *[!0-9a-f]*) echo "gen-stamp: the # site line of .versions/versions.tsv is not a commit SHA: $site" >&2; exit 1 ;;
-  esac
-else
-  [ $# -gt 0 ] || set -- v1.0=/src
-  rows=$(n=0; for pair in "$@"; do
-    n=$((n + 1)); printf '%s\t%s\t%s\t%s\texplicit\t\t\t\t\n' "${pair%%=*}" "${pair%%=*}" "$n" "$([ $n = 1 ] && echo true || echo false)"
-  done)
+site=${OPM_SITE_COMMIT:-}
+case "$site" in
+  *[!0-9a-f]*) echo "gen-stamp: OPM_SITE_COMMIT is not a commit SHA: $site" >&2; exit 1 ;;
+esac
+[ -f .gen/versions.tsv ] || { echo "gen-stamp: .gen/versions.tsv is missing (sections.sh writes it)" >&2; exit 1; }
+[ -f data/opm/docs-bundles.json ] || { echo "gen-stamp: data/opm/docs-bundles.json is missing (gen-docs-bundles.sh runs first)" >&2; exit 1; }
+secs='{}'
+if [ -n "${ENH_DIR:-}" ]; then
+  case "${ENH_SHA:-}" in *[!0-9a-f]*|'') echo "gen-stamp: enhancements: not a commit SHA: ${ENH_SHA:-}" >&2; exit 1 ;; esac
+  secs=$(jq -cn --arg ref "${ENH_REF:-}" --arg sha "$ENH_SHA" --arg how "${ENH_HOW:-}" --arg digest "${ENH_DIGEST:-}" \
+    '{enhancements: {project: "enhancements", ref: $ref, sha: $sha, how: $how, digest: $digest, local: ($digest == "")}}')
 fi
-{
-  printf '{\n  "sources": {'
-  sep=''
-  for pair in ${OPM_BUILD_REFS:-}; do
-    repo=${pair%%=*}; sha=${pair#*=}
-    case "$sha" in
-      none) ;;
-      *[!0-9a-f]*|'') echo "gen-stamp: $repo: not a commit SHA: $sha" >&2; exit 1 ;;
-    esac
-    printf '%s\n    "%s": "%s"' "$sep" "$repo" "$sha"
-    sep=,
-  done
-  [ -z "$sep" ] || printf '\n  '
-  printf '},\n'
-  [ -z "$site" ] || printf '  "site": "%s",\n' "$site"
-  secs=""
-  if [ -n "${ENH_DIR:-}" ]; then
-    case "${ENH_SHA:-}" in *[!0-9a-f]*|'') echo "gen-stamp: enhancements: not a commit SHA: ${ENH_SHA:-}" >&2; exit 1 ;; esac
-    case "${ENH_REF:-}${ENH_HOW:-}${ENH_DIGEST:-}" in *[\"\\]*) echo "gen-stamp: enhancements: the ref, how or digest holds a quote or a backslash" >&2; exit 1 ;; esac
-    secs=$(printf '"enhancements": {"project": "enhancements", "ref": "%s", "sha": "%s", "how": "%s", "digest": "%s", "local": %s}' \
-      "$ENH_REF" "$ENH_SHA" "${ENH_HOW:-}" "${ENH_DIGEST:-}" "$([ -n "${ENH_DIGEST:-}" ] && echo false || echo true)")
-  fi
-  if [ -n "${CAT_DIR:-}" ]; then
-    [ -f data/opm/catalogs.json ] || { echo "gen-stamp: the build has the Catalogs section, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
-    fz=false; [ ! -f "$CAT_DIR/frozen" ] || fz=true
-    cat=$(jq -c --arg from "${CAT_FROM:-}" --argjson frozen "$fz" '{lock, from: $from, frozen: $frozen, bundles: [.catalogs[] | .project as $p | .segments[]
-        | {project: $p, segment, version, revision, digest, commit, local}]}
-        + ([.catalogs[] | select(.history) | {project, digest: .history.digest}] | if length > 0 then {history: .} else {} end)' data/opm/catalogs.json)
-    secs="$secs${secs:+, }\"catalogs\": $cat"
-  fi
-  [ -z "$secs" ] || printf '  "sections": {%s},\n' "$secs"
-  printf '  "versions": {'
-  printf '%s\n' "$rows" | awk -F'\t' '
-    NF < 5 { next }
-    $1 != cur {
-      if (cur != "") printf "}},"
-      cur = $1; first = 1
-      printf "\n    \"%s\": {\"label\": \"%s\", \"default\": %s, \"kind\": \"%s\", \"refs\": {", $1, $2, ($4 == "true" ? "true" : "false"), $5
-    }
-    $6 != "" {
-      printf "%s\n      \"%s\": {\"ref\": \"%s\", \"sha\": \"%s\", \"how\": \"%s\"", (first ? "" : ","), $6, $7, $8, $9
-      if ($10 != "") printf ", \"docs\": \"%s\"", $10
-      printf "}"
-      first = 0
-    }
-    END { if (cur != "") printf "}}\n  " }'
-  printf '}\n}\n'
-} > data/opm/build.json
-# The docs bundles of each version (see the header).
-if [ -f data/opm/docs-bundles.json ] && jq -e '.versions | length > 0' data/opm/docs-bundles.json >/dev/null; then
-  jq --slurpfile d data/opm/docs-bundles.json '.versions |= with_entries(
-      ($d[0].versions[.key] // {}) as $b
-      | if ($b | length) > 0 then .value.bundles = [$b[] | {project, role, tag, version, revision, digest, commit, local, pins}] else . end)' \
-    data/opm/build.json > data/opm/build.json.tmp && mv data/opm/build.json.tmp data/opm/build.json
+if [ -n "${CATALOGS:-}" ]; then
+  [ -f data/opm/catalogs.json ] || { echo "gen-stamp: the build has the Catalogs section, but data/opm/catalogs.json is missing (gen-catalogs.sh runs first)" >&2; exit 1; }
+  fz=false; [ ! -f "$CAT_DIR/frozen" ] || fz=true
+  cat=$(jq -c --arg from "${CAT_FROM:-}" --argjson frozen "$fz" '{lock, from: $from, frozen: $frozen, bundles: [.catalogs[] | .project as $p | .segments[]
+      | {project: $p, segment, version, revision, digest, commit, local}]}
+      + ([.catalogs[] | select(.history) | {project, digest: .history.digest}] | if length > 0 then {history: .} else {} end)' data/opm/catalogs.json)
+  secs=$(printf '%s' "$secs" | jq -c --argjson c "$cat" '. + {catalogs: $c}')
 fi
-echo "gen-stamp: data/opm/build.json ($(grep -c '^    "[a-z_-]*": "' data/opm/build.json | tr -d ' ') sources, ${site:+site $site, }versions $(awk -F'\t' 'NF >= 5 && !s[$1]++ { printf "%s%s", (n++ ? " " : ""), $1 }' <<ROWS
-$rows
-ROWS
-))"
+rows=$(for v in "$@"; do awk -F'\t' -v v="$v" '$1 == v' .gen/versions.tsv; done)
+printf '%s\n' "$rows" | jq -R -s --arg site "$site" --argjson secs "$secs" --slurpfile d data/opm/docs-bundles.json '
+  [split("\n")[] | select(length > 0) | split("\t")] as $rows
+  | (if $site != "" then {site: $site} else {} end)
+  + (if ($secs | length) > 0 then {sections: $secs} else {} end)
+  + {versions: ([$rows[] | {key: .[0], value: ({label: .[1], default: (.[3] == "true")}
+      + (($d[0].versions[.[0]] // {}) as $b | if ($b | length) > 0
+          then {bundles: [$b[] | {project, role, tag, version, revision, digest, commit, local, pins}]} else {} end))}]
+      | from_entries)}' > data/opm/build.json
+echo "gen-stamp: data/opm/build.json (${site:+site $site, }versions $*)"

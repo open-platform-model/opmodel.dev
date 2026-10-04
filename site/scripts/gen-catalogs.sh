@@ -2,13 +2,14 @@
 # Writes the Catalogs section's one derived input, from the docs bundles'
 # lock (docs-kit C7) and each bundle's manifest.json (C3):
 #
-#   gen-catalogs.sh              (reads CAT_DIR, set by sections.sh; SITE_DIR)
+#   gen-catalogs.sh              (reads CAT_DIR and CATALOGS, set by sections.sh; SITE_DIR)
 #
 #   data/opm/catalogs.json       every template and check reads only this file
 #   .gen/catalogs/_index.md      the /catalogs/ section page (an adapter cannot
 #                                add the empty path, as for /enhancements/)
 #
-# Without CAT_DIR (no section) it removes both and writes nothing.
+# Without CATALOGS (the lock names no tab bundle: no section) it removes both
+# and writes nothing.
 #
 #   { "lock": "sha256:<hex of lock.json>",
 #     "catalogs": [ { "project", "name", "root", "repo", "newest", "majors": {"4": "4.5"},
@@ -36,7 +37,7 @@ SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$SITE_DIR"
 CAT_DIR=${CAT_DIR:-}
 rm -rf .gen/catalogs data/opm/catalogs.json
-[ -n "$CAT_DIR" ] || exit 0
+[ -n "$CAT_DIR" ] && [ -n "${CATALOGS:-}" ] || exit 0
 L=$CAT_DIR/lock.json
 die() { echo "gen-catalogs: $*" >&2; exit 1; }
 [ -f "$L" ] || die "$L is missing"

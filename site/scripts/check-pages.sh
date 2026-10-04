@@ -1,19 +1,17 @@
 #!/bin/sh
 # Page-set checks.
 #
-#   check-pages.sh pre  VERSION=ROOT [...]   before hugo build: A1, reserved prefixes
-#   check-pages.sh post VERSION=ROOT [...]   after the build and its root files: A1, reserved
-#                                            prefixes, Q2, stray files, nav order, links
+#   check-pages.sh pre  VERSION [...]   before hugo build: A1, reserved prefixes
+#   check-pages.sh post VERSION [...]   after the build and its root files: A1, reserved
+#                                       prefixes, Q2, stray files, nav order, links
 #
-# Lists the URL every page should publish at: the site-owned content/ at /,
-# a version's generated reference in .gen/<version>/ at /, and each source
-# repo's ROOT/<repo>/docs/site/ at /docs/ (x/_index.md is /x/, x.md is /x/),
-# or, for a repository the version reads from a docs bundle
-# (data/opm/docs-bundles.json), every page its manifest.json lists at /docs/
-# (docs-kit C8), labelled "<project> <version> (docs bundle) content/<path>"; A1 and
-# Q2 then cover bundle pages against site-owned and git pages alike, and the
-# link crawl below covers /docs/ links across bundles (C15 leaves them to the
-# site).
+# Lists the URL every page should publish at: the site-owned content/ at /
+# (x/_index.md is /x/, x.md is /x/), and every page the manifest.json of each
+# of the version's docs bundles (data/opm/docs-bundles.json) lists at /docs/
+# (docs-kit C8), labelled "<project> <version> (docs bundle) content/<path>";
+# A1 and Q2 then cover bundle pages against site-owned pages and each other,
+# and the link crawl below covers /docs/ links across bundles (C15 leaves
+# them to the site).
 # Then:
 #   A1     fails when two files publish one URL, x.md against x/_index.md
 #          included (Hugo lets the first mount win, silently);
@@ -30,7 +28,7 @@
 #          page's index.html and index.md (its Markdown output) only the
 #          section's Pagefind bundle. Without ENH_DIR,
 #          public/enhancements/ must not exist;
-#   catalogs  with CAT_DIR set (the build has the Catalogs section), Q2
+#   catalogs  with CATALOGS set (the build has the Catalogs section), Q2
 #          and stray for public/catalogs/, which belongs to no version: the
 #          /catalogs/ page and every page each segment's manifest.json lists;
 #          the alias stubs (custom/head-end.html: /catalogs/<name>/ and
@@ -39,7 +37,7 @@
 #          a robots noindex tag, else REDIRECT FAIL;
 #          besides each page's index.html and index.md only the segments'
 #          Pagefind bundles; and nav-order-catalogs-<segment>.txt under
-#          CHECK_DIR/catalogs/. Without CAT_DIR, public/catalogs/ must not
+#          CHECK_DIR/catalogs/. Without CATALOGS, public/catalogs/ must not
 #          exist;
 #   nav    writes SITE_DIR/.check/<version>/nav-order.txt (CHECK_DIR, default
 #          .check): the sidebar's links on the version's docs home, in
@@ -73,7 +71,6 @@
 #          One line per distinct URL, naming the first file that holds it.
 set -eu
 SITE_DIR=${SITE_DIR:-$(cd "$(dirname "$0")/.." && pwd)}
-REPOS="opm core catalog_opm cli library opm-operator"
 cd "$SITE_DIR"
 mode=$1; shift
 PUBLIC=${PUBLIC:-public}
@@ -93,16 +90,9 @@ urls() { # $1 dir, $2 URL prefix, $3 label
 
 DB=data/opm/docs-bundles.json
 [ -f "$DB" ] || { echo "check-pages: $DB is missing (gen-docs-bundles.sh runs first)"; exit 1; }
-for pair in "$@"; do
-  v=${pair%%=*}; root=${pair#*=}
-  fromb=" $(jq -r --arg v "$v" '.versions[$v] // {} | [.[].tree] | join(" ")' "$DB") "
+for v in "$@"; do
   {
     urls content / site
-    urls ".gen/$v" / generated
-    for r in $REPOS; do
-      case "$fromb" in *" $r "*) continue ;; esac
-      urls "$root/$r/docs/site" /docs/ "$r"
-    done
     # Bundle pages: the manifest's pages, at /docs/<page URL>.
     jq -r --arg v "$v" '.versions[$v] // {} | .[] | . as $b | .pages | keys[]
       | "\(.)\t\($b.project) \($b.version) (docs bundle)"' "$DB" |
@@ -183,13 +173,13 @@ if [ "$mode" = post ]; then
     rc=1; echo "Q2 FAIL enhancements: $E exists, but the build has no enhancements section"
   fi
 
-  # The Catalogs section (CAT_DIR set: data/opm/catalogs.json lists its
+  # The Catalogs section (CATALOGS set: data/opm/catalogs.json lists its
   # bundles): the /catalogs/ page and, per segment, every page its
   # manifest.json lists, at <root><segment>/<page URL>/ (docs-kit C8);
   # besides each page's index.html and index.md only the segments' Pagefind
-  # bundles. Without CAT_DIR, public/catalogs/ must not exist.
+  # bundles. Without CATALOGS, public/catalogs/ must not exist.
   K=$PUBLIC/catalogs
-  if [ -n "${CAT_DIR:-}" ]; then
+  if [ -n "${CATALOGS:-}" ]; then
     {
       echo /catalogs/
       jq -r '.catalogs[] | .root as $r | .segments[] | "\($r)\t\(.segment)\t\(.dir)"' data/opm/catalogs.json |

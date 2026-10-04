@@ -1,7 +1,8 @@
 #!/bin/sh
-# Host side of the site tasks: resolves the workspace and the six source
-# roots, checks them before any container starts, and runs one step in the
-# build image. POSIX sh; needs git and docker on the host, nothing else.
+# Host side of the site tasks: runs one step in the build image. POSIX sh;
+# needs git (this repository's own commit and the site-owned pages' dates),
+# jq and docker on the host, nothing else. No step reads another repository:
+# every source page arrives in a signed docs bundle (task bundles:pull).
 #
 #   run-in-image.sh image    build opmodel-dev-hugo:<first 12 hex of sha256(Dockerfile)> if missing (network)
 #   run-in-image.sh tag      print that tag
@@ -11,38 +12,26 @@
 #   run-in-image.sh build    build-all.sh in the image, --network none -> site/public/
 #   run-in-image.sh serve    serve.sh in the image, published on 127.0.0.1:${SITE_PORT:-1313} only
 #   run-in-image.sh preview  a static server over the built site/public/, on 127.0.0.1:${SITE_PORT:-1313} only
-#   run-in-image.sh lint     the source lint over the six source roots, --network none
-#   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only, mounts no source root
+#   run-in-image.sh test     test-site.sh in the image, --network none; reads fixtures only
 #   run-in-image.sh qa-image build opmodel-dev-qa:<first 12 hex of sha256(site/tests/browser/Dockerfile)> if missing (network)
 #   run-in-image.sh qa-tag   print that tag
 #   run-in-image.sh shots    site/tests/browser/shots.py and diagrams.py over the built site/public/, --network none -> site/.shots/
 #   run-in-image.sh qa       shots.py and diagrams.py, then a11y.py, search.py and theme_reveal.py, --network none, no published port
 #
 # Environment. Each is read from the environment first; an empty value counts as unset.
-#   OPM_WS             workspace root. Default: the parent of the opmodel.dev main checkout, from
-#                      git's common directory, so it is right inside a worktree.
-#   OPM_SRC_<REPO>     one source root per repo: OPM_SRC_OPM, OPM_SRC_CORE, OPM_SRC_CATALOG_OPM,
-#                      OPM_SRC_CLI, OPM_SRC_LIBRARY, OPM_SRC_OPM_OPERATOR. Default:
-#                      $OPM_WS/<repo>/.claude/worktrees/$OPM_SRC_WORKTREE when OPM_SRC_WORKTREE is set,
-#                      else $OPM_WS/<repo>.
-#   OPM_SRC_WORKTREE   worktree name used for every unset OPM_SRC_<REPO>.
 #   SITE_PORT          host port for serve (default 1313).
-#   OPM_REQUIRE_DATES  1 fails the build when a page has no git date (default 0).
-#   OPM_VERSIONS       name=root ... (roots are container paths). Passed into the container only
-#                      when the caller set it; otherwise build-all.sh and serve.sh use v1.0=/src.
+#   OPM_REQUIRE_DATES  1 fails the build when a site-owned page has no git date (default 0).
 #   OPM_BASE_URL       the site's base URL, an absolute http(s) URL ending in /, which may carry
 #                      a path (https://example.org/docs/). Passed into the container in build
 #                      mode only, and only when set; unset, the build uses hugo.toml's baseURL.
-#                      serve, test, lint and the two-version test never see it.
-#   OPM_DOCS_BUNDLES   1: an explicit build (OPM_VERSIONS) reads the lock's docs bundles too
-#                      (gen-docs-bundles.sh); unset, explicit mode reads every repository from git.
-#                      Passed into the container in build and serve mode.
+#                      serve, test and the two-version test never see it.
 #   OPM_BUNDLES        a directory of unpacked docs bundles with their lock.json (what opm-docs
-#                      pull writes; the test fixtures site/tests/fixtures/bundles), relative to the
-#                      repo or absolute. Build and serve mount it read-only at /bundles and pass
-#                      OPM_BUNDLES=/bundles, so the Catalogs section comes from it instead of
-#                      site/.bundles/ (site/scripts/sections.sh). Build and serve only: pull never
-#                      reads it (pull sweeps its output, so a tree a build reads is never a target).
+#                      pull writes: task build:edge's site/.edge/bundles, the test fixtures
+#                      site/tests/fixtures/bundles), relative to the repo or absolute. Build and
+#                      serve mount it read-only at /bundles and pass OPM_BUNDLES=/bundles, so
+#                      every bundle comes from it instead of site/.bundles/
+#                      (site/scripts/sections.sh). Build and serve only: pull never reads it
+#                      (pull sweeps its output, so a tree a build reads is never a target).
 #   OPM_BUNDLES_CONFIG pull mode only: the pull config, relative to the repo or absolute; default
 #                      site/bundles.cue. task build:edge names site/.edge/bundles.cue
 #                      (site/scripts/edge-config.sh). When it is set, a committed
@@ -61,14 +50,13 @@
 #   OPM_BUNDLES_FROZEN pull mode only: a lock to pull exactly (opm-docs pull --frozen), e.g. the
 #                      build job's lock in CI; default site/bundles.frozen.json when it exists and
 #                      OPM_BUNDLES_CONFIG is unset.
-# OPM_BUILD_REFS (repo=sha ..., "none" for a root that is not its own git top level) is resolved
-# here from each root on the host, where git works in a worktree; never set it by hand.
+# Build and serve first run site/scripts/gen-site-dates.sh here, on the host (git cannot read a
+# worktree's history in the container), and pass this repository's commit as OPM_SITE_COMMIT
+# (the build stamp); never set it by hand.
 #
-# Containers: --rm --init --user <uid>:<gid>, no --name. The repo is mounted at /work/repo and
-# each source root read-only at /src/<repo>, never with :z. The Enhancements section comes from
-# its docs bundle (site/bundles.cue sections), never from a checkout.
+# Containers: --rm --init --user <uid>:<gid>, no --name. The repo is mounted at /work/repo,
+# never with :z, and OPM_BUNDLES read-only at /bundles.
 set -eu
-REPOS="opm core catalog_opm cli library opm-operator"
 DOCKERFILE=site/Dockerfile
 QA_DOCKERFILE=site/tests/browser/Dockerfile
 
@@ -95,42 +83,8 @@ build_image() {
 image() { build_image "$(tag)" "$DOCKERFILE"; }
 qa_image() { build_image "$(qa_tag)" "$QA_DOCKERFILE"; }
 
-# Resolves and checks every source root; sets MOUNTS (docker -v flags) and REFS,
-# and CAT (the OPM_BUNDLES mount and variable, or nothing).
-sources() {
-  ws=$(envval OPM_WS)
-  if [ -z "$ws" ]; then
-    common=$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir)
-    ws=$(dirname "$(dirname "$common")")
-  fi
-  wt=$(envval OPM_SRC_WORKTREE)
-  MOUNTS=""; REFS=""; missing=""
-  for r in $REPOS; do
-    var=OPM_SRC_$(printf '%s' "$r" | tr 'a-z-' 'A-Z_')
-    root=$(envval "$var")
-    if [ -z "$root" ]; then
-      if [ -n "$wt" ]; then root=$ws/$r/.claude/worktrees/$wt; else root=$ws/$r; fi
-    fi
-    if [ ! -d "$root/docs/site" ]; then
-      missing="$missing
-  $var: $root has no docs/site"
-      continue
-    fi
-    abs=$(cd "$root" && pwd -P)
-    case "$abs" in *[:,\ ]*) die "$var: $abs contains ':', ',' or a space; docker -v cannot mount it" ;; esac
-    MOUNTS="$MOUNTS -v $abs:/src/$r:ro"
-    top=$(git -C "$abs" rev-parse --show-toplevel 2>/dev/null || true)
-    if [ -n "$top" ] && [ "$(cd "$top" && pwd -P)" = "$abs" ]; then
-      REFS="$REFS $r=$(git -C "$abs" rev-parse HEAD)"
-    else
-      REFS="$REFS $r=none"
-    fi
-  done
-  if [ -n "$missing" ]; then
-    die "source roots missing (set OPM_WS, OPM_SRC_WORKTREE or OPM_SRC_<REPO>):$missing"
-  fi
-  REFS=${REFS# }
-  # The docs bundles, when OPM_BUNDLES names them: CAT holds the docker flags.
+# The docs bundles, when OPM_BUNDLES names them: CAT holds the docker flags.
+bundles() {
   CAT=""
   b=$(envval OPM_BUNDLES)
   if [ -n "$b" ]; then
@@ -141,37 +95,41 @@ sources() {
   fi
 }
 
+# The host steps of a build or the dev server: the site-owned pages' dates
+# (data/opm/lastmod.json) and this repository's commit (SITE, "" when git
+# cannot name one).
+host_steps() {
+  sh "$repo/site/scripts/gen-site-dates.sh"
+  SITE=$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)
+}
+
 # Common docker run flags; the caller adds the network, mounts and command.
 run() {
-  versions=$(envval OPM_VERSIONS)
-  set -- --rm --init --user "$(id -u):$(id -g)" \
+  exec docker run --rm --init --user "$(id -u):$(id -g)" \
     --env HOME=/tmp \
     --env "OPM_REQUIRE_DATES=$(envval OPM_REQUIRE_DATES)" \
-    --env "OPM_DOCS_BUNDLES=$(envval OPM_DOCS_BUNDLES)" \
     --volume "$repo:/work/repo" \
     "$@"
-  if [ -n "$versions" ]; then set -- --env "OPM_VERSIONS=$versions" "$@"; fi
-  exec docker run "$@"
 }
 
 case "$mode" in
   tag) tag ;;
   image) image ;;
   build)
-    sources; image >/dev/null
-    echo "run-in-image: build, sources $REFS"
+    bundles; image >/dev/null; host_steps
+    echo "run-in-image: build of opmodel.dev ${SITE:-(no commit)}"
     base=$(envval OPM_BASE_URL)
     if [ -n "$base" ]; then set -- --env "OPM_BASE_URL=$base"; else set --; fi
-    # shellcheck disable=SC2086 # MOUNTS is a list of -v flags without spaces inside paths
-    run --network none --env "OPM_BUILD_REFS=$REFS" "$@" $MOUNTS $CAT \
+    # shellcheck disable=SC2086 # CAT is a list of flags without spaces inside paths
+    run --network none --env "OPM_SITE_COMMIT=$SITE" "$@" $CAT \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/build-all.sh ;;
   serve)
-    sources; image >/dev/null
+    bundles; image >/dev/null; host_steps
     port=$(envval SITE_PORT); port=${port:-1313}
     echo "run-in-image: serving on http://127.0.0.1:$port/ (Ctrl+C stops it)"
     # shellcheck disable=SC2086
-    run --env TINI_KILL_PROCESS_GROUP=1 --env "SITE_PORT=$port" --env "OPM_BUILD_REFS=$REFS" \
-      --publish "127.0.0.1:$port:1313" $MOUNTS $CAT \
+    run --env TINI_KILL_PROCESS_GROUP=1 --env "SITE_PORT=$port" --env "OPM_SITE_COMMIT=$SITE" \
+      --publish "127.0.0.1:$port:1313" $CAT \
       --entrypoint sh "$(tag)" /work/repo/site/scripts/serve.sh </dev/null ;;
   preview)
     [ -f site/public/index.html ] || die "site/public/ holds no build; run the build task first"
@@ -180,11 +138,6 @@ case "$mode" in
     echo "run-in-image: previewing site/public/ on http://127.0.0.1:$port/ (Ctrl+C stops it)"
     run --env TINI_KILL_PROCESS_GROUP=1 --publish "127.0.0.1:$port:1313" \
       --entrypoint sh "$(tag)" -c 'printf "E404:404.html\n" > /tmp/httpd.conf && exec httpd -f -p 1313 -h /work/repo/site/public -c /tmp/httpd.conf' </dev/null ;;
-  lint)
-    sources; image >/dev/null
-    dirs=""; for r in $REPOS; do dirs="$dirs /src/$r/docs/site"; done
-    # shellcheck disable=SC2086
-    run --network none $MOUNTS --entrypoint sh "$(tag)" /work/repo/site/scripts/lint-sources.sh $dirs ;;
   test)
     image >/dev/null
     run --network none --entrypoint sh "$(tag)" /work/repo/site/scripts/test-site.sh ;;
@@ -198,13 +151,13 @@ case "$mode" in
     if [ "$mode" = qa ]; then cmd="$cmd && python3 $b/a11y.py && python3 $b/search.py && python3 $b/theme_reveal.py"; fi
     run --network none --env PYTHONDONTWRITEBYTECODE=1 --entrypoint sh "$(qa_tag)" -c "$cmd" ;;
   pull)
-    # The only network step besides the image builds and versions:fetch:
+    # The only network step besides the image builds:
     # opm-docs resolves the tabs and site versions of the pull config
     # (OPM_BUNDLES_CONFIG, default site/bundles.cue) in GHCR, verifies each
     # signature, unpacks into the output (OPM_BUNDLES_OUT, default
     # site/.bundles/) and writes its lock.json there. It mounts only the
     # config, the output, its cache, the local trees and the frozen lock; no
-    # source root, no repo-wide write, no token. OPM_BUNDLES is never read
+    # repo-wide write, no token. OPM_BUNDLES is never read
     # here: it names a tree a build reads, and the pull sweeps its output.
     cfg=$(envval OPM_BUNDLES_CONFIG); out=$(envval OPM_BUNDLES_OUT)
     cfg=${cfg:-site/bundles.cue}; out=${out:-site/.bundles}
@@ -315,5 +268,5 @@ case "$mode" in
       --env HOME=/tmp --env XDG_CACHE_HOME=/cache $vols \
       --entrypoint opm-docs "$(tag)" "$@"
     if [ -n "$frozen" ]; then echo "$frozen" > "$outabs/frozen"; fi ;;
-  *) sed -n '2,19p' "$0" >&2; exit 2 ;;
+  *) sed -n '2,20p' "$0" >&2; exit 2 ;;
 esac

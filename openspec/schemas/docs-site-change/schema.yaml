@@ -2,7 +2,7 @@ name: docs-site-change
 version: 1
 description: Docs site change workflow - proposal -> design -> tasks (no specs artifact)
 # Why a project-local schema: this repo's behaviour is the site it builds. The
-# built site and the checks that run on it (the source lint, the page-set,
+# built site and the checks that run on it (the pull's signature and lint checks, the page-set,
 # link and supply-chain checks, the browser QA) are the contract. A prose spec
 # would be a copy no gate keeps honest. This schema therefore has NO specs
 # artifact. `openspec validate` still asks for spec deltas regardless of

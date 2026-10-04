@@ -9,7 +9,7 @@ context: |
   Hugo site on the Hextra theme (neutral skin), built only inside Docker. Pages authored in
   six source repos (opm, core, catalog_opm, cli, library, opm-operator), each in its
   `docs/site/` tree, are published in that repo's signed docs bundle and assembled here at
-  build time; every v1.0 page under /docs/ comes from a docs bundle. Design principles for the whole repo
+  build time; the build reads no git repository but this one. Design principles for the whole repo
   are in CONSTITUTION.md; commands and working rules are in AGENTS.md.
 
   ### I. Content Lives in the Owning Repository
@@ -18,18 +18,19 @@ context: |
   the section overviews); it does not own the prose it assembles.
   - A change here that needs page prose, front matter or links changed in a source repo names
     that as a follow-up in that repo. It never edits another repo's `docs/site/` from here.
-  - The site reads a source repo's pages from its signed docs bundle (every v1.0 page under
-    /docs/ does), so a page fix reaches a published version through that repo's release or
-    docs revision, never through a site commit.
+  - The site reads a source repo's pages only from its signed docs bundle, so a page fix
+    reaches a published version through that repo's release or docs revision, never through a
+    site commit.
   - Source pages follow the workspace page dialect: section pages are `_index.md`, order is
     `weight`, callouts are GitHub alerts, figures are `{{< opm/<name> >}}` shortcodes in `.md`
-    files. The build's source lint rejects anything else, naming file and line. Fix the page,
-    never the lint.
+    files: docs-kit contract C11, which `opm-docs lint` enforces when a bundle is built and again
+    at `task bundles:pull`, naming file and line. Fix the page; a rule changes in docs-kit
+    first. The site has no lint of its own.
 
   ### II. The Built Site Is the Contract
-  The site's behaviour is what the build produces and what its checks assert: the source lint,
-  front-matter validation, the page-set, link, stray-file and supply-chain checks, and the
-  browser QA (screenshots, accessibility and search smoke tests). A prose spec would be a copy
+  The site's behaviour is what the build produces and what its checks assert: the pull's
+  signature and lint checks, front-matter validation, the page-set, link, stray-file and
+  supply-chain checks, and the browser QA (screenshots, accessibility and search smoke tests). A prose spec would be a copy
   no gate keeps honest, so this OpenSpec workspace deliberately has no specs artifact.
   - There is no `openspec/specs/` directory and no delta specs. Every change's `.openspec.yaml`
     carries `skip_specs: true`; the `openspec-new-change` and `openspec-propose` skills write
@@ -62,7 +63,8 @@ context: |
   - The site builds, serves and is tested only inside the Docker images the Taskfile defines.
     Never run `hugo`, `npm`, `npx` or `node` on the host, and never commit `node_modules/`.
     Builds run without network access; theme features that load code from a CDN stay off.
-  - Source repos are mounted read-only into the build; the build never writes to them.
+  - Docs bundles are mounted read-only (`OPM_BUNDLES` at `/bundles`, or `site/.bundles/`);
+    the build reads no other repository and writes only under `site/`.
 
   ### V. Simplicity & YAGNI
   Start simple. Complexity MUST be justified with a clear rationale.
@@ -105,7 +107,8 @@ context: |
   ## Validation Gates (before merge)
   1. `task check` — `task openspec:check` (`openspec validate --all --strict --no-interactive`)
      is green.
-  2. `task build` — the full site build in Docker, with its checks, succeeds.
+  2. `task bundles:pull build` — the docs bundles pulled for the current `site/bundles.cue`,
+     then the full site build in Docker, with its checks, succeeds.
   3. `task test:site` — every build check still fails on its fixture.
   4. `task qa` — screenshots (light, dark, phone width) plus the accessibility and search smoke
      tests. Required whenever anything visual changes; read the screenshots.

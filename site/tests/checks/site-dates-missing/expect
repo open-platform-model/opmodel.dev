@@ -1,0 +1,3 @@
++ no date: site/content/_index.md
++ check-site-dates: FAILED, OPM_REQUIRE_DATES=1
+- == hugo build

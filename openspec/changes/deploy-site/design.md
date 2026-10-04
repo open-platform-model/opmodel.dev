@@ -1,3 +1,5 @@
+> **Retired interfaces (2026-10-04).** `retire-git-pipeline` removed the git source pipeline: the build reads no repository but opmodel.dev, and every source page arrives in a signed docs bundle. The source-tree setup of `orchestration.md` section 5, the interface of section 6 (`OPM_WS`, `OPM_SRC_*`, `OPM_SRC_WORKTREE`, `OPM_VERSIONS`, `OPM_BUILD_REFS`, `versions:prepare`, `lint:sources`, the `site-src` worktrees) and traps 21, 26, 29 and 38 no longer apply; read them as history. The build is `task bundles:pull build` (gates: `task bundles:pull ci`); the site-owned pages are dated on the host by `site/scripts/gen-site-dates.sh`, which needs opmodel.dev's full history; the page dialect is docs-kit C11 (`opm-docs lint`). Current rules: opmodel.dev `AGENTS.md`.
+
 ## Context
 
 This change starts after E (`add-site-ci`) merges. By then, `main` holds:

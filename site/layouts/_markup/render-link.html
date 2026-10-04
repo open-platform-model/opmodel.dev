@@ -8,8 +8,8 @@
        (scheme), #fragment and mailto: links pass through. The anchor markup
        below the resolution is upstream's, unchanged.
        A /catalogs/ link (the bare tab root /catalogs/<name>/, or a major
-       alias /catalogs/<name>/<MAJOR>/<page>/; the source lint allows no
-       other form) resolves through data/opm/catalogs.json to the same page
+       alias /catalogs/<name>/<MAJOR>/<page>/; opm-docs lint, at
+       task bundles:pull (docs-kit C11), allows no other form) resolves through data/opm/catalogs.json to the same page
        in the newest minor of that major (opm/catalog-resolve.html), and the
        link is written to that page's URL, not the alias. A missing catalog,
        major or page, a build without the Catalogs section included, fails

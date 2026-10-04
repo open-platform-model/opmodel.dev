@@ -23,12 +23,12 @@ Documentation here serves four audiences: Module Authors writing CUE definitions
 
 ### I. The Site Owns Assembly, Not Content
 
-This repo owns the pipeline from the source repositories' `docs/site/` trees to the rendered site:
+This repo owns the pipeline from the source repositories' signed docs bundles to the rendered site:
 
-- each source repository writes its pages, and generates and commits its own reference pages
-- Hugo (Hextra theme) renders them, with the few site-owned pages, into the final site
+- each source repository writes its pages in `docs/site/`, generates its own reference pages, and publishes both in a signed docs bundle (docs-kit)
+- Hugo (Hextra theme) renders the bundles' pages, with the few site-owned pages, into the final site
 
-No external system should be required to produce correct documentation output. The site must be reproducible from a clean checkout with `task build`.
+The build reads no git repository but this one. The site must be reproducible from a clean checkout and a docs bundles' lock with `task bundles:pull build`.
 
 ---
 
@@ -36,7 +36,7 @@ No external system should be required to produce correct documentation output. T
 
 Reference documentation MUST be generated from authoritative sources:
 
-- core's definitions, the catalog's members, the CLI's commands and the operator's resources are generated in the repository that owns each, and committed with a check that fails when they are stale
+- core's definitions, the catalog's members, the CLI's commands, the operator's resources and the library's Go API are generated in the CI of the repository that owns each and published in its signed docs bundle, never committed for the site to read
 - Getting-started guides, conceptual docs, and tutorials are handwritten
 
 A generated block is marked as such, apart from any handwritten text on the same page. Nobody edits it by hand.
@@ -47,11 +47,11 @@ A generated block is marked as such, apart from any handwritten text on the same
 
 The three layers of the documentation pipeline MUST remain independently replaceable:
 
-- the source repositories' `docs/site/` — authored and generated pages, in the page dialect
+- the source repositories' docs bundles — authored and generated pages, in the page dialect
 - `site/` (Hugo + Hextra) — assembly, static site generation and layout
 - `site/content/` — the few site-owned pages
 
-Changes to one layer must not require changes to the others unless the interface between them changes. The interface is the page dialect: Markdown pages under each repository's `docs/site/`.
+Changes to one layer must not require changes to the others unless the interface between them changes. The interface is the docs bundle (docs-kit's contracts) and its page dialect (C11): Markdown pages written under each repository's `docs/site/`.
 
 ---
 

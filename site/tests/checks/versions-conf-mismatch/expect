@@ -1,0 +1,2 @@
++ build-all: the lock's docs entries name the site versions v1.0, but versions.conf names v0.9 v1.0; they must name the same
+- == drift guard

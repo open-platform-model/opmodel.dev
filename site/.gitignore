@@ -3,13 +3,16 @@
 public/
 /resources/
 .hugo_build.lock
-# Inputs generated per build: git dates and the build stamp (data/opm/), the
-# content mounts (config/{production,development}/), the generated reference
-# (.gen/<version>/) and prepared versions (.versions/<version>/).
+# Inputs generated per build: the site-owned pages' dates and the build stamp
+# (data/opm/), the content mounts (config/{production,development}/) and the
+# section pages and version table (.gen/).
 data/opm/
 config/production/
 config/development/
 .gen/
+# Retired (retire-git-pipeline, 2026-10-04): the old resolver's archives. Kept
+# ignored, and removed by task clean, for one release cycle so old checkouts
+# stay clean; remove both lines after.
 .versions/
 # Check output and test-site.sh's copies (.check/), screenshots (.shots/).
 .check/

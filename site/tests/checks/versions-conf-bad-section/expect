@@ -1,0 +1,2 @@
++ build-all: versions.conf:8: [repo "cli"] is not a [version "<name>"] section
+- == drift guard
