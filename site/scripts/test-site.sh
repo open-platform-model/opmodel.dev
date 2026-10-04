@@ -425,7 +425,7 @@ if [ $rc -eq 0 ]; then
   why=""
   for want in 'href=/enhancements/0001/design/>the design document' 'href=/enhancements/0001/decisions/#d1>D1' \
     'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>the index' 'href=/enhancements/graph/>the relationship graph' \
-    'href=/enhancements/0001/decisions/>Decisions' \
+    'href=/enhancements/0001/decisions/>0001: Decisions' \
     'href=https://github.com/open-platform-model/enhancements/blob/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas/target.cue' \
     'href=https://github.com/open-platform-model/enhancements/tree/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas' \
     'href=/v1.0/docs/start/>the start section'; do
