@@ -1,3 +1,5 @@
+> **Revised 2026-10-04** (supervisor: G3.1, G3.2 and G3.3 all hold). Every producer has published, so the fixture-only section 1 has no reason to land alone: its fixtures and machinery ride the section of their producer, and the Enhancements section cuts over from git to its bundle in one step (no period with both paths, so 1.3's git/bundle switch and 1.5's "same page set as the git-built section" assertion give way to a URL diff of the real build against `origin/main`). Delivery order: section 3 (opm, PR 1), section 2 (catalog_opm, PR 2), section 4 (enhancements, PR 3, carrying the archive). Because section 2 now lands after section 3, the "version with no git row" work of 3.2 moves to 2.2. 4.1's `opm-docs` bump is already on `main` (0.6.0, which carries `add-enhancements-bundle`, since #36, with `link-enhancements-graph` synced); what is left of it is checked in section 4.
+>
 > **Gates.** Section 1 needs `pull-reference-bundles` section 2 merged, and nothing from any phase-3 producer. Section 2 starts at **G3.1** (the first `catalog-opm-docs` release bundle, from the next opm release, public, tag `4` verifies) and needs `pull-reference-bundles` section 3 merged. Section 3 starts at **G3.2** (opm's first release published `docs/opm`, tag `1.0` verifies). Section 4 starts at **G3.3** (docs-kit `add-enhancements-bundle` released; `docs/enhancements` public, `edge` verifies). Delivery is one PR per section; sections 2 to 4 may land in any order among themselves once their gates hold.
 
 ## 1. Phase-3 fixtures and the bundle-built Enhancements section
@@ -19,11 +21,12 @@
 
 ## 3. opm's docs from its bundle (GATED: G3.2)
 
-- [ ] 3.1 Confirm G3.2: an anonymous pull of `docs/opm` tag `1.0` resolves and verifies; record the version and digest in the PR description.
-- [ ] 3.2 `site/bundles.cue` `docs.opm` and `versions."v1.0".tags.opm: "1.0"`; `versions.conf` `from-bundles` gains `opm`; `resolve-versions.sh` writes a version with no git row and `materialise.sh` and `gen-lastmod.sh` skip it (tests in `test-resolve.sh`).
-- [ ] 3.3 Real build: `/latest/docs/` (the landing) and `/latest/docs/start/` build from opm's bundle; every `v1.0` page under `/docs/` now comes from a bundle (assert no `docs/site` git mount for v1.0 in the generated `module.toml`).
-- [ ] 3.4 `AGENTS.md` (Purpose; Site versions, "Where pins come from") and `openspec/config.yaml` (context, Principle I): v1.0's docs come from bundles.
-- [ ] 3.5 `task check`, `task build`, `task test:site` and `task qa` green (the landing and start PNGs read), then commit `feat(site): read opm's docs from its docs bundle`.
+- [x] 3.1 Confirm G3.2: an anonymous pull of `docs/opm` tag `1.0` resolves and verifies; record the version and digest in the PR description.
+- [x] 3.2 `site/bundles.cue` `docs.opm` and `versions."v1.0".tags.opm: "1.0"`; `versions.conf` `from-bundles` gains `opm`; `resolve-versions.sh` accepts opm in `from-bundles` (no opm key, no opm row, a line version never reads opm's `main`, the frozen copy names no opm; tests in `test-resolve.sh`). The version with no git row moved to 2.2 (revised order).
+- [x] 3.2a Fixtures (the opm half of 1.1): `site/tests/fixtures/bundles/_versions/v1.0/opm/` (the fixture workspace's opm pages, so a docs-bundle fixture build publishes the same pages), `site/tests/fixtures/edge/opm/`, `tests/fixtures/bundles.cue` `docs.opm` and `tags`, the lock re-pulled offline; `test-site.sh` asserts opm's landing and Start here come from the bundle (Edit to `main`, View source at the bundle commit), and the edge build reads opm's edge bundle; `check-two-versions.sh` reads opm from its bundle.
+- [x] 3.3 Real build: `/latest/docs/` (the landing) and `/latest/docs/start/` build from opm's bundle; opm's `docs/site` is not mounted (the "every `v1.0` page from a bundle" assertion moves to 2.3, the section that lands last of the two).
+- [x] 3.4 `AGENTS.md` (Purpose; URL layout; Site versions, "Where pins come from", the edge build), `README.md` (Site versions, Docs bundles in a site version, the edge build), the CI workflow's edge-stamp check and the Taskfile: opm comes from its bundle, also in the edge build. `openspec/config.yaml` (context, Principle I) moves to 2.4, where "every v1.0 page comes from a bundle" becomes true.
+- [x] 3.5 `task check`, `task build`, `task test:site` and `task qa` green (the landing and start PNGs read), then commit `feat(site): read opm's docs from its docs bundle`.
 
 ## 4. The Enhancements section from its bundle (GATED: G3.3)
 
