@@ -69,8 +69,10 @@ export CAT_DIR CAT_FROM
 
 ENH_DIR=""; ENH_REF=""; ENH_SHA=""; ENH_HOW=""; ENH_DIGEST=""
 if [ -n "$CAT_DIR" ]; then
-  e=$(jq -c '[.bundles[]? | select(.root == "/enhancements/")] | if length > 1 then error("two") else .[0] // empty end' "$CAT_DIR/lock.json" 2>/dev/null) ||
-    sections_fail "$CAT_DIR/lock.json names more than one /enhancements/ bundle"
+  n=$(jq '[.bundles[]? | select(.root == "/enhancements/")] | length' "$CAT_DIR/lock.json" 2>/dev/null) ||
+    sections_fail "$CAT_DIR/lock.json is not JSON; run task bundles:pull"
+  [ "$n" -le 1 ] || sections_fail "$CAT_DIR/lock.json names $n /enhancements/ bundles; a section has one"
+  e=$(jq -c '[.bundles[]? | select(.root == "/enhancements/")] | .[0] // empty' "$CAT_DIR/lock.json")
   if [ -n "$e" ]; then
     d=$(printf '%s' "$e" | jq -r '.dir // ""')
     case "$d" in ''|/*|*..*) sections_fail "$CAT_DIR/lock.json: the enhancements entry's dir \"$d\" is not a path under the lock's directory" ;; esac

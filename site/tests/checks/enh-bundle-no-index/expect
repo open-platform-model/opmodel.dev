@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): manifest.json lists no _index.md (the section page)
+- == hugo build

@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): manifest.json says source.commit 0000000000000000000000000000000000000000, the lock says
+- == hugo build

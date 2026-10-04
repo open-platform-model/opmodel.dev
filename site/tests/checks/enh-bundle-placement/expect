@@ -1,0 +1,2 @@
++ gen-mounts: enhancements bundle (bundle local): manifest.json places the bundle as section at "/design/", not as section at /enhancements/
+- == hugo build
