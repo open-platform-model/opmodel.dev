@@ -4,7 +4,12 @@
        your machine; the controller runs in the cluster.
        The frame is _partials/opm/figure.html and the classes are in
        assets/css/opm/figures.css. */ -}}
-{{- /* Columns: what it starts as, what applies it, where it is recorded. */ -}}
+{{- /* Columns: what it starts as, what applies it, where it is recorded.
+       The tool card's last line is the muted sub line; the lines before it
+       are the tool's name ("OPM" and "controller" on two lines, so the card
+       and the record card beside it, which has to hold owner: controller,
+       fit 360 wide: at phone width a wider figure scales its 10px labels
+       under the 9px floor that task shots checks). */ -}}
 {{- $rows := slice
   (dict
     "start" (slice "Instance package" "on your machine")
@@ -12,41 +17,45 @@
     "rec" (slice "ModuleInstance" "owner: cli"))
   (dict
     "start" (slice "ModuleInstance" "from Git or kubectl")
-    "by" (slice "OPM controller" "in the cluster")
+    "by" (slice "OPM" "controller" "in the cluster")
     "rec" (slice "ModuleInstance" "owner: controller"))
   (dict
     "start" (slice "ModulePackage" "an instance package" "from a Flux source")
-    "by" (slice "OPM controller" "in the cluster")
+    "by" (slice "OPM" "controller" "in the cluster")
     "rec" (slice "ModulePackage" "its status")) -}}
-<text class="zone-label" x="8" y="18">STARTS AS</text>
-<text class="zone-label" x="140" y="18">APPLIED BY</text>
-<text class="zone-label" x="256" y="18">RECORDED IN</text>
+<text class="zone-label" x="4" y="18">STARTS AS</text>
+<text class="zone-label" x="136" y="18">APPLIED BY</text>
+<text class="zone-label" x="240" y="18">RECORDED IN</text>
 {{- range $i, $row := $rows }}
 {{- $y := add 30 (mul $i 68) }}
 {{- $mid := add $y 29 }}
 <g>
   <g class="card deployer">
-    <rect x="8" y="{{ $y }}" width="120" height="58" rx="6"></rect>
-    <text class="chip-text" x="16" y="{{ add $y 21 }}">{{ index $row.start 0 }}</text>
+    <rect x="4" y="{{ $y }}" width="120" height="58" rx="6"></rect>
+    <text class="chip-text" x="12" y="{{ add $y 21 }}">{{ index $row.start 0 }}</text>
     {{- range $j, $line := after 1 $row.start }}
-    <text class="body small" x="16" y="{{ add (add $y 37) (mul $j 14) }}">{{ $line }}</text>
+    <text class="body small" x="12" y="{{ add (add $y 37) (mul $j 14) }}">{{ $line }}</text>
     {{- end }}
   </g>
   <g class="flow">
-    <line x1="128" y1="{{ $mid }}" x2="138" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
+    <line x1="124" y1="{{ $mid }}" x2="134" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
   </g>
   <g class="tool">
-    <rect x="140" y="{{ $y }}" width="104" height="58" rx="6"></rect>
-    <text x="192" y="{{ add $y 25 }}" text-anchor="middle">{{ index $row.by 0 }}</text>
-    <text class="{{ cond (eq $i 0) "sub mono" "sub" }}" x="192" y="{{ add $y 42 }}" text-anchor="middle">{{ index $row.by 1 }}</text>
+    <rect x="136" y="{{ $y }}" width="92" height="58" rx="6"></rect>
+    {{- $n := sub (len $row.by) 1 }}
+    {{- $top := cond (eq $n 1) 25 17 }}
+    {{- range $j, $line := first $n $row.by }}
+    <text x="182" y="{{ add (add $y $top) (mul $j 14) }}" text-anchor="middle">{{ $line }}</text>
+    {{- end }}
+    <text class="{{ cond (eq $i 0) "sub mono" "sub" }}" x="182" y="{{ add (add $y $top) (add (mul $n 14) 3) }}" text-anchor="middle">{{ index $row.by $n }}</text>
   </g>
   <g class="flow">
-    <line x1="244" y1="{{ $mid }}" x2="254" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
+    <line x1="228" y1="{{ $mid }}" x2="238" y2="{{ $mid }}" marker-end="url(#ttd-arrow)"></line>
   </g>
   <g class="obj">
-    <rect x="256" y="{{ $y }}" width="116" height="58" rx="6"></rect>
-    <text x="314" y="{{ add $y 25 }}" text-anchor="middle">{{ index $row.rec 0 }}</text>
-    <text class="note small" x="314" y="{{ add $y 42 }}" text-anchor="middle">{{ index $row.rec 1 }}</text>
+    <rect x="240" y="{{ $y }}" width="116" height="58" rx="6"></rect>
+    <text x="298" y="{{ add $y 25 }}" text-anchor="middle">{{ index $row.rec 0 }}</text>
+    <text class="note small" x="298" y="{{ add $y 42 }}" text-anchor="middle">{{ index $row.rec 1 }}</text>
   </g>
 </g>
 {{- end }}
