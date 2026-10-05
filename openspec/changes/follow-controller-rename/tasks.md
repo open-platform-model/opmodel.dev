@@ -14,9 +14,9 @@
 
 ## 2. Name the controller in figures and site pages
 
-- [ ] 2.1 Figures: `three-ways-to-deploy` (labels, `owner: controller`, widened to 380 per design.md Decision 3), `where-things-live` (two-line label), `module-to-cluster` (label), comments in `landing-overview` and `one-trait-any-provider`; the three claim strings in `site/layouts/_shortcodes/opm/`.
-- [ ] 2.2 `site/content/docs/operating/_index.md` and `site/content/docs/reference/_index.md` descriptions.
-- [ ] 2.3 `task check` and `task test:site` green, then commit `docs(site): name the controller in figures and section overviews` (the screenshots are Cutover step 3)
+- [x] 2.1 Figures: `three-ways-to-deploy` (labels, `owner: controller`, widened to 380 per design.md Decision 3), `where-things-live` (two-line label), `module-to-cluster` (label), comments in `landing-overview` and `one-trait-any-provider`; the three claim strings in `site/layouts/_shortcodes/opm/`.
+- [x] 2.2 `site/content/docs/operating/_index.md` and `site/content/docs/reference/_index.md` descriptions.
+- [x] 2.3 `task check` and `task test:site` green, then commit `docs(site): name the controller in figures and section overviews` (the screenshots are Cutover step 3)
 
 ## 3. Name the controller in the repository docs
 

@@ -1,7 +1,7 @@
 {{- /* Figure body: where things live (Start here overview).
        Three places, stacked: the registry, your machine and the cluster. Every
        arrow is one command, drawn from the thing it reads to the thing it writes
-       and labelled with what it moves; the operator's fetch runs down the right
+       and labelled with what it moves; the controller's fetch runs down the right
        edge, past your machine.
        The frame is _partials/opm/figure.html and the classes are in
        assets/css/opm/figures.css. */ -}}
@@ -59,10 +59,11 @@
   <text class="label" x="93" y="366" text-anchor="end">the platform</text>
 </g>
 
-{{/* The operator fetches from the registry itself, past your machine */}}
+{{/* The controller fetches from the registry itself, past your machine */}}
 <g class="flow">
   <line x1="346" y1="92" x2="346" y2="398" marker-end="url(#wtl-arrow)"></line>
-  <text class="cmd" x="339" y="352" text-anchor="end">OPM operator</text>
+  <text class="cmd" x="339" y="338" text-anchor="end">OPM</text>
+  <text class="cmd" x="339" y="352" text-anchor="end">controller</text>
   <text class="label" x="339" y="366" text-anchor="end">fetches</text>
 </g>
 
