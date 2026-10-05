@@ -1,4 +1,4 @@
-> **Gate.** Every section is authored now and merges in one PR after G-CLIREL (a cli release pinning `opm-controller`, and `docs/opm-controller` public). Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
+> **Gate.** Every section is authored now and merges in one PR after G-CLIREL (a cli release pinning `opm-controller`, and `docs/opm-controller` public) and after an opm 1.0.x release whose links name the new controller URLs. Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
 >
 > **Cutover** (after G-CLIREL, on the rebased branch, before merge):
 > 1. Delete `site/bundles.frozen.json` if main carries it, as its own commit `chore(site): drop the frozen bundle lock`.
@@ -8,7 +8,7 @@
 ## 1. Read the renamed docs project
 
 - [x] 1.1 `site/bundles.cue`: key, `repo` and `pinned` to `opm-controller`; comment. `.github/workflows/site.yml`: comments, the edge job's required-project list and its error text. `site/scripts/gen-docs-bundles.sh`: `tree_of` and its error text. `site/layouts/_partials/opm/build-stamp.html`: tree order and the label `controller`. `Taskfile.yml` comment.
-- [x] 1.2 Tests: `site/tests/checks/{edge-config,edge-config-two-versions}/{bundles,expect}.cue`, `site/tests/fixtures/bundles.cue`, both cli fixture manifests' `pins` key, `docs-bundle-cross-link-miss/{setup.sh,expect}`, `test-site.sh` literals and header, `site/tests/browser/shots.py` (`reference/controller/`, `reference/controller/moduleinstance/`).
+- [x] 1.2 Tests: `site/tests/checks/{edge-config,edge-config-two-versions}/{bundles,expect}.cue`, `site/tests/fixtures/bundles.cue`, both cli fixture manifests' `pins` key, `docs-bundle-cross-link-miss/{setup.sh,expect}`, `test-site.sh` literals and header plus a stamp assertion that the footer labels the `opm-controller` bundle `controller`, `site/tests/browser/shots.py` (`reference/controller/`, `reference/controller/moduleinstance/`).
 - [x] 1.3 `git mv` both fixture trees to `opm-controller/` and their pages to `the-fixture-controller.md` and `controller-resources.md`; manifests and page prose follow; regenerate `site/tests/fixtures/bundles/lock.json` with the all-local pull.
 - [x] 1.4 `task check` and `task test:site` green (Docker, no network; 181 passed; its `versions:test` step needs a real pull and runs at the cutover), then commit `refactor(site)!: read the controller's docs bundle as opm-controller`
 

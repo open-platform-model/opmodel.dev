@@ -39,12 +39,12 @@ module-to-cluster     11px "the OPM controller" = 97.9 from x=186: fits (nothing
 
 ### 4. The frozen lock
 
-The cli release that pins `opm-controller` breaks main's pull until this change merges, and this change cannot pass before that release exists. A committed `site/bundles.frozen.json` (the documented recovery) is landed on main before the release; this change deletes it in its last section.
+The cli release that pins `opm-controller` breaks main's pull until this change merges, and this change cannot pass before that release exists. A committed `site/bundles.frozen.json` (the documented recovery) is landed on main before the release; a cutover commit on this branch (`chore(site): drop the frozen bundle lock`) deletes it.
 
 ## Risks / Trade-offs
 
 - [The figures' new widths collide at some viewport] -> `task shots` before merge; the widened figure scales 5% smaller than its 360-wide siblings.
-- [A source bundle still links an old controller URL] -> the site's link check fails the build; the links are fixed in the source repositories in the same release window (proposal Impact).
+- [A source bundle still links an old controller URL] -> the site's link check fails the build; the links are fixed in opm and cli, released before this change builds (proposal Impact).
 - [`shots.py` skips a missing page silently] -> read the screenshot list: `reference/controller/` and `reference/controller/moduleinstance/` must appear in `site/.shots/`.
 
 ## Durable decisions
