@@ -591,7 +591,7 @@ Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git 
 28. **Pins sit in four places.**
     - library in `cli/go.mod`;
     - core in library `opm/schema/loader.go` `DefaultSchemaModule`;
-    - the controller in cli `internal/controller/manifest.go` `PinnedControllerVersion`;
+    - the controller in cli `internal/controller/pin.go` `PinnedControllerVersion`;
     - catalogs in no CLI pin at all: they are explicit in the manifest.
     `cli/hack/platform/` is a test fixture, never a pin source. Catalog git tags carry prefixes (`opm-v4.4.2`). No repo has a `v1.0.0-beta*` tag yet, and `opm` has no repo-level tag.
 29. **gen-lastmod needs full git history.** CI checks out with `fetch-depth: 0`.
