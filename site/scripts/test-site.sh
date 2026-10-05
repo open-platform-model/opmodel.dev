@@ -874,6 +874,7 @@ else
   r=$(dq "$P/docs/start/quickstart/index.html")
   printf '%s' "$r" | grep -qF 'docs bundles' &&
     printf '%s' "$r" | grep -qF 'href=https://github.com/open-platform-model/cli/commit/c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1 title=anchor, bundle local><code>1.0.0-beta.9</code></a>' || why="${why:+$why; }the footer does not name the cli bundle"
+  printf '%s' "$r" | grep -qF '<span class=opm-build-ref>controller <a href=https://github.com/open-platform-model/opm-controller/commit/0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e' || why="${why:+$why; }the footer does not label the opm-controller bundle controller"
   if [ -z "$why" ]; then ok "$name/stamp" "build-stamp.json records v1.0's docs bundles (roles, versions, local) and cli's pins; the footer names them"
   else bad "$name/stamp" "$why" "$st"; fi
 fi
