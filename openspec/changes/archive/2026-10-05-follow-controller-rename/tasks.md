@@ -25,5 +25,5 @@
 
 ## 4. Close out
 
-- [ ] 4.1 Residue check: `git grep -niE 'opm[-_ ]?operator|reference/operator|install-the-operator|operator-conditions'` outside `openspec/changes/archive/` finds nothing; every other `operator` is a persona, CUE or vendored.
-- [ ] 4.2 Verify the change against these artifacts, archive with `openspec archive follow-controller-rename --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive follow-controller-rename`
+- [x] 4.1 Residue check: `git grep -niE 'opm[-_ ]?operator|reference/operator|install-the-operator|operator-conditions'` outside `openspec/changes/archive/` finds nothing; every other `operator` is a persona, CUE or vendored.
+- [x] 4.2 Verify the change against these artifacts, archive with `openspec archive follow-controller-rename --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive follow-controller-rename`
