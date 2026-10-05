@@ -20,8 +20,8 @@
 
 ## 3. Name the controller in the repository docs
 
-- [ ] 3.1 `README.md`, `AGENTS.md`, `CONSTITUTION.md`, `TODO.md`, `openspec/config.yaml`, `openspec/changes/deploy-site/orchestration.md`: the repository `opm-controller` and the product noun; personas stay.
-- [ ] 3.2 `task check` green, then commit `docs: name the controller in the repository docs`
+- [x] 3.1 `README.md`, `AGENTS.md`, `CONSTITUTION.md`, `TODO.md`, `openspec/config.yaml`, `openspec/changes/deploy-site/orchestration.md`: the repository `opm-controller` and the product noun; personas stay.
+- [x] 3.2 `task check` green, then commit `docs: name the controller in the repository docs`
 
 ## 4. Close out
 

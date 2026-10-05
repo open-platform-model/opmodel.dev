@@ -36,7 +36,7 @@ The build reads no git repository but this one. The site must be reproducible fr
 
 Reference documentation MUST be generated from authoritative sources:
 
-- core's definitions, the catalog's members, the CLI's commands, the operator's resources and the library's Go API are generated in the CI of the repository that owns each and published in its signed docs bundle, never committed for the site to read
+- core's definitions, the catalog's members, the CLI's commands, the controller's resources and the library's Go API are generated in the CI of the repository that owns each and published in its signed docs bundle, never committed for the site to read
 - Getting-started guides, conceptual docs, and tutorials are handwritten
 
 A generated block is marked as such, apart from any handwritten text on the same page. Nobody edits it by hand.

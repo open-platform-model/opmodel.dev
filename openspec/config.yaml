@@ -7,7 +7,7 @@ context: |
 
   This repo builds the public documentation site opmodel.dev. The site is a
   Hugo site on the Hextra theme (neutral skin), built only inside Docker. Pages authored in
-  six source repos (opm, core, catalog_opm, cli, library, opm-operator), each in its
+  six source repos (opm, core, catalog_opm, cli, library, opm-controller), each in its
   `docs/site/` tree, are published in that repo's signed docs bundle and assembled here at
   build time; the build reads no git repository but this one. Design principles for the whole repo
   are in CONSTITUTION.md; commands and working rules are in AGENTS.md.
@@ -46,7 +46,7 @@ context: |
 
   ### III. Generated Before Handwritten
   Reference pages are generated in the repository that owns their source (core's definitions,
-  the CLI's commands, the operator's resources, the library's Go API, the catalog's members) and
+  the CLI's commands, the controller's resources, the library's Go API, the catalog's members) and
   published in its signed docs bundle by docs-kit, which the site pulls (a site version's
   /docs/, the Catalogs tab); they are never committed for the site to read and never
   hand-edited. A generated block is marked apart from authored
