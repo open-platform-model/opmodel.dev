@@ -35,7 +35,7 @@ where-things-live     10.5px mono "OPM controller" = 88.2, right-aligned at x=33
 module-to-cluster     11px "the OPM controller" = 97.9 from x=186: fits (nothing to its right)
 ```
 
-`three-ways-to-deploy` widens from 360 to 380: start column 8..128 (was 8..132), tool 140..244 (104 wide), record 256..372 (116 wide); the zone labels move with their columns. `where-things-live` sets "OPM" and "controller" on two lines (y 338 and 352) above "fetches". `module-to-cluster` keeps its geometry. The figures are re-checked with `task shots` (light, dark, phone width) before merge.
+`three-ways-to-deploy` stays 360 wide: the tool card sets "OPM" and "controller" on two lines above "in the cluster" (the CLI row keeps two lines), and the outer margins drop from 8 to 4 so the record card can grow to 116 wide for `owner: controller`: start 4..124 (was 8..132), tool 136..228 (92 wide, as before), record 240..356 (was 248..352); the zone labels move with their columns. A first draft widened the figure to 380 instead; at a 390 px phone its 10px labels rendered at 9.0 px, under the 9 px floor `task shots` checks (measured offline in the QA image on the test-site fixture build), so it was redrawn; now 9.5 px, as in every other figure. `where-things-live` sets "OPM" and "controller" on two lines (y 338 and 352) above "fetches". `module-to-cluster` keeps its geometry. The figures are re-checked with `task shots` (light, dark, phone width) before merge.
 
 ### 4. The frozen lock
 
@@ -43,7 +43,7 @@ The cli release that pins `opm-controller` breaks main's pull until this change 
 
 ## Risks / Trade-offs
 
-- [The figures' new widths collide at some viewport] -> `task shots` before merge; the widened figure scales 5% smaller than its 360-wide siblings.
+- [A redrawn label collides at some viewport] -> `task shots` before merge (light, dark, phone width); every figure keeps its 360 width, so phone text stays at 9.5 px.
 - [A source bundle still links an old controller URL] -> the site's link check fails the build; the links are fixed in opm and cli, released before this change builds (proposal Impact).
 - [`shots.py` skips a missing page silently] -> read the screenshot list: `reference/controller/` and `reference/controller/moduleinstance/` must appear in `site/.shots/`.
 

@@ -5,14 +5,14 @@ The Kubernetes controller repository `open-platform-model/opm-operator` is renam
 ## Gates
 
 - **Merges after G-CLIREL**: a cli release whose docs bundle pins `opm-controller` is live, and `ghcr.io/open-platform-model/docs/opm-controller` is public, signed by `open-platform-model/opm-controller`. Before that the pull fails on this branch (no such package); after it, main fails without this branch.
-- **And after an opm 1.0.x release with the new links**: v1.0 reads opm at its newest 1.0 tag, so this change builds only once that release re-points the three controller URLs. That release can only follow the frozen lock below, since before this change the new URLs do not exist on the live site.
+- **And after the next opm release in the 1.0 line (v1.0.0-beta.3 or later) with the new links**: v1.0 reads opm at its newest 1.0 tag, so this change builds only once that release re-points the three controller URLs. That release can only follow the frozen lock below, since before this change the new URLs do not exist on the live site.
 - **Before it**: `site/bundles.frozen.json` is committed on main (a copy of the last good build's lock) before that cli release, so the site keeps deploying while this change waits. A cutover commit on this branch (`chore(site): drop the frozen bundle lock`) deletes it.
 
 ## What Changes
 
 - **BREAKING (site config):** the v1.0 docs project `opm-operator` becomes `opm-controller` in `site/bundles.cue` (the `docs` key, its signer `repo` and the `pinned` list), in the edge build's required-project gate (`.github/workflows/site.yml`), in `gen-docs-bundles.sh`'s project-to-repository table, and in the footer's build stamp (`build-stamp.html`: tree order and the display label `controller`).
 - Tests follow: the derived-config cases, the fixture `bundles.cue`, the fixture lock, the cli fixtures' `pins` key, the cross-link case, `test-site.sh`'s literal asserts, and the screenshot list in `shots.py`. The fixture bundle trees `opm-operator/` move to `opm-controller/` with their pages `the-fixture-controller.md` and `controller-resources.md`.
-- Figures and their claim strings say "OPM controller", and `three-ways-to-deploy` records `owner: controller`, the API value after the rename. `three-ways-to-deploy` widens to fit the longer labels; `where-things-live` sets the label on two lines.
+- Figures and their claim strings say "OPM controller", and `three-ways-to-deploy` records `owner: controller`, the API value after the rename. `three-ways-to-deploy` and `where-things-live` set "OPM" and "controller" on two lines to fit the longer label at their 360 width.
 - Site-owned pages (`operating/_index.md`, `reference/_index.md`), `README.md`, `AGENTS.md`, `CONSTITUTION.md`, `TODO.md`, `openspec/config.yaml`, `Taskfile.yml` comments and the dated `openspec/changes/deploy-site/orchestration.md` name the controller. The persona "Platform Operator" and the CUE "operator" in `base.css` stay.
 - The committed `site/bundles.frozen.json`, if present, is deleted.
 

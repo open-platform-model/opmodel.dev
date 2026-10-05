@@ -1,4 +1,4 @@
-> **Gate.** Every section is authored now and merges in one PR after G-CLIREL (a cli release pinning `opm-controller`, and `docs/opm-controller` public) and after an opm 1.0.x release whose links name the new controller URLs. Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
+> **Gate.** Every section is authored now and merges in one PR after G-CLIREL (a cli release pinning `opm-controller`, and `docs/opm-controller` public) and after the next opm release in the 1.0 line (v1.0.0-beta.3 or later) whose links name the new controller URLs. Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
 >
 > **Cutover** (after G-CLIREL, on the rebased branch, before merge):
 > 1. Delete `site/bundles.frozen.json` if main carries it, as its own commit `chore(site): drop the frozen bundle lock`.
@@ -14,7 +14,7 @@
 
 ## 2. Name the controller in figures and site pages
 
-- [x] 2.1 Figures: `three-ways-to-deploy` (labels, `owner: controller`, widened to 380 per design.md Decision 3), `where-things-live` (two-line label), `module-to-cluster` (label), comments in `landing-overview` and `one-trait-any-provider`; the three claim strings in `site/layouts/_shortcodes/opm/`.
+- [x] 2.1 Figures: `three-ways-to-deploy` (labels, `owner: controller`, two-line tool label at 360 wide per design.md Decision 3), `where-things-live` (two-line label), `module-to-cluster` (label), comments in `landing-overview` and `one-trait-any-provider`; the three claim strings in `site/layouts/_shortcodes/opm/`.
 - [x] 2.2 `site/content/docs/operating/_index.md` and `site/content/docs/reference/_index.md` descriptions.
 - [x] 2.3 `task check` and `task test:site` green, then commit `docs(site): name the controller in figures and section overviews` (the screenshots are Cutover step 3)
 
