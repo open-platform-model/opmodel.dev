@@ -46,7 +46,7 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 # The fixed table: docs project -> the source repository it documents.
 tree_of() {
   case "$1" in
-    cli|core|library|opm-operator|opm) echo "$1" ;;
+    cli|core|library|opm-controller|opm) echo "$1" ;;
     catalog-opm-docs) echo catalog_opm ;;
     *) return 1 ;;
   esac
@@ -80,7 +80,7 @@ while IFS= read -r e; do
   who="$site: $project $(get '.version // ""') ($id)"
   [ -n "$site" ] && [ -n "$project" ] && [ -n "$dir" ] || die "$L: a docs entry lacks site, project or dir: $e"
   case "$built" in *" $site "*) ;; *) die "$who: the lock names site version $site, which this build does not build (versions:$built)" ;; esac
-  tree=$(tree_of "$project") || die "$who: no source repository is known for docs project $project (cli, core, library, opm-operator, opm, catalog-opm-docs)"
+  tree=$(tree_of "$project") || die "$who: no source repository is known for docs project $project (cli, core, library, opm-controller, opm, catalog-opm-docs)"
   if grep -qxF "$site $project" "$tmp/seen"; then die "$who: the lock names $project twice for $site"; fi
   if grep -qxF "$site tree $tree" "$tmp/seen"; then die "$who: two docs projects of $site document the repository $tree"; fi
   printf '%s %s\n%s tree %s\n' "$site" "$project" "$site" "$tree" >> "$tmp/seen"

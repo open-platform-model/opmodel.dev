@@ -7,10 +7,10 @@
 
 ## 1. Read the renamed docs project
 
-- [ ] 1.1 `site/bundles.cue`: key, `repo` and `pinned` to `opm-controller`; comment. `.github/workflows/site.yml`: comments, the edge job's required-project list and its error text. `site/scripts/gen-docs-bundles.sh`: `tree_of` and its error text. `site/layouts/_partials/opm/build-stamp.html`: tree order and the label `controller`. `Taskfile.yml` comment.
-- [ ] 1.2 Tests: `site/tests/checks/{edge-config,edge-config-two-versions}/{bundles,expect}.cue`, `site/tests/fixtures/bundles.cue`, both cli fixture manifests' `pins` key, `docs-bundle-cross-link-miss/{setup.sh,expect}`, `test-site.sh` literals and header, `site/tests/browser/shots.py` (`reference/controller/`, `reference/controller/moduleinstance/`).
-- [ ] 1.3 `git mv` both fixture trees to `opm-controller/` and their pages to `the-fixture-controller.md` and `controller-resources.md`; manifests and page prose follow; regenerate `site/tests/fixtures/bundles/lock.json` with the all-local pull.
-- [ ] 1.4 `task check` and `task test:site` green (Docker, no network), then commit `refactor(site)!: read the controller's docs bundle as opm-controller`
+- [x] 1.1 `site/bundles.cue`: key, `repo` and `pinned` to `opm-controller`; comment. `.github/workflows/site.yml`: comments, the edge job's required-project list and its error text. `site/scripts/gen-docs-bundles.sh`: `tree_of` and its error text. `site/layouts/_partials/opm/build-stamp.html`: tree order and the label `controller`. `Taskfile.yml` comment.
+- [x] 1.2 Tests: `site/tests/checks/{edge-config,edge-config-two-versions}/{bundles,expect}.cue`, `site/tests/fixtures/bundles.cue`, both cli fixture manifests' `pins` key, `docs-bundle-cross-link-miss/{setup.sh,expect}`, `test-site.sh` literals and header, `site/tests/browser/shots.py` (`reference/controller/`, `reference/controller/moduleinstance/`).
+- [x] 1.3 `git mv` both fixture trees to `opm-controller/` and their pages to `the-fixture-controller.md` and `controller-resources.md`; manifests and page prose follow; regenerate `site/tests/fixtures/bundles/lock.json` with the all-local pull.
+- [x] 1.4 `task check` and `task test:site` green (Docker, no network; 181 passed; its `versions:test` step needs a real pull and runs at the cutover), then commit `refactor(site)!: read the controller's docs bundle as opm-controller`
 
 ## 2. Name the controller in figures and site pages
 

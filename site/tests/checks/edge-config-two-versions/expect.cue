@@ -3,10 +3,10 @@
 // a comment holding a brace included, and appends the one edge version.
 registry: "ghcr.io/open-platform-model/docs"
 docs: {
-	"cli":          {repo: "open-platform-model/cli"}
-	"core":         {repo: "open-platform-model/core"}
-	"library":      {repo: "open-platform-model/library"}
-	"opm-operator": {repo: "open-platform-model/opm-operator"}
+	"cli":            {repo: "open-platform-model/cli"}
+	"core":           {repo: "open-platform-model/core"}
+	"library":        {repo: "open-platform-model/library"}
+	"opm-controller": {repo: "open-platform-model/opm-controller"}
 }
 // v1.1, a second site version.
 tabs: {
@@ -17,5 +17,5 @@ tabs: {
 // docs project at its edge bundle, the cli as the anchor.
 versions: "v1.0": {
 	anchor: {project: "cli", tag: "edge"}
-	tags: {"core": "edge", "library": "edge", "opm-operator": "edge"}
+	tags: {"core": "edge", "library": "edge", "opm-controller": "edge"}
 }

@@ -1,10 +1,10 @@
 {
   "schema": "docs.opmodel.dev/bundle/v1",
-  "project": "opm-operator",
+  "project": "opm-controller",
   "version": "edge",
   "revision": 0,
   "source": {
-    "repo": "open-platform-model/opm-operator",
+    "repo": "open-platform-model/opm-controller",
     "commit": "e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3",
     "ref": "main"
   },
@@ -15,23 +15,23 @@
     "kind": "docs",
     "root": "/docs/",
     "owns": [
-      "reference/operator-resources.md"
+      "reference/controller-resources.md"
     ]
   },
   "pages": [
     {
-      "path": "operating/the-fixture-operator.md",
-      "source": "docs/site/operating/the-fixture-operator.md",
+      "path": "operating/the-fixture-controller.md",
+      "source": "docs/site/operating/the-fixture-controller.md",
       "lastmod": "2026-09-25T10:00:00Z",
       "generated": false,
-      "edit": "docs/site/operating/the-fixture-operator.md"
+      "edit": "docs/site/operating/the-fixture-controller.md"
     },
     {
-      "path": "reference/operator-resources.md",
-      "source": "docs/site/reference/operator-resources.md",
+      "path": "reference/controller-resources.md",
+      "source": "docs/site/reference/controller-resources.md",
       "lastmod": "2026-09-26T10:00:00Z",
       "generated": false,
-      "edit": "docs/site/reference/operator-resources.md"
+      "edit": "docs/site/reference/controller-resources.md"
     }
   ],
   "data": []
