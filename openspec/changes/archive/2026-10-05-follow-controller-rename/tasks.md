@@ -1,6 +1,6 @@
-> **Gate.** Every section is authored now and merges in one PR after G-CLIREL (a cli release pinning `opm-controller`, and `docs/opm-controller` public) and after the next opm release in the 1.0 line (v1.0.0-beta.3 or later) whose links name the new controller URLs. Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
+> **Gate.** Every section is authored now and merges in one PR after the cli release whose docs bundle pins `opm-controller` (with `docs/opm-controller` public) and after the next opm release in the 1.0 line (v1.0.0-beta.3 or later) whose links name the new controller URLs. Until then `task bundles:pull` cannot resolve the new project, so the checks that need the real pull run at the cutover, listed under **Cutover** below, not as checkboxes: the change is archived in this branch before the PR exists.
 >
-> **Cutover** (after G-CLIREL, on the rebased branch, before merge):
+> **Cutover** (after that cli release, on the rebased branch, before merge):
 > 1. Delete `site/bundles.frozen.json` if main carries it, as its own commit `chore(site): drop the frozen bundle lock`.
 > 2. `task bundles:pull build`: v1.0 reads `opm-controller` at the version the cli pins; the footer says `controller`.
 > 3. `task shots` and `task qa`: read the PNGs of `three-ways-to-deploy`, `where-things-live` and `module-to-cluster` (light, dark, phone width) and confirm `reference/controller/` and `reference/controller/moduleinstance/` were shot (`shots.py` skips a missing page silently).
