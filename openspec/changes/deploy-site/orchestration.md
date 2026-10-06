@@ -336,7 +336,7 @@ A may refine names only by reporting them under `deviations` and getting the sup
 | Variable | Meaning | Default |
 |---|---|---|
 | `OPM_WS` | Workspace root | The parent of the opmodel.dev main checkout, from `git rev-parse --path-format=absolute --git-common-dir`, so it is right inside a worktree |
-| `OPM_SRC_OPM`, `OPM_SRC_CORE`, `OPM_SRC_CATALOG_OPM`, `OPM_SRC_CLI`, `OPM_SRC_LIBRARY`, `OPM_SRC_OPM_CONTROLLER` | One source repo root each: a checkout or a worktree. The name is `OPM_SRC_` plus the repo name upper-cased, with `-` as `_` | `$OPM_WS/<repo>/.claude/worktrees/$OPM_SRC_WORKTREE` if `OPM_SRC_WORKTREE` is set, else `$OPM_WS/<repo>` |
+| `OPM_SRC_OPM`, `OPM_SRC_CORE`, `OPM_SRC_CATALOG_OPM`, `OPM_SRC_CLI`, `OPM_SRC_LIBRARY`, `OPM_SRC_OPM_OPERATOR` | One source repo root each: a checkout or a worktree. The name is `OPM_SRC_` plus the repo name upper-cased, with `-` as `_` | `$OPM_WS/<repo>/.claude/worktrees/$OPM_SRC_WORKTREE` if `OPM_SRC_WORKTREE` is set, else `$OPM_WS/<repo>` |
 | `OPM_SRC_WORKTREE` | Worktree name used for every unset `OPM_SRC_<REPO>` | unset |
 | `SITE_PORT` | Host port for `serve` and `preview` | `1313` |
 | `OPM_REQUIRE_DATES` | `1` fails the build when a page has no git date (CI sets it) | `0` |
