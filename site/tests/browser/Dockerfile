@@ -10,8 +10,8 @@
 # Playwright 1.63.0), the Python wheels by version and hash, and axe-core by
 # the SHA-256 of its npm registry tarball, fetched with curl (no npm).
 FROM mcr.microsoft.com/playwright/python:v1.63.0-noble@sha256:72bd171a9ffc2b4b59532aaa6210e21014d07093120dc25528870c0b840da1f0
-ARG AXE_VERSION=4.14.0
-ARG AXE_SHA256=2277b0a3ef47af9b52497faa3e71598e86e0a0e5e6eb295207a5657ede4709af
+ARG AXE_VERSION=4.10.3
+ARG AXE_SHA256=0f2b4d7dcdf7d1219df8d1959ad68e565f51d14c3f0d88bb71cd59abeb956292
 RUN printf '%s\n' \
       'playwright==1.63.0 --hash=sha256:ad21bc07516b187965a7521c5cf0df0bd657b17482eaad74335272d35a2b07de' \
       'greenlet==3.5.6 --hash=sha256:975736b002ed080d124cf81a79cb7e05cb26d6b3f5c7a7b651c0fcce70353aa1' \
