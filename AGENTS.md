@@ -197,7 +197,7 @@ Read these on entry:
 
 ### Technology stack
 
-- **Site**: Hugo 0.167.0 (static, non-extended), Hextra v0.13.0 (vendored, neutral skin), Pagefind 1.5.2 per version and per catalog segment, opm-docs 0.7.0 (docs-kit) for the docs bundles; built in Docker from Alpine, every download SHA-256-checked. QA: Playwright for Python 1.63.0 and axe-core 4.10.3.
+- **Site**: Hugo 0.167.0 (static, non-extended), Hextra v0.13.0 (vendored, neutral skin), Pagefind 1.5.2 per version and per catalog segment, opm-docs 0.7.0 (docs-kit) for the docs bundles; built in Docker from Alpine, every download SHA-256-checked. QA: Playwright for Python 1.63.0 and axe-core 4.14.0.
 
 ### Patterns
 
