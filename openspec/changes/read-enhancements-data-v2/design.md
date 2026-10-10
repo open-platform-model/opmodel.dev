@@ -103,13 +103,14 @@ AddPage "aliases": ["/enhancements/0026/problem/"]
 ### 7. Fixtures and proof
 
 ```text
-site/tests/fixtures/ws/enhancements-v2/        source: archive/0002 (legacy), openspec/changes/{0003,0004,0005}-*,
-                                               openspec/changes/archive/<date>-seed-*, openspec/specs/<capability>/
+site/tests/fixtures/ws/enhancements-v2/        source: docs-kit's extractor test repository (legacy 0003 and 0025,
+                                               openspec/changes/{0026,0042}-*, archive/{0040,0041,0043,0044},
+                                               two seeds, two main specs) plus this repository's 0043, 0044 and INDEX.md
 site/tests/fixtures/bundles-v2/enhancements/edge/   its bundle, built by docs-kit's opm-docs (branch, head 9d768e8)
 site/tests/fixtures/regen-enhancements-v2.sh   rebuilds it with the opm-docs on PATH (not the pinned one)
 ```
 
-The fixture entries cover: `draft` with `after` and no `breaking` decision; `accepted` with `breaking: true`, `accepted {date, commit}` and a progress; `superseded` with a two-id list; `withdrawn`; a migrated entry (a regular file `evidence/migration-map.md`) with the six aliases; a legacy archived entry; a seed change and a main spec, so a capability page with an "Entries that changed it" table exists. `test-site.sh` gains a section that builds the site over this bundle (the v1 fixture's lock with the enhancements entry's `commit` set to the v2 manifest's, because the pinned `opm-docs` cannot re-pull a v2 bundle) and asserts on the built HTML. The existing `enhancements/fixture-regen` check keeps proving the v1 fixture. The real-content proof (docs-kit's `opm-docs` over the `enhancements` swarm branch) is a one-off run, recorded in the report, not committed.
+The fixture entries cover: `draft` with no `breaking` decision (0042); `accepted` with `breaking: true`, `accepted {date, commit}`, progress and six aliases (0026, a migrated entry); `delivered`, `rejected`, `withdrawn` (0043) and `superseded` by a two-id list (0044); legacy `superseded` by one id (0003) and a legacy draft (0025); a seed change and two main specs, so a capability page with an "Entries that changed it" table exists. `test-site.sh` gains a section that builds the site over this bundle (the v1 fixture's lock with the enhancements entry's `commit` set to the v2 manifest's, because the pinned `opm-docs` cannot re-pull a v2 bundle) and asserts on the built HTML. The existing `enhancements/fixture-regen` check keeps proving the v1 fixture. The real-content proof (docs-kit's `opm-docs` over the `enhancements` swarm branch) is a one-off run, recorded in the report, not committed.
 
 ## Research & Decisions
 
