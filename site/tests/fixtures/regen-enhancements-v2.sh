@@ -27,6 +27,10 @@
 # (internal/extract/enhancements/testdata/repo at that commit); this
 # repository added 0043 (withdrawn), 0044 (superseded by two entries), two
 # finished tasks in 0026 and the v2 INDEX.md.
+#
+# After a regeneration, set the progress of 0042 in data/enhancements.json to
+# done 1, total 4 by hand: a draft entry that carries tasks, which the header
+# test uses to prove that a draft shows no Progress row.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd -P)
 out=${1:-$here/bundles-v2/enhancements/edge}

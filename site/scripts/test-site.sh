@@ -546,6 +546,9 @@ if [ $ev2rc -eq 0 ]; then
   printf '%s' "$r" | grep -qF '<dt>Superseded by</dt><dd><a href=/enhancements/0026/>0026: ' || why="${why:+$why; }0044 does not link 0026 first"
   printf '%s' "$r" | grep -qF ', <a href=/enhancements/0040/>0040: Fixture Delivered</a></dd>' || why="${why:+$why; }0044 does not link 0040"
   printf '%s' "$r" | grep -qF '<dt>Breaking</dt><dd>no</dd>' || why="${why:+$why; }0044 lacks Breaking no"
+  # The draft 0042 carries progress (1 of 4) in its data; the header still shows no Progress row.
+  dq "$E2/0042/index.html" | grep -qF '1 of 4' && why="${why:+$why; }the draft 0042 shows its progress"
+  dq "$E2/0040/index.html" | grep -qF '<dt>Progress</dt><dd>2 of 2 tasks shipped</dd>' || why="${why:+$why; }the delivered 0040 lacks Progress"
   r=$(dq "$E2/0042/index.html")
   for gone in 'Breaking' 'Progress' 'Accepted' 'Capabilities' 'After'; do
     printf '%s' "$r" | grep -qF "<dt>$gone</dt>" && why="${why:+$why; }the draft 0042 shows $gone"
@@ -554,7 +557,7 @@ if [ $ev2rc -eq 0 ]; then
   for gone in 'Breaking' 'Progress' 'Accepted' 'Capabilities' 'After'; do
     printf '%s' "$r" | grep -qF "<dt>$gone</dt>" && why="${why:+$why; }the legacy 0003 shows $gone"
   done
-  if [ -z "$why" ]; then ok "$ev2/header" "an accepted entry lists Accepted (the commit linked), Breaking, Progress, After and Capabilities (linked when the section has the page); a superseded one links every replacement; a draft and a legacy entry show none of the v2 rows"
+  if [ -z "$why" ]; then ok "$ev2/header" "an accepted entry lists Accepted (the commit linked), Breaking, Progress, After and Capabilities (linked when the section has the page); a delivered one lists Progress; a superseded one links every replacement; a draft (even with tasks in its data) and a legacy entry show none of the v2 rows"
   else bad "$ev2/header" "$why"; fi
 
   why=""

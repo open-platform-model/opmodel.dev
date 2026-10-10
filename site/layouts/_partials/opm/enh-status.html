@@ -8,9 +8,10 @@
        affected repositories, dates and its links to other entries, each to
        that entry's page. An entry of the OpenSpec layout (data schema v2)
        adds what only it has: when it was accepted (the commit linked),
-       whether it breaks a published contract, how many tasks shipped, the
-       entries it comes after and its capabilities (each linked when the
-       section has a page for it). supersededBy is a list; the banner joins
+       whether it breaks a published contract, how many tasks shipped (the
+       Progress row, shown for an accepted or delivered entry only; a draft
+       has tasks but nothing has shipped), the entries it comes after and its
+       capabilities (each linked when the section has a page for it). supersededBy is a list; the banner joins
        the ids. */ -}}
 {{- $st := .Params.status | default "" -}}
 {{- $by := slice -}}
@@ -53,8 +54,8 @@
     {{- with $p.Params.breaking }}
     <dt>Breaking</dt><dd>{{ . }}</dd>
     {{- end -}}
-    {{- with $shipped }}
-    <dt>Progress</dt><dd>{{ . }}</dd>
+    {{- if and $shipped (or (eq $st "accepted") (eq $st "delivered")) }}
+    <dt>Progress</dt><dd>{{ $shipped }}</dd>
     {{- end -}}
     {{- range $r := slice (dict "k" "after" "label" "After") (dict "k" "dependsOn" "label" "Depends on") (dict "k" "amends" "label" "Amends") (dict "k" "supersedes" "label" "Supersedes") (dict "k" "revives" "label" "Revives") (dict "k" "supersededBy" "label" "Superseded by") -}}
       {{- $ids := index $p.Params $r.k -}}
