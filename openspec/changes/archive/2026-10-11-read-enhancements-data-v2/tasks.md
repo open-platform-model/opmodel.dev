@@ -25,5 +25,5 @@
 ## 4. Durable decisions, verification, archive
 
 - [x] 4.1 Land design.md's Durable decisions: `AGENTS.md` (Durable decisions, "The Enhancements section"; Repository Layout for the new fixture directories) and `README.md` ("The Enhancements section", the link rule, the order of adoption); the header of `test-site.sh` names the v2 fixture.
-- [ ] 4.2 Verify with the `openspec-verify-change` skill (the diff touches only the files proposal.md's Impact names; every durable decision landed), `task check` and `task test:site` green, then commit `docs(site): land the enhancements data v2 decisions`.
-- [ ] 4.3 Archive with `openspec archive read-enhancements-data-v2 --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive read-enhancements-data-v2`.
+- [x] 4.2 Verify with the `openspec-verify-change` skill (the diff touches only the files proposal.md's Impact names; every durable decision landed), `task check` and `task test:site` green, then commit `docs(site): land the enhancements data v2 decisions`.
+- [x] 4.3 Archive with `openspec archive read-enhancements-data-v2 --yes --skip-specs`, run `task openspec:check`, and commit `chore(openspec): archive read-enhancements-data-v2`.
