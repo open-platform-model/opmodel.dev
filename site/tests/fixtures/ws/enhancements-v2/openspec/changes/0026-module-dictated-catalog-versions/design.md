@@ -92,3 +92,7 @@ A platform admits `opm@v4` and `opm@v5` as two entries, so modules move to a new
 - Considered one catalog major at a time; rejected because the upgrade stays all at once.
 - Considered one readiness build per consistent combination of admitted majors; rejected because it multiplies when two catalogs each have two majors, though it has no such hole.
 - Considered the earlier names for the authored platform and its entry; rejected because they leaked a Kubernetes convention and implied following new releases.
+
+## D1: A numbered heading
+
+A heading in the old decision form, on a page of the new layout.

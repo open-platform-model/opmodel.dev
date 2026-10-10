@@ -21,7 +21,18 @@
        page's source file, for View source at the bundle's commit
        (opm/source.html); date the entry's created date, lastmod its updated
        date on the entry's page and the manifest's lastmod on a document.
-       Every page is left out of llms.txt and the sitemap. */ -}}
+       Every page is left out of llms.txt and the sitemap.
+       The data is docs-kit's schema v1 or v2 (C21; gen-mounts.sh refuses
+       any other). v2 adds layout (legacy or openspec) to every entry and,
+       for an openspec entry, breaking, after, accepted, progress,
+       capabilities and aliases, and writes supersededBy as a list. A v1
+       entry has none of them and reads as layout legacy. The adapter turns
+       breaking into "yes" or "no" (a boolean is falsy in a template), keeps
+       supersededBy a list for both, and marks each alias target with the
+       slugs it replaced (retired): custom/head-end.html publishes a redirect
+       stub at each, because Hugo's own aliases land under the default
+       version's directory. A page under capabilities/ carries
+       capability = true. */ -}}
 {{- $root := "bundles/enhancements/edge" -}}
 {{- $mres := resources.Get (printf "%s/manifest.json" $root) -}}
 {{- if not $mres -}}{{- errorf "enhancements: %s/manifest.json is not mounted" $root -}}{{- end -}}
@@ -37,6 +48,12 @@
   {{- range .documents -}}
     {{- $entryOf = merge $entryOf (dict .page $e) -}}
     {{- $docOf = merge $docOf (dict .page .) -}}
+  {{- end -}}
+{{- end -}}
+{{- $retiredOf := dict -}}
+{{- range $data.entries -}}
+  {{- range .aliases -}}
+    {{- $retiredOf = merge $retiredOf (dict .to (append .from (index $retiredOf .to | default slice))) -}}
   {{- end -}}
 {{- end -}}
 {{- range $m.pages -}}
@@ -58,10 +75,17 @@
   {{- $params := dict "llms" false "repoPath" (.source | default "") -}}
   {{- with index $entryOf $p -}}
     {{- $e := . -}}
-    {{- $params = merge $params (dict "enhId" $e.id "status" $e.status "category" $e.category
+    {{- $by := slice -}}
+    {{- with $e.supersededBy -}}{{- if reflect.IsSlice . -}}{{- $by = . -}}{{- else -}}{{- $by = slice . -}}{{- end -}}{{- end -}}
+    {{- $params = merge $params (dict "enhId" $e.id "layout" ($e.layout | default "legacy") "status" $e.status "category" $e.category
         "affects" $e.affects "created" $e.created "updated" $e.updated "archived" $e.archived
         "dependsOn" $e.dependsOn "amends" $e.amends "supersedes" $e.supersedes "revives" $e.revives
-        "supersededBy" ($e.supersededBy | default "")) -}}
+        "supersededBy" $by "after" ($e.after | default slice) "capabilities" ($e.capabilities | default slice)) -}}
+    {{- with $data.repo -}}{{- $params = merge $params (dict "repo" .) -}}{{- end -}}
+    {{- with $e.accepted -}}{{- $params = merge $params (dict "accepted" .) -}}{{- end -}}
+    {{- with $e.progress -}}{{- $params = merge $params (dict "progressDone" (int .done) "progressTotal" (int .total)) -}}{{- end -}}
+    {{- $b := index $e "breaking" -}}
+    {{- if eq (printf "%T" $b) "bool" -}}{{- $params = merge $params (dict "breaking" (cond $b "yes" "no")) -}}{{- end -}}
     {{- with index $docOf $p -}}
       {{- $params = merge $params (dict "document" .title) -}}
       {{- $page = merge $page (dict "linkTitle" .title) -}}
@@ -71,6 +95,8 @@
       {{- errorf "%s: data/enhancements.json has no entry for the page %s" $at $p -}}
     {{- end -}}
   {{- end -}}
+  {{- with index $retiredOf $p -}}{{- $params = merge $params (dict "retired" .) -}}{{- end -}}
+  {{- if or (eq $p "capabilities") (strings.HasPrefix $p "capabilities/") -}}{{- $params = merge $params (dict "capability" true) -}}{{- end -}}
   {{- $dates := dict -}}
   {{- with index $entryOf $p -}}
     {{- $dates = dict "date" (time.AsTime .created) "lastmod" (time.AsTime (cond $isSection .updated ($pg.lastmod | default .updated))) -}}

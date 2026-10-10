@@ -17,7 +17,7 @@
   background: var(--hx-color-green-100);
   color: var(--hx-color-green-900);
 }
-.opm-enh-status:is([data-status="superseded"], [data-status="rejected"], [data-status="record"]) {
+.opm-enh-status:is([data-status="superseded"], [data-status="rejected"], [data-status="withdrawn"], [data-status="record"]) {
   border-left-color: var(--hx-color-gray-400);
   background: var(--hx-color-gray-100);
   color: var(--hx-color-gray-800);
@@ -30,7 +30,7 @@ html.dark .opm-enh-status[data-status="delivered"] {
   background: color-mix(in srgb, var(--hx-color-green-200) 12%, transparent);
   color: var(--hx-color-green-100);
 }
-html.dark .opm-enh-status:is([data-status="superseded"], [data-status="rejected"], [data-status="record"]) {
+html.dark .opm-enh-status:is([data-status="superseded"], [data-status="rejected"], [data-status="withdrawn"], [data-status="record"]) {
   border-left-color: var(--hx-color-neutral-500);
   background: var(--hx-color-neutral-800);
   color: var(--hx-color-gray-200);

@@ -2,12 +2,15 @@
        anchor on a decision heading: "D3: ..." keeps its automatic id and
        gains the short, stable id d3, so a decision can be cited as
        /enhancements/NNNN/decisions/#d3. Both anchors sit on Hextra's offset
-       span, so a jump does not land under the sticky navbar. */ -}}
+       span, so a jump does not land under the sticky navbar. A page of the
+       OpenSpec layout (data schema v2, layout openspec) has no numbered
+       decisions, so it gets none: the anchor stays for the legacy layout (a
+       v1 entry reads as legacy) and for the pages that belong to no entry. */ -}}
 <h{{ .Level }} data-hextra-search-id="{{ .Anchor | safeURL }}" {{- with .Attributes.class }} class="{{ . }}" {{- end }}>
   {{- .Text | safeHTML -}}
   {{- if gt .Level 1 -}}
     <span class="hx:absolute hx:-mt-20" id="{{ .Anchor | safeURL }}"></span>
-    {{- with findRESubmatch `^D([0-9]+):` .PlainText 1 -}}
+    {{- with and (ne $.Page.Params.layout "openspec") (findRESubmatch `^D([0-9]+):` .PlainText 1) -}}
       {{- $id := printf "d%s" (index (index . 0) 1) -}}
       {{- if ne $id $.Anchor }}<span class="hx:absolute hx:-mt-20" id="{{ $id }}"></span>{{ end -}}
     {{- end -}}

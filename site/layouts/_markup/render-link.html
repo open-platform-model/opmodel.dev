@@ -3,7 +3,9 @@
        version's page tree, and a miss fails the build (check Q1). Source pages
        write root-absolute links (/docs/<section>/<page>/), which become
        /<version>/docs/... here, and /enhancements/... links, which resolve
-       to the unversioned Enhancements section; a file-relative link (what cobra's
+       to the unversioned Enhancements section (a link to a slug the
+       migration retired goes to the page that replaced it, from the data's
+       aliases: opm/enh-aliases.html); a file-relative link (what cobra's
        GenMarkdownTree writes) resolves against the page's directory. A
        destination with a scheme other than http, https or mailto, or a
        protocol-relative //host, fails the build (opm/link-unsafe.html, issue
@@ -40,8 +42,23 @@
   {{- with $p -}}
     {{- $dest = printf "%s%s" .RelPermalink (cond (ne $url.Fragment "") (printf "#%s" $url.Fragment) "") -}}
   {{- else -}}
-    {{- $src := "a generated page" -}}{{- with $.PageInner.File -}}{{- $src = .Filename -}}{{- end -}}
-    {{- errorf "broken enhancement link %q in %s (version %s): the Enhancements section has no such page" $dest $src $.PageInner.Site.Version.Name -}}
+    {{- /* A page the migration retired (data schema v2 aliases): a signed
+           docs bundle of a released version still links its old slug and
+           cannot change, so the link goes to the page that replaced it. An
+           anchor of the old page (#d3) does not survive, so the fragment is
+           dropped. */ -}}
+    {{- $new := index (partialCached "opm/enh-aliases.html" "enh") (path.Clean $url.Path) -}}
+    {{- with $new -}}
+      {{- range hugo.Sites -}}
+        {{- with .GetPage $new -}}{{- $p = . -}}{{- break -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- with $p -}}
+      {{- $dest = .RelPermalink -}}
+    {{- else -}}
+      {{- $src := "a generated page" -}}{{- with $.PageInner.File -}}{{- $src = .Filename -}}{{- end -}}
+      {{- errorf "broken enhancement link %q in %s (version %s): the Enhancements section has no such page" $dest $src $.PageInner.Site.Version.Name -}}
+    {{- end -}}
   {{- end -}}
 {{- else if $catPath -}}
   {{- $r := partial "opm/catalog-resolve.html" (dict "path" $catPath) -}}

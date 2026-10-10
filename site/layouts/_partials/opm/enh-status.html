@@ -1,24 +1,39 @@
 {{- /* The status banner and the entry header of an Enhancements section page
        (called from custom/content-begin.html). The banner's wording follows
-       the entry's status; the section page and the graph, which have none,
-       say what the section is. The header, on the entry's own page, lists the entry's status,
-       category, affected repositories, dates and its links to other
-       entries, each to that entry's page. */ -}}
+       the entry's status (draft, accepted, delivered, superseded, rejected,
+       withdrawn); the section page, the graph and the capability pages,
+       which have none, say what they are. An accepted entry whose data
+       carries progress (data schema v2) says how many tasks shipped. The
+       header, on the entry's own page, lists the entry's status, category,
+       affected repositories, dates and its links to other entries, each to
+       that entry's page. An entry of the OpenSpec layout (data schema v2)
+       adds what only it has: when it was accepted (the commit linked),
+       whether it breaks a published contract, how many tasks shipped, the
+       entries it comes after and its capabilities (each linked when the
+       section has a page for it). supersededBy is a list; the banner joins
+       the ids. */ -}}
 {{- $st := .Params.status | default "" -}}
-{{- $by := .Params.supersededBy | default "" -}}
+{{- $by := slice -}}
+{{- with .Params.supersededBy -}}{{- if reflect.IsSlice . -}}{{- $by = . -}}{{- else -}}{{- $by = slice . -}}{{- end -}}{{- end -}}
+{{- $shipped := "" -}}
+{{- if gt (int .Params.progressTotal) 0 -}}{{- $shipped = printf "%d of %d tasks shipped" (int .Params.progressDone) (int .Params.progressTotal) -}}{{- end -}}
 <div class="opm-enh-status" role="note" data-pagefind-ignore="all" data-status="{{ $st | default "record" }}">
   {{- if eq $st "draft" -}}
     <strong>Draft design.</strong> A proposal under discussion. Nothing here describes OPM as it works today.
   {{- else if eq $st "accepted" -}}
-    <strong>Accepted design, not delivered.</strong> The design is agreed, but it has not shipped. Nothing here describes OPM as it works today.
+    <strong>Accepted design, not delivered.</strong> The design is agreed, but it has not shipped{{ with $shipped }} in full: {{ . }}{{ end }}. Nothing here describes OPM as it works today.
   {{- else if eq $st "delivered" -}}
     <strong>Delivered, closed.</strong> This design shipped; the docs describe OPM as it works. This is the record of why it was built this way.
   {{- else if eq $st "superseded" -}}
-    <strong>Superseded{{ with $by }} by {{ . }}{{ end }}, closed.</strong> Kept as a record; it does not describe OPM.
+    <strong>Superseded{{ with $by }} by {{ delimit . ", " }}{{ end }}, closed.</strong> Kept as a record; it does not describe OPM.
   {{- else if eq $st "rejected" -}}
     <strong>Rejected, closed.</strong> Kept as a record; it does not describe OPM.
+  {{- else if eq $st "withdrawn" -}}
+    <strong>Withdrawn, closed.</strong> Kept as a record; it does not describe OPM.
   {{- else if $st -}}
     <strong>Status {{ $st }}.</strong> Nothing here describes OPM as it works today.
+  {{- else if .Params.capability -}}
+    <strong>A capability.</strong> What OPM specifies, kept in one place. The page lists the entries that changed it.
   {{- else -}}
     <strong>The design record.</strong> OPM's enhancement proposals, open and closed. A draft or accepted entry describes work that has not shipped; the docs describe OPM as it works today.
   {{- end -}}
@@ -31,7 +46,17 @@
     <dt>Affects</dt><dd>{{ delimit $p.Params.affects ", " }}</dd>
     <dt>Created</dt><dd>{{ $p.Params.created }}</dd>
     <dt>Updated</dt><dd>{{ $p.Params.updated }}</dd>
-    {{- range $r := slice (dict "k" "dependsOn" "label" "Depends on") (dict "k" "amends" "label" "Amends") (dict "k" "supersedes" "label" "Supersedes") (dict "k" "revives" "label" "Revives") (dict "k" "supersededBy" "label" "Superseded by") -}}
+    {{- with $p.Params.accepted }}
+      {{- $a := . }}
+    <dt>Accepted</dt><dd>{{ $a.date }}, {{ with $p.Params.repo }}<a href="https://github.com/{{ . }}/commit/{{ $a.commit }}">{{ $a.commit }}</a>{{ else }}{{ $a.commit }}{{ end }}</dd>
+    {{- end -}}
+    {{- with $p.Params.breaking }}
+    <dt>Breaking</dt><dd>{{ . }}</dd>
+    {{- end -}}
+    {{- with $shipped }}
+    <dt>Progress</dt><dd>{{ . }}</dd>
+    {{- end -}}
+    {{- range $r := slice (dict "k" "after" "label" "After") (dict "k" "dependsOn" "label" "Depends on") (dict "k" "amends" "label" "Amends") (dict "k" "supersedes" "label" "Supersedes") (dict "k" "revives" "label" "Revives") (dict "k" "supersededBy" "label" "Superseded by") -}}
       {{- $ids := index $p.Params $r.k -}}
       {{- if reflect.IsSlice $ids -}}{{- else if $ids -}}{{- $ids = slice $ids -}}{{- else -}}{{- $ids = slice -}}{{- end -}}
       {{- with $ids }}
@@ -41,6 +66,13 @@
         {{- with $p.GetPage (printf "/enhancements/%v" $id) -}}<a href="{{ .RelPermalink }}">{{ .Title }}</a>{{- else -}}{{ $id }}{{- end -}}
       {{- end -}}</dd>
       {{- end -}}
+    {{- end -}}
+    {{- with $p.Params.capabilities }}
+    <dt>Capabilities</dt><dd>
+      {{- range $i, $c := . -}}
+        {{- if $i }}, {{ end -}}
+        {{- with $p.GetPage (printf "/enhancements/capabilities/%v" $c) -}}<a href="{{ .RelPermalink }}">{{ .Title }}</a>{{- else -}}{{ $c }}{{- end -}}
+      {{- end -}}</dd>
     {{- end }}
   </dl>
 {{- end -}}

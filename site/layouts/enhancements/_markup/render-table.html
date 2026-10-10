@@ -4,12 +4,18 @@
        (assets/css/opm/enhancements.css): Affects is left out (each entry's
        page lists it), Category, Delivery, Summary and Why closed are left out
        below 48 rem, so the INDEX reads as id, status and title on a phone, and
-       ID, Status and Delivery do not wrap. */ -}}
+       ID, Status and Delivery do not wrap. The INDEX of the OpenSpec layout
+       adds Progress and Breaking (kept: they are short; Breaking goes with
+       the wide columns below 48 rem) and a Capabilities table (Capability,
+       Requirements, Purpose): Capability and Requirements do not wrap,
+       Purpose goes below 48 rem. */ -}}
 {{- $classes := dict
   "Affects" "opm-enh-col-hide"
   "Category" "opm-enh-col-wide" "Summary" "opm-enh-col-wide" "Why closed" "opm-enh-col-wide"
   "Delivery" "opm-enh-col-wide opm-enh-col-nowrap"
   "ID" "opm-enh-col-nowrap" "Status" "opm-enh-col-nowrap"
+  "Progress" "opm-enh-col-nowrap" "Breaking" "opm-enh-col-wide"
+  "Capability" "opm-enh-col-nowrap" "Requirements" "opm-enh-col-nowrap" "Purpose" "opm-enh-col-wide"
 -}}
 {{- $cols := slice -}}
 {{- range .THead -}}{{- range . -}}{{- $cols = $cols | append (index $classes (strings.TrimSpace (.Text | plainify | htmlUnescape)) | default "") -}}{{- end -}}{{- end -}}

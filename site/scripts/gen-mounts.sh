@@ -32,7 +32,8 @@
 # checks the bundle first, failing the build naming the file: placement
 # section at /enhancements/, project and commit as the lock says, content/
 # holding exactly the pages manifest.json lists, data/enhancements.json of
-# schema docs.opmodel.dev/data/enhancements/v1, and a data entry for every
+# schema docs.opmodel.dev/data/enhancements/v1 or .../v2 (v2: a layout of
+# legacy or openspec on every entry), and a data entry for every
 # entry page (content/<NNNN>/...). The hugo.toml written below gains the
 # Enhancements menu entry, so the tab exists only in a build with the
 # section. Hugo cannot merge a slice across config directories, so an
@@ -89,8 +90,15 @@ if [ -n "$ENH_DIR" ]; then
   [ -z "$extra" ] || enh_fail "content/ holds pages manifest.json does not list: $(printf '%s' "$extra" | tr '\n' ' ')"
   [ -z "$missing" ] || enh_fail "manifest.json lists pages content/ does not hold: $(printf '%s' "$missing" | tr '\n' ' ')"
   printf '%s\n' "$want" | grep -qxF _index.md || enh_fail "manifest.json lists no _index.md (the section page)"
-  [ "$(jq -r '.schema // ""' "$D" 2>/dev/null)" = docs.opmodel.dev/data/enhancements/v1 ] ||
-    enh_fail "data/enhancements.json is missing, or not docs.opmodel.dev/data/enhancements/v1"
+  case "$(jq -r '.schema // ""' "$D" 2>/dev/null)" in
+    docs.opmodel.dev/data/enhancements/v1) ;;
+    docs.opmodel.dev/data/enhancements/v2)
+      # A consumer reads layout first (docs-kit C21): a legacy entry keeps every v1 field,
+      # an openspec entry carries the new ones.
+      bad=$(jq -r '.entries[] | select((.layout // "") != "legacy" and (.layout // "") != "openspec") | .id' "$D")
+      [ -z "$bad" ] || enh_fail "data/enhancements.json (v2): no layout of legacy or openspec on the entries $(printf '%s' "$bad" | tr '\n' ' ')" ;;
+    *) enh_fail "data/enhancements.json is missing, or not docs.opmodel.dev/data/enhancements/v1 or docs.opmodel.dev/data/enhancements/v2" ;;
+  esac
   # Every entry page (content/<NNNN>/_index.md or <NNNN>/<document>.md) has
   # its data entry, as page or documents[].page.
   known=$(jq -r '.entries[] | .page, (.documents[]?.page)' "$D" | sort -u)
