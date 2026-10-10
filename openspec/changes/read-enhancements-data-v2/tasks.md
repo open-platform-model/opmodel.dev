@@ -2,15 +2,15 @@
 
 ## 1. Spike: the v2 fixture and Hugo aliases
 
-- [ ] 1.1 Write the fixture source `site/tests/fixtures/ws/enhancements-v2/` per design.md Decision 7 and `regen-enhancements-v2.sh`; build `site/tests/fixtures/bundles-v2/enhancements/edge/` with docs-kit's `opm-docs` built from branch `feat/read-openspec-enhancements` (head `9d768e8`) on a copy; verify `jq .schema` prints `.../v2` and the bundle holds each page the source implies.
-- [ ] 1.2 Build the site once over the bundle with the gate unchanged but the schema string of the copy set to v1-compatible by hand, only to measure: does `AddPage` honour `aliases`, and where is the stub written. Write the result into design.md Decision 4 ("Measured") and keep or replace the fallback.
-- [ ] 1.3 Record the v1 baseline: build the v1 fixture on the unchanged site and keep the built `public/enhancements/` tree for the byte comparison in 2.4 (scratch, not committed).
-- [ ] 1.4 `task check` and `task test:site` green, then commit `test(site): add a v2 enhancements bundle fixture`.
+- [x] 1.1 Write the fixture source `site/tests/fixtures/ws/enhancements-v2/` per design.md Decision 7 and `regen-enhancements-v2.sh`; build `site/tests/fixtures/bundles-v2/enhancements/edge/` with docs-kit's `opm-docs` built from branch `feat/read-openspec-enhancements` (head `9d768e8`) on a copy; verify `jq .schema` prints `.../v2` and the bundle holds each page the source implies.
+- [x] 1.2 Measure with a throwaway adapter patch over the v2 fixture: does `AddPage` honour `aliases`, and where is the stub written. Write the result into design.md Decision 4 ("Measured") and keep or replace the mechanism.
+- [x] 1.3 Record the v1 baseline: build the v1 fixture on the unchanged site and keep the built `public/enhancements/` tree for the byte comparison in 2.4 (scratch, not committed).
+- [x] 1.4 `task check` and `task test:site` green, then commit `test(site): add a v2 enhancements bundle fixture`.
 
 ## 2. Read data v1 and v2
 
 - [ ] 2.1 `gen-mounts.sh`: accept v1 and v2, refuse another schema naming both, and check `layout` on every v2 entry; turn case `enh-bundle-data-schema` into a `v3` case and add `enh-bundle-layout` (v2 entry with no layout).
-- [ ] 2.2 `_content.gotmpl` (the normal form of design.md Decision 2, `aliases` per Decision 4, `capability` params), `opm/enh-status.html` (the six states, progress, the header rows of Decision 3) and `enhancements.css` for the new rows; `check-pages.sh` expects the alias stubs the data lists and no other extra page (case `enh-alias-stray`: a stray stub fails).
+- [ ] 2.2 `_content.gotmpl` (the normal form of design.md Decision 2, `retired` per Decision 4, `capability` params), `opm/enh-status.html` (the six states, progress, the header rows of Decision 3) and `enhancements.css` for the new rows; `custom/head-end.html` publishes the stubs and `build-all.sh` the `_redirects` lines and their checks; `check-pages.sh` expects the alias stubs the data lists and no other extra page (case `enh-alias-stray`: a stray stub fails).
 - [ ] 2.3 `test-site.sh`: a section that builds the site over `bundles-v2` and asserts the page set, each banner, the header rows of an accepted, a superseded and a draft entry, the capability page and its table, the alias stubs and their targets.
 - [ ] 2.4 The v1 fixture's built `public/enhancements/` is byte-identical to the baseline of 1.3 (`diff -r` prints nothing).
 - [ ] 2.5 Read the v2 fixture's built HTML for the entry header, banner and capability page; fix what reads wrong.

@@ -11,7 +11,7 @@ The `opm-docs` pin in `site/Dockerfile` is 0.7.0, which writes and pulls v1 only
 **Goals:**
 
 - v1 data renders exactly as today: the built HTML of the v1 fixture is byte-identical before and after.
-- v2 data renders every field docs-kit emits, and the retired slugs of a migrated entry redirect.
+- v2 data renders every field docs-kit emits, and the retired slugs of a migrated entry redirect from the old URL.
 - A page of another repository that still links a retired slug keeps building.
 
 **Non-Goals:**
@@ -65,15 +65,30 @@ The header (`dl.opm-enh-meta`, on the entry's own page) keeps its rows and order
 
 A capability page and the capabilities index carry `capability: true`, which gives the banner a third wording: "A capability: requirements OPM meets, kept in one place. The page lists the entries that changed it." The banner has no draft or accepted claim for them, because a capability page describes the main specs, not an entry.
 
-### 4. Aliases (a spike, section 1)
+### 4. Retired slugs get redirect stubs (spike, section 1)
 
 ```text
 data:  entry.aliases = [{from: "0013/problem", to: "0013/proposal"}, ...]
-site:  aliasesOf["0013/proposal"] = ["/enhancements/0013/problem/", ...]   built before the page loop
-       $page = merge $page (dict "aliases" (index $aliasesOf $p))          on the target page
+site:  the target page carries param retired = ["0013/problem", ...]    built from the data before the page loop
+       custom/head-end.html publishes, for each, a meta-refresh stub at /enhancements/<from>/index.html
+       (noindex, canonical to the target), as it does for the catalog aliases
+       build-all.sh writes the _redirects line "/enhancements/<from>/ /enhancements/<to>/ 301"
+       check-pages.sh expects exactly those stubs among the section's pages
 ```
 
-Unverified assumption (docs-kit's design record also lists it): Hugo's content adapter `AddPage` honours `aliases`, and a root-absolute alias is written at `public/enhancements/0013/problem/index.html` in this multi-version site, with no `/latest/` or `/v1.0/` prefix. Section 1 builds the v2 fixture and reads the stub. Fallback if it fails: the adapter adds one stub page per alias with `url` of the old slug and a `layout` that prints a redirect (the same `meta refresh` and `noindex` Hugo writes), no other change.
+Unverified assumption at proposal time (docs-kit's design record lists it too): Hugo's content adapter `AddPage` honours the front matter key `aliases`, and the stub lands at `/enhancements/<from>/`.
+
+Measured 2026-10-11 (section 1, Hugo 0.167.0, the v2 fixture, entry 0026):
+
+```text
+AddPage "aliases": ["/enhancements/0026/problem/"]
+  -> honoured: public/v1.0/enhancements/0026/problem/index.html, a refresh to the target's absolute permalink
+  -> NOT at /enhancements/0026/problem/: Hugo writes an alias under the output root of the site that holds
+     the page (the default version's v1.0 directory), although the page's own url ignores that prefix.
+     The old URL 404s, the stub sits where no link points, and check Q2 (page set of v1.0) fails on it.
+```
+
+**Chosen:** the catalogs section's pattern, not Hugo `aliases`. A stub published with `resources.FromString(...).Publish` lands at the path it is given, with no version prefix, and `_redirects` carries the permanent redirect for hosts that read it. `AddPage` `aliases` stays unused.
 
 ### 5. Links to a retired slug keep resolving
 
@@ -112,7 +127,7 @@ The fixture entries cover: `draft` with `after` and no `breaking` decision; `acc
 
 ## Risks / Trade-offs
 
-- [Hugo drops `aliases` from `AddPage`] -> section 1 measures it and falls back to stub pages before any other code lands.
+- [Redirect stubs and `_redirects` lines drift apart] -> both come from the data's `aliases`, and `build-all.sh` fails when a stub or a line is missing.
 - [The v2 fixture can drift from docs-kit's output because the pinned tool cannot rebuild it] -> `regen-enhancements-v2.sh` records the recipe and the docs-kit head; the pin-bump PR runs it and folds the two fixtures into one regeneration check.
 - [The data gate lets an unknown v2 field through] -> docs-kit's contract says fields are added, never changed; an unknown field is ignored by the adapter.
 - [A v2 INDEX column the class map does not know] -> an unclassed column still renders; it only loses its phone rule.
@@ -120,7 +135,7 @@ The fixture entries cover: `draft` with `after` and no `breaking` decision; `acc
 ## Durable decisions
 
 - The site reads data schema v1 and v2; a missing `layout` is `legacy`; a new schema (v3) is refused by name. Lands in `AGENTS.md` (Durable decisions, "The Enhancements section") and `README.md` ("The Enhancements section").
-- Retired slugs: the data's `aliases` become Hugo aliases on the replacing page, and `render-link.html` resolves a link to a retired slug to that page without its fragment. Lands in `README.md` ("The Enhancements section" and the link rule under Contributing) and `AGENTS.md`.
+- Retired slugs: the data's `aliases` become meta-refresh stubs at the old URL (as the catalog aliases do) and `_redirects` lines, never Hugo `aliases` (they land under the default version's directory), and `render-link.html` resolves a link to a retired slug to that page without its fragment. Lands in `README.md` ("The Enhancements section" and the link rule under Contributing) and `AGENTS.md`.
 - The v2 fixture is built outside the image until the pin moves; its recipe is `regen-enhancements-v2.sh`. Lands in the header of `test-site.sh` and `README.md`.
 - The order of adoption (docs-kit release, this change and the pin bump, then the `enhancements` bump). Lands in `README.md`.
 - Workspace `STYLE.md` "Site Pages" link rule is the owner's follow-up in the workspace repository; this repository's docs name it.
