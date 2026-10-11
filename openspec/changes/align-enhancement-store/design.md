@@ -14,7 +14,7 @@ The rewrite is mechanical for most sites and manual for the rest. Source: `enh c
 ## Decisions
 
 - Archived changes are rewritten like live text: an id beside a reason in words (design of the enhancements store, section 9).
-- A `0030:` or `0031:` token is removed and its reason text stays.
+- The ids of the two withdrawn enhancements are removed from a citation and the reason text stays.
 - A site the tool lists but does not rewrite (a lone id, a question number, a fenced block) is rewritten by hand, or left with a reason in the report.
 - `deploy-site` is excluded: its `orchestration.md` forbids an `enhancement.yaml`, and it belongs to its author.
 - The `skip_specs` patch in the skills needs no `config.yaml` line: OpenSpec 1.14.1 writes `skip_specs: true` for a schema with no specs artifact. The rule text of `config.yaml` still says the marker must exist.

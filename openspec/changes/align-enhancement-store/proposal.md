@@ -1,10 +1,10 @@
 ## Why
 
-The enhancements repository moves to an OpenSpec store (`opm-enhancements`). In the new design every enhancement citation is an id beside a reason in words, never a decision number and never a lone id. This repo cites enhancements as `NNNN:Dn` in rule text, archived changes and two Markdown files, and its rules still ask for `enhancement.yaml`. Both must follow the new design.
+The enhancements repository moves to an OpenSpec store (`opm-enhancements`). In the new design every enhancement citation is an id beside a reason in words, never a decision number and never a lone id. This repo cites enhancement decisions by number in rule text, archived changes and two Markdown files, and its rules still ask for `enhancement.yaml`. Both must follow the new design.
 
 ## What Changes
 
-- Rewrite every decision citation outside the active `deploy-site` change: `0021:D4` becomes `enhancement 0021` with its reason in words. Rewrites follow the `enh cite-rewrite` tool, then by hand for the sites the tool lists.
+- Rewrite every decision citation outside the active `deploy-site` change: a citation of an enhancement decision becomes `enhancement NNNN` beside its reason in words. Rewrites follow the `enh cite-rewrite` tool, then by hand for the sites the tool lists.
 - Delete no file: this repo holds no `enhancement.yaml`.
 - `openspec/config.yaml` gains `references:` to the store, the `Delivers` rule in `rules.proposal`, the comment rule, and a `context` line that tells how to read an entry. The `enhancement.yaml` rules and the delivery-log archive step go.
 - `openspec/schemas/docs-site-change` (`schema.yaml`, `templates/proposal.md`): the Enhancement section asks for `Delivers NNNN, task X.Y.` lines.
