@@ -129,7 +129,7 @@ Documentation site for Open Platform Model, public at opmodel.dev. A Hugo site o
 
 - **The store.** Enhancements live in the OpenSpec store `opm-enhancements` (`references:` in `openspec/config.yaml`). Read an entry with `openspec show <id>-<slug> --store opm-enhancements`; if OpenSpec warns that the store `opm-enhancements` is not registered, report the warning and go on; the human runs `task enhancements:register`.
 - **Delivering a task.** If a change delivers a line of an entry's `tasks.md`, its proposal gets `## Enhancement` with one line `Delivers NNNN, task X.Y.` per task; otherwise `None.`. Name the delivered line in the PR body; after the repo PR merges, a PR on `enhancements` ticks that line. There is no `enhancement.yaml` file and no delivery log.
-- **Citing an enhancement.** In any text (a proposal, a design, a spec, a comment, a rule or a document), write an enhancement id only beside a reason in words (`enhancement 0021`, with what it decides), never alone and never with a decision number (a `D`, `R` or `OQ` number after the id, in any spelling). A decision, a requirement or a question is named by what it says.
+- **Citing an enhancement.** In any text (a proposal, a design, a spec, a comment, a rule or a document), write an enhancement id only beside a reason in words (`enhancement 0021`, with what it decides), never alone and never with a decision number (a `D` or `OQ` number after the id, in any spelling). A decision or a question is named by what it says.
 - **Skill patches.** The repo rules live in `openspec/config.yaml`, which `openspec update` does not overwrite. After `openspec update` with the pinned CLI, no `openspec-*` skill file under `.claude/skills/` keeps a local patch.
 
 ## Entrypoint
