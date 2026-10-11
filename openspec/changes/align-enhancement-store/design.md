@@ -18,6 +18,7 @@ The rewrite is mechanical for most sites and manual for the rest. Source: `enh c
 - A site the tool lists but does not rewrite (a lone id, a question number, a fenced block) is rewritten by hand, or left with a reason in the report.
 - `deploy-site` is excluded: its `orchestration.md` forbids an `enhancement.yaml`, and it belongs to its author.
 - The `skip_specs` patch in the skills needs no `config.yaml` line: OpenSpec 1.14.1 writes `skip_specs: true` for a schema with no specs artifact. The rule text of `config.yaml` still says the marker must exist.
+- The OpenSpec CLI pin (`.github/workflows/site.yml`, 1.12.0) stays. `openspec validate --all --strict` passes under 1.12.0 and 1.14.1, so a later task may move the pin; this change adds no dependency change.
 - The "durable decisions" archive patch becomes `operations.archive.guidance` (the existing line stays); a check for it (`openspec:check`) is a later task.
 
 ## Risks / Trade-offs
