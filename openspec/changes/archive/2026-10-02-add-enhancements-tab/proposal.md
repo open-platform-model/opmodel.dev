@@ -1,6 +1,6 @@
 ## Why
 
-The owner wants the enhancements, OPM's design record, on opmodel.dev as a tab of their own next to Docs and Reference: the INDEX, the GRAPH, every entry and its diagrams (decision 2026-10-01). The docs already point at them: What OPM does not do carries direction notes that link enhancements (0018:D3 as amended 2026-10-01), today through GitHub. A spike (worktree `enhancements-tab-spike`, 2026-10-01) built the tab on Hugo 0.167 with all 36 Mermaid diagrams rendering offline, and listed what the existing checks need.
+The owner wants the enhancements, OPM's design record, on opmodel.dev as a tab of their own next to Docs and Reference: the INDEX, the GRAPH, every entry and its diagrams (decision 2026-10-01). The docs already point at them: What OPM does not do carries direction notes that link enhancements (enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") as amended 2026-10-01), today through GitHub. A spike (worktree `enhancements-tab-spike`, 2026-10-01) built the tab on Hugo 0.167 with all 36 Mermaid diagrams rendering offline, and listed what the existing checks need.
 
 ## What Changes
 
@@ -50,4 +50,4 @@ mermaid       renders inside /enhancements/ only; a fence anywhere else still fa
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. It follows 0018:D3 as amended on 2026-10-01 (direction notes may link enhancements).
+None implemented, so no `enhancement.yaml`. It follows enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") as amended on 2026-10-01 (direction notes may link enhancements).

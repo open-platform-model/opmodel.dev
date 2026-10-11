@@ -43,7 +43,7 @@ If Pages is turned off before the merge, the owner enables it first. The PR coul
 ## For the owner and the supervisor
 
 - **Supervisor default: `noindex` while on the interim host.** The owner said the documentation is not finished. The pages stay public: the repo is public, a Pages site is public, and anyone with the link can read it. `noindex` reaches the HTML pages only; the Markdown twins and `llms.txt` stay out of search engines only because nothing links to them. If the owner wants the interim site indexed, the rule is one template line (design.md decision 5).
-- **Every page is published as it is, and the owner must accept that before the merge.** 0018:D8 has every page built and shown from the moment it exists. 0018:OQ15 (what a page must hold before the site is published) is open and marked "Blocking: implementation". This change is the first public publication, so OQ15 bites here, not at go-live. The owner's decision publishes every page, placeholders included, and `noindex` plus no inbound links is the stand-in. The supervisor asks the owner for explicit acceptance before the merge and records the answer in the pull request body. This answers OQ15 for the interim site only; it comes up again at the Cloudflare go-live.
+- **Every page is published as it is, and the owner must accept that before the merge.** enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section") has every page built and shown from the moment it exists. 0018:OQ15 (what a page must hold before the site is published) is open and marked "Blocking: implementation". This change is the first public publication, so OQ15 bites here, not at go-live. The owner's decision publishes every page, placeholders included, and `noindex` plus no inbound links is the stand-in. The supervisor asks the owner for explicit acceptance before the merge and records the answer in the pull request body. This answers OQ15 for the interim site only; it comes up again at the Cloudflare go-live.
 - **The interim host behaves differently from Cloudflare.** It has no 302 redirects: `/` and `/latest/` are meta-refresh pages. It serves only the root `404.html`, and it sends no custom headers. F's smoke checks do not apply to it.
 
 ## Before / After
@@ -148,5 +148,5 @@ Published (after the owner's merge)  https://open-platform-model.github.io/opmod
 None as a delivery claim. This change carries no `enhancement.yaml`, because no change in this set claims delivery (supervisor ruling O7).
 
 Related decisions, for context only:
-- 0018:D8 has every page built and shown from the moment it exists. The interim site shows exactly that build.
+- Enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section") has every page built and shown from the moment it exists. The interim site shows exactly that build.
 - 0018:OQ15 (what a page must hold before the site is published) is open and blocks implementation. This change does not settle it. The owner's explicit acceptance before the merge (above) answers it for the interim site only; it comes up again at the Cloudflare go-live.

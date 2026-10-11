@@ -146,4 +146,4 @@ Moving `v1.0` onto beta tags later is this edit. The tag names below are example
 
 ## Enhancement
 
-None delivered. Related: 0018:D8, under which a page lives in the repository whose change would make it wrong. This change assembles each version from those repositories at recorded refs, but it claims no decision. 0021:OQ14 and 0021:OQ15 stay open. No `enhancement.yaml` (this change set records no delivery claims).
+None delivered. Related: enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section"), under which a page lives in the repository whose change would make it wrong. This change assembles each version from those repositories at recorded refs, but it claims no decision. 0021:OQ14 and 0021:OQ15 stay open. No `enhancement.yaml` (this change set records no delivery claims).

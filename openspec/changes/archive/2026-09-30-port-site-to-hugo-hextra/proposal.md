@@ -73,6 +73,6 @@ URLs           /v1.0/...   /latest/* -> /v1.0/:splat   / -> /latest/   /referenc
 
 Related 0018 decisions, named here only. By the supervisor's ruling for this change set (`orchestration.md` section 1), this change carries no `enhancement.yaml` and logs no delivery:
 
-- 0018:D7 and 0018:D7:R1: every page declares a type, a title and a one-line description. The Hugo `errorf` validation and the lint enforce it; an overview declares no type.
-- 0018:D8: a page lives in the repo whose change would make it wrong, and the site assembles the pages at build time. The read-only `/src/<repo>` mounts implement the assembly.
-- 0018:D14: figures are inline SVG drawn in the site engine. Enhancement 0018 is made engine-neutral separately (I2).
+- Enhancement 0018 ("Every page declares one type, a title and a one-line description"): every page declares a type, a title and a one-line description. The Hugo `errorf` validation and the lint enforce it; an overview declares no type.
+- Enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section"): a page lives in the repo whose change would make it wrong, and the site assembles the pages at build time. The read-only `/src/<repo>` mounts implement the assembly.
+- Enhancement 0018 ("Figures are hand-built inline SVG with one visual language"): figures are inline SVG drawn in the site engine. Enhancement 0018 is made engine-neutral separately (I2).

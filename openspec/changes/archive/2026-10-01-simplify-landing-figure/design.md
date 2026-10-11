@@ -11,7 +11,7 @@ Files under `site/` this change touches: `content/_index.md`, `layouts/_partials
 **Goals:**
 
 - The landing shows a minimal figure of the module-to-cluster story, with three transformers and a backup provider, with no visible explanation text and no word repeated down a column.
-- The figure stays accurate to how OPM renders and applies, in the same visual language as the docs figures (0018:D14), legible at phone width and in both themes.
+- The figure stays accurate to how OPM renders and applies, in the same visual language as the docs figures (enhancement 0018, "Figures are hand-built inline SVG with one visual language"), legible at phone width and in both themes.
 - Every other page renders byte-for-byte as before.
 
 **Non-Goals:**

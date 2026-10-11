@@ -53,4 +53,4 @@ README.md                               "Adding a figure": + the site-owned land
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. The figure keeps 0018:D14's visual language (role colours, neutral objects, verb-labelled arrows, the site's colour tokens, phone-width legibility) and its accessible label. It departs from one clause of 0018:D14, "each figure states one point in a caption", at the owner's request for the landing only; the docs figures keep their captions.
+None implemented, so no `enhancement.yaml`. The figure keeps 0018:D14's visual language (role colours, neutral objects, verb-labelled arrows, the site's colour tokens, phone-width legibility) and its accessible label. It departs from one clause of enhancement 0018 ("Figures are hand-built inline SVG with one visual language"), "each figure states one point in a caption", at the owner's request for the landing only; the docs figures keep their captions.

@@ -95,4 +95,4 @@ AGENTS.md
 
 ## Enhancement
 
-None. Site presentation, which covers theme, styling and so these marks, is an explicit non-goal of enhancement 0018 (its README, "Explicit non-goals"). The marks and the OG image are site-owned static files, not page images. 0018:D14 keeps images out of source pages, and this change adds none there.
+None. Site presentation, which covers theme, styling and so these marks, is an explicit non-goal of enhancement 0018 (its README, "Explicit non-goals"). The marks and the OG image are site-owned static files, not page images. Enhancement 0018 ("Figures are hand-built inline SVG with one visual language") keeps images out of source pages, and this change adds none there.

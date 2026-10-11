@@ -121,15 +121,15 @@ There is no `files` exclusion, no `index.md` remap and no `ported/` mount. `site
 
 - `site/scripts/lint-sources.sh` is `orchestration.md` section 4.1 byte for byte (`sha256sum` `dae9717af0c43fc3bdc29a9e730fd171fe7541dab35a9625a35efb1682973c6b`). `build-all.sh` runs it on every mounted source root before Hugo starts, and `task lint:sources` runs it alone. It never reads `site/content`. A change to it is a contract change (`orchestration.md` section 9), never a local fix.
 - The page-order helper from section 4.1 is never committed: it reads `sidebar.order`.
-- Hugo checks front matter with `errorf` in `layouts/_partials/opm/check-front-matter.html`, called from `custom/head-end.html`. It checks only pages backed by a content file (`with .File`) of kind `page`, `section` or `home`. Hextra's `baseof.html` renders `head-end` for the 404 page, taxonomy and term pages, and a section with no `_index.md` too; they have no front matter, so checking them would fail every build. `title` and `description` are required. A leaf declares tutorial, how-to, explanation or reference (0018:D7:R1). An `_index.md` and the home declare no type (0018:D7). This covers site-owned pages, which the lint does not read. Without it, Hugo silently picks another layout for a bad `type`.
+- Hugo checks front matter with `errorf` in `layouts/_partials/opm/check-front-matter.html`, called from `custom/head-end.html`. It checks only pages backed by a content file (`with .File`) of kind `page`, `section` or `home`. Hextra's `baseof.html` renders `head-end` for the 404 page, taxonomy and term pages, and a section with no `_index.md` too; they have no front matter, so checking them would fail every build. `title` and `description` are required. A leaf declares tutorial, how-to, explanation or reference (enhancement 0018, "Every page declares one type, a title and a one-line description"). An `_index.md` and the home declare no type (enhancement 0018, "Every page declares one type, a title and a one-line description"). This covers site-owned pages, which the lint does not read. Without it, Hugo silently picks another layout for a bad `type`.
 
 The rules the lint adds beyond O4's list hold by the supervisor's ruling of 2026-09-30. Their bases:
 
 | Rule | Basis |
 |---|---|
-| Front-matter keys only `title`, `description`, `type`, `weight` (no `aliases`, `draft`, `slug`) | 0018:D7 (nothing else is required), 0018:D7:R3 (no page declares its address). A draft is a silently dropped page |
+| Front-matter keys only `title`, `description`, `type`, `weight` (no `aliases`, `draft`, `slug`) | enhancement 0018 ("Every page declares one type, a title and a one-line description") (nothing else is required), enhancement 0018 ("Every page declares one type, a title and a one-line description") (no page declares its address). A draft is a silently dropped page |
 | Links root-absolute `/docs/.../` with a trailing slash; no relative, `.md` or versioned links; reference definitions and raw `href=`/`src=` checked | The link hook resolves `/docs/...` per version; other forms break under the versions dimension |
-| No images, no non-`.md` files | 0018:D14: figures live in the engine |
+| No images, no non-`.md` files | enhancement 0018 ("Figures are hand-built inline SVG with one visual language"): figures live in the engine |
 | Lower-case kebab-case names | Page paths are URLs |
 | `weight` >= 1 | Hugo reads 0 as unset; 0018's `#Page` allows 0, so this narrows it |
 | Alert marker alone on its line | github.com and Hextra render only that form the same way |

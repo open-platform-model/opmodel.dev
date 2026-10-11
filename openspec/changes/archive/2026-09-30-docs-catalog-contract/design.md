@@ -2,7 +2,7 @@
 
 ## Overview
 
-Two hand-written pages under `site/content/reference/`, written for their audiences rather than transcribed from decision logs: the contract page addresses a catalog author mid-change ("is this edit legal at this level, and what will refuse it"); the namespaces page addresses anyone choosing a publish coordinate. Decisions are cited inline by number (`0010 D27`-style) so the provenance is checkable, but every rule is restated in plain language. The enhancement entries remain the design record, the pages become the contract's public form.
+Two hand-written pages under `site/content/reference/`, written for their audiences rather than transcribed from decision logs: the contract page addresses a catalog author mid-change ("is this edit legal at this level, and what will refuse it"); the namespaces page addresses anyone choosing a publish coordinate. Decisions are cited inline by number (enhancement 0010 ("Inside one API version a contract is additive-only, and both ends enforce it")-style) so the provenance is checkable, but every rule is restated in plain language. The enhancement entries remain the design record, the pages become the contract's public form.
 
 ## Research & Decisions
 
@@ -12,14 +12,14 @@ Both pages state contracts (normative, lookup-shaped, stable) rather than walkth
 
 ### The contract page's structure follows the author's decision path
 
-1. **What you promised**: the level ladder, per-member `apiVersion`, the alpha carve-out, and the two-axes trap (release prerelease ≠ contract level) stated early because it is the misreading 0010 D34 documents as likely.
+1. **What you promised**: the level ladder, per-member `apiVersion`, the alpha carve-out, and the two-axes trap (release prerelease ≠ contract level) stated early because it is the misreading enhancement 0010 ("Contract API versions follow the Kubernetes ladder, and the promise is keyed to the level") documents as likely.
 2. **What "additive" means**: D27's three clauses with one worked example each (add optional field: legal; remove field: refused; move a default: refused), matching the violation kinds the gate actually prints (`field removed`, `default changed`, `domain narrowed`, `field added without optional or default`) so the page and the refusal text teach the same vocabulary.
 3. **The three version-shaped values**: a table of value, where it lives, what changes it, whether it is part of a key. This is the section that prevents the "bump `catalogVersion` to escape the gate" misunderstanding: `catalogVersion` is provenance, `apiVersion` is the escape hatch.
-4. **How it is enforced, exactly**: publish-gate-only (D35 verbatim framing), the predecessor rule in one paragraph (last published build that shipped the member, prereleases included, per 0011 D23), and the honesty paragraph: `registry check --compat` is an aid; un-gated publishes exist and break the chain silently. The page must not imply registry-side enforcement that does not exist (tag immutability is the unowned Zot item and is *not* claimed).
+4. **How it is enforced, exactly**: publish-gate-only (D35 verbatim framing), the predecessor rule in one paragraph (last published build that shipped the member, prereleases included, per enhancement 0011 ("Predecessor selection is D9's literal rule: a backward scan of the published history, prereleases included")), and the honesty paragraph: `registry check --compat` is an aid; un-gated publishes exist and break the chain silently. The page must not imply registry-side enforcement that does not exist (tag immutability is the unowned Zot item and is *not* claimed).
 
 ### The namespaces page is a table with two prose frames
 
-The table rows (prefix, meaning, who publishes, enforcement point, defining decision) are the payload. Two short frames around it: **hosts-not-indexes** (0011 D13: the registry asserts nothing about domains OPM does not own; your domain is yours, the gates go quiet), and **why shortcuts are safe** (0011 D25: `opm mod init standard` expands only into the reserved, release-pipeline-curated segment, so a bare word can never be squatted). `testing.opmodel.dev`'s row states its fixture-only meaning and names the operator-fleet relocation as its current occupant so nobody reads production intent into it.
+The table rows (prefix, meaning, who publishes, enforcement point, defining decision) are the payload. Two short frames around it: **hosts-not-indexes** (enhancement 0011 ("OPM imposes no namespace on third parties; path ownership is domain ownership"): the registry asserts nothing about domains OPM does not own; your domain is yours, the gates go quiet), and **why shortcuts are safe** (enhancement 0011 ("Official templates are published modules in a reserved `templates` segment"): `opm mod init standard` expands only into the reserved, release-pipeline-curated segment, so a bare word can never be squatted). `testing.opmodel.dev`'s row states its fixture-only meaning and names the operator-fleet relocation as its current occupant so nobody reads production intent into it.
 
 ### What the pages deliberately do not contain
 

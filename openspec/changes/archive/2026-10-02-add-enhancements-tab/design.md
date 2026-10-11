@@ -15,7 +15,7 @@ Files under `site/` this change touches are listed in proposal.md's Impact. Sect
 - Versioning the enhancements (0021: enhancements are not versioned).
 - Publishing experiments, research notes, schemas or policy files; their links go to GitHub at the built SHA.
 - Rendering `authors` or `history` from `config.yaml`.
-- Rewriting `0018:D3`-style tokens in prose into links (a later change).
+- Rewriting enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction")-style tokens in prose into links (a later change).
 
 ## Decisions
 
@@ -39,7 +39,7 @@ Files under `site/` this change touches are listed in proposal.md's Impact. Sect
 
 ### 5. Mermaid vendored, sized and fenced in
 
-Mermaid 11 under `site/assets/lib/mermaid/`, fingerprinted with SRI and loaded only by pages with a fence (Hextra's `params.mermaid.js`). `useMaxWidth: false` inside a focusable scroller: without it 21 of 36 diagrams render text under 9 px, with it none. Edge labels need a contrast fix in dark mode. A global codeblock hook fails a fence outside the section, so docs pages stay diagram-free (0018:D14).
+Mermaid 11 under `site/assets/lib/mermaid/`, fingerprinted with SRI and loaded only by pages with a fence (Hextra's `params.mermaid.js`). `useMaxWidth: false` inside a focusable scroller: without it 21 of 36 diagrams render text under 9 px, with it none. Edge labels need a contrast fix in dark mode. A global codeblock hook fails a fence outside the section, so docs pages stay diagram-free (enhancement 0018, "Figures are hand-built inline SVG with one visual language").
 
 As built (section 2): the file is the npm tarball's `dist/mermaid.min.js`, verified against the registry's `dist.integrity` and pinned in `site/vendored.sha256` (SHA-256 581ed7d7…eb8, identical to the spike's copy), checked by `check-vendored.sh` with the `vendored-drift` fixture. `useMaxWidth: false` is an init directive the section hook prepends, so Hextra's `scripts/mermaid.html` stays un-overridden. Dark mode keeps Mermaid's dark theme (it follows the site's toggle) and darkens only the edge-label box (#ccc on #585858, 4.4:1, becomes #ccc on neutral-800) by an `!important` rule in `enhancements.css`, because Mermaid scopes its rules by the diagram's id; forcing the light theme would have put a white panel in the dark page. `diagrams.py` draws all 36 diagrams at 1280 px light and 390 px dark and fails on an error drawing, a label under 9 px or an axe colour-contrast violation, after proving on two canary diagrams that it catches the first two.
 

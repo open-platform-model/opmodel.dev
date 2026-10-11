@@ -51,7 +51,7 @@ README.md                    + ## CI
 
 - **Touches.** `.github/workflows/site.yml` and `.github/workflows/pr-title.yml` (new). `Taskfile.yml`: the new `ci:lint` task only. `README.md`: its own `## CI` heading. `openspec/changes/add-site-ci/`: task ticks and the spike findings written into `design.md`. Nothing under `site/` changes.
 - **Build inputs.** The site build gains no input. CI adds a runner toolchain: Go from `go.mod`, Node 24 for the openspec CLI, and Task at an exact version. It also adds the actionlint image, pinned by digest. Each run builds the Hugo and QA images from their Dockerfiles; nothing is published to GHCR.
-- **Source repos.** None has to change. Every run reads each source repo's `main`. After this change, a page there that breaks A's lint or link check fails opmodel.dev's nightly run and every opmodel.dev pull request until it is fixed in its own repo. It is never fixed here. Running the same checks in the source repos' own pull requests is a follow-up (0018:D13), outside this change.
+- **Source repos.** None has to change. Every run reads each source repo's `main`. After this change, a page there that breaks A's lint or link check fails opmodel.dev's nightly run and every opmodel.dev pull request until it is fixed in its own repo. It is never fixed here. Running the same checks in the source repos' own pull requests is a follow-up (enhancement 0018, "Every writing rule names what checks it, and machine checks run in the owning repository's pull requests"), outside this change.
 - **URLs and versions.** Nothing is published. The build is `v1.0`, from each source repo's `main` (owner decision O3). B moves the refs later. Versioning stays 0021:OQ15, an open question this change does not touch.
 - **Depends on.**
   - Starts when: A (`port-site-to-hugo-hextra`) is merged. Its cutover gives the tasks their final names, which the workflow calls.
@@ -65,5 +65,5 @@ README.md                    + ## CI
 None as a delivery claim. This change carries no `enhancement.yaml`, because no change in this set claims delivery (supervisor ruling O7).
 
 Related decisions, for context only:
-- 0018:D8 says two repositories publishing one address fail the build. A's check enforces that, and this change runs it on every pull request and every night.
-- 0018:D13 wants machine checks in the pull requests of the repo that owns the page. This change runs them only in opmodel.dev, so it does not satisfy 0018:D13:R1. The source-repo check is named above as a follow-up.
+- Enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section") says two repositories publishing one address fail the build. A's check enforces that, and this change runs it on every pull request and every night.
+- Enhancement 0018 ("Every writing rule names what checks it, and machine checks run in the owning repository's pull requests") wants machine checks in the pull requests of the repo that owns the page. This change runs them only in opmodel.dev, so it does not satisfy enhancement 0018 ("Every writing rule names what checks it, and machine checks run in the owning repository's pull requests"). The source-repo check is named above as a follow-up.
