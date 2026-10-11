@@ -34,7 +34,7 @@ Where this file and your change's artifacts disagree, stop and ask the superviso
 - **Scope.**
   - Stay inside your change's scope and "Touches" list.
   - Never add `enhancement.yaml`, even where a repo's propose skill or `openspec/config.yaml` says to write one (O7). Name related 0018 decisions in proposal prose only.
-  - Cite an enhancement decision by the enhancement id beside the reason in words, for example enhancement 0018 ("Figures are hand-built inline SVG with one visual language"), never as a bare `D14`.
+  - Cite enhancement decisions by the enhancement id followed by the decision number, and by a requirement number when only part of a decision lands, never as a bare `D14`.
 
 ## 2. The change set
 
@@ -169,11 +169,11 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 
 0018 is `draft`, so its decisions are revised in place, with no `Amends:` line. Follow the enhancements repo's `AGENTS.md` and its `enhancements` skill.
 
-1. **Decision body of the figure rule** (`0018/03-decisions.md`): "A figure on the site is an Astro component in the site engine ... and a page in any repository uses it through the site's import alias for components" becomes "A figure on the site is a figure component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the engine's figure shortcode". Everything else in that decision stays.
+1. **Decision body of the figure rule** (the decisions page of enhancement 0018): "A figure on the site is an Astro component in the site engine ... and a page in any repository uses it through the site's import alias for components" becomes "A figure on the site is a figure component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the engine's figure shortcode". Everything else in that decision stays.
 2. **Alternatives of the figure rule.** "the site build copies only Markdown and MDX files" becomes "copies only Markdown files". Keep the astro-d2 rejection evidence as it is.
-3. **`0018/README.md:103`.** Replace the whole bullet body. "**Site presentation.** The site generator, theme, search and styling. The site is built with Astro and Starlight; how it looks is not this entry's to decide." becomes "**Site presentation.** The site generator, theme, search and styling are not this entry's to decide."
+3. **README of enhancement 0018, the Site presentation bullet.** Replace the whole bullet body. "**Site presentation.** The site generator, theme, search and styling. The site is built with Astro and Starlight; how it looks is not this entry's to decide." becomes "**Site presentation.** The site generator, theme, search and styling are not this entry's to decide."
 4. **Section.** One. Commit `docs(0018): make the figure decision engine-neutral`.
-5. **Touches.** `0018/03-decisions.md`, `0018/README.md`.
+5. **Touches.** the decisions page and the README of enhancement 0018.
 
 ## 4. Dialect contract for source pages
 

@@ -127,7 +127,7 @@ The rules the lint adds beyond O4's list hold by the supervisor's ruling of 2026
 
 | Rule | Basis |
 |---|---|
-| Front-matter keys only `title`, `description`, `type`, `weight` (no `aliases`, `draft`, `slug`) | enhancement 0018 ("Every page declares one type, a title and a one-line description") (nothing else is required), enhancement 0018 ("Every page declares one type, a title and a one-line description") (no page declares its address). A draft is a silently dropped page |
+| Front-matter keys only `title`, `description`, `type`, `weight` (no `aliases`, `draft`, `slug`) | enhancement 0018 ("Every page declares one type, a title and a one-line description"): nothing else is required, and no page declares its address. A draft is a silently dropped page |
 | Links root-absolute `/docs/.../` with a trailing slash; no relative, `.md` or versioned links; reference definitions and raw `href=`/`src=` checked | The link hook resolves `/docs/...` per version; other forms break under the versions dimension |
 | No images, no non-`.md` files | enhancement 0018 ("Figures are hand-built inline SVG with one visual language"): figures live in the engine |
 | Lower-case kebab-case names | Page paths are URLs |

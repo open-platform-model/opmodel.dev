@@ -131,7 +131,7 @@ context: |
   ## Comments and Enhancement References
   - Default to no enhancement reference: say what the code does and why, in the comment's own words.
   - When the rationale genuinely lives in an enhancement, cite it once at the symbol as `enhancement 0021` beside the reason in words: an enhancement id stands only beside a reason in words, never alone, and never with a decision number. Several enhancements: `enhancements 0010 and 0021`. A bare `D14` is a decision number too: it names nothing, because decision numbers restart per enhancement.
-  - Never cite a section, slice, phase, task or design-doc-local id (`§8.1`, `slice C2`, `task 4.2`, `design LD3`). They are not stable identifiers; a requirement number (`R2`) is.
+  - Never cite a section, slice, phase, task or design-doc-local id (`§8.1`, `slice C2`, `task 4.2`, `design LD3`). They are not stable identifiers.
   - Never put a reference in text the site publishes (page output, a layout's markup, `llms.txt`), a generated file, or a fixture a reader copies. Those reach people with no access to the enhancements repo.
   - No `Was:` rename history in comments; `git log` owns it.
 

@@ -46,6 +46,7 @@ operations:
 
 - Files: `openspec/config.yaml`, `openspec/schemas/docs-site-change/**`, `AGENTS.md`, `README.md`, `TODO.md`, and the archived changes under `openspec/changes/archive/` that cite a decision.
 - Not touched: `openspec/changes/deploy-site/` (an active change; its `orchestration.md` forbids `enhancement.yaml`), `site/`, `layouts/`, `scripts/`, `tests/fixtures/` (the site reads enhancement data on the local branch `feat/read-enhancements-v2`), `.claude/**`.
+- `README.md` near line 279: the example link keeps its retired-slug form. The local branch `feat/read-enhancements-v2` owns that sentence, so the `cite-rewrite` dry run keeps one accepted edit there.
 - Owner action: run `openspec update` with the pinned CLI. The `REPO-LOCAL PATCH` blocks in `.claude/skills/` still ask for `enhancement.yaml` until then.
 - No published URL, site version or source repo changes.
 - Spec delta: none. This workspace has no specs artifact, and `.openspec.yaml` declares `skip_specs: true`.

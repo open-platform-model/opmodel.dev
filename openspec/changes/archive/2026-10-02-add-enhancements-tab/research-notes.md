@@ -11,11 +11,11 @@ Counts: 364 md files in all; 27 READMEs plus 189 numbered documents make 216 cor
 
 INDEX.md and GRAPH.md are generated (`task index`, `task graph` in Taskfile.yml, using yq and scripts/delivery.sh) and committed. Each carries a `<!-- Generated ... -->` comment. INDEX has two tables (live, then archived) with id, category, affects, status, delivery, title and summary, plus a status legend. GRAPH.md holds 7 Mermaid `graph` blocks: an Overview of categories, then one per category (schema, runtime, distribution, tooling, misc). They use a fixed classDef palette with light fills and `color:#000`, about 100 nodes in all. Nothing checks freshness, and INDEX.md is stale on main today: regenerating it in a scratch copy flips 0021's delivery from not-started to in-progress. GRAPH regenerated identical. A machine-readable delivery TSV exists (`task delivery:data`) but is not committed.
 
-Diagrams: Mermaid only. 36 fences: 7 in GRAPH, 1 in every entry README (27), plus 0018/02-design.md and 0027/02-design.md. There are no image files (no svg, png or jpg). ASCII diagrams sit in ```text or unlabelled fences (12 text fences, 139 unlabelled fences overall). `<br/>` appears inside Mermaid labels (32 hits). NNNN/diagrams/ is gitignored and local-only. A read-in-place build would see it, `git archive` would not.
+Diagrams: Mermaid only. 36 fences: 7 in GRAPH, 1 in every entry README (27), plus the design pages of enhancements 0018 and 0027. There are no image files (no svg, png or jpg). ASCII diagrams sit in ```text or unlabelled fences (12 text fences, 139 unlabelled fences overall). `<br/>` appears inside Mermaid labels (32 hits). NNNN/diagrams/ is gitignored and local-only. A read-in-place build would see it, `git archive` would not.
 
 Links (relative, outside fences): 618 in all. 339 point to .md files, 163 to directories (`../0008/`, `schemas/`, `experiments/03-.../`), 69 to .cue, 28 to .yaml and 9 to .txt. There are also 171 external links (89 to github.com). 14 are broken today:
 - 0021/policy/02 and 03 point at experiments/ and research/ relative to policy/.
-- archive/0001/01-problem.md points at ../../core/*.cue (workspace paths).
+- the problem page of archived enhancement 0001 points at ../../core/*.cue (workspace paths).
 - archive/0015 and archive/0016 READMEs point at ../INDEX.md and ../GRAPH.md, which are off by one level after archiving.
 - 1 is a false positive from a regex.
 
@@ -209,7 +209,7 @@ WHAT WORKED
 - In the QA image all 36 diagrams on the 30 pages render to SVG at 1280 and 390 px wide. There were no Mermaid error SVGs, no console errors and no failed requests under `--network none`.
 - The global mermaid hook fails a docs page with "mermaid fence in .../reference/_index.md: only the enhancements section may hold one". The section-scoped hook overrides it inside the section, as intended.
 - The link hook maps 155 links to GitHub blob/tree URLs. In strict mode it lists all 10 broken links on published pages and fails the build:
-  - 6 `../../core/*.cue` links in archive/0001/01-problem.md;
+  - 6 `../../core/*.cue` links in the problem page of archived enhancement 0001;
   - `../INDEX.md` and `../GRAPH.md` in archive/0015 and archive/0016 READMEs (archiving broke those relative links).
   The repo's other 4 broken links are in files that are not published (0021/policy/*, 0001's regex text).
 - `/enhancements/0018/decisions/#d3` resolves, and the GitHub-style automatic anchors are kept too.
