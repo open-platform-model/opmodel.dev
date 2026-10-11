@@ -1,9 +1,9 @@
 schema: docs-site-change
 
 # The enhancement store: the design record of OPM. `openspec instructions` lists its specs; read
-# one entry with `openspec show <id>-<slug> --store opm-enhancements`. Register a checkout once per
-# machine with `openspec store register <path> --id opm-enhancements`; without it the commands
-# print a warning and go on.
+# one entry with `openspec show <id>-<slug> --store opm-enhancements`. If OpenSpec warns that the
+# store `opm-enhancements` is not registered, report the warning and go on; the human runs
+# `task enhancements:register`.
 references:
   - id: opm-enhancements
     remote: https://github.com/open-platform-model/enhancements.git
@@ -42,7 +42,7 @@ context: |
   no gate keeps honest, so this OpenSpec workspace deliberately has no specs artifact.
   - There is no `openspec/specs/` directory and no delta specs. Every change's `.openspec.yaml`
     carries `skip_specs: true`; the author writes it when the change is created
-    (`rules.proposal` requires it). Never create a `specs/` directory inside a change.
+    (`rules.proposal` requires it; the pinned OpenSpec 1.12.0 does not write it). Never create a `specs/` directory inside a change.
   - The proposal's **Before / After** block (the config keys or the directory tree) is where
     the intended result is reviewed before code exists. Write it as config or a tree, not
     prose.
@@ -117,7 +117,9 @@ context: |
   Enhancements live in the OpenSpec store `opm-enhancements` (see `references:`). Read an
   entry with `openspec show <id>-<slug> --store opm-enhancements`; its `tasks.md` says which
   repo still has work. A change here that delivers a line of an entry's `tasks.md` says so in
-  its proposal (`## Enhancement`, `Delivers NNNN, task X.Y.`).
+  its proposal (`## Enhancement`, `Delivers NNNN, task X.Y.`); otherwise the section says
+  `None.`. In any text (proposal, design, specs, comments), name an enhancement only by its id
+  beside a reason in words, never alone, never with a decision number.
 
   ## Validation Gates (before merge)
   1. `task check` — `task openspec:check` (`openspec validate --all --strict --no-interactive`)
@@ -130,7 +132,7 @@ context: |
 
   ## Comments and Enhancement References
   - Default to no enhancement reference: say what the code does and why, in the comment's own words.
-  - When the rationale genuinely lives in an enhancement, cite it once at the symbol as `enhancement 0021` beside the reason in words: an enhancement id stands only beside a reason in words, never alone, and never with a decision number. Several enhancements: `enhancements 0010 and 0021`. A bare `D14` is a decision number too: it names nothing, because decision numbers restart per enhancement.
+  - When the rationale genuinely lives in an enhancement, cite it once at the symbol as `enhancement 0021` beside the reason in words: an enhancement id stands only beside a reason in words, never alone, and never with a decision number. Several enhancements: `enhancements 0010 and 0021`. A bare `D14` is a decision number too: it names nothing, because the store has no decision numbers.
   - Never cite a section, slice, phase, task or design-doc-local id (`§8.1`, `slice C2`, `task 4.2`, `design LD3`). They are not stable identifiers.
   - Never put a reference in text the site publishes (page output, a layout's markup, `llms.txt`), a generated file, or a fixture a reader copies. Those reach people with no access to the enhancements repo.
   - No `Was:` rename history in comments; `git log` owns it.
@@ -168,6 +170,8 @@ rules:
       ships section by section. In that mode the change stays active on main between PRs."
     - "Never add a Capabilities section and never create a `specs/` directory; the change's `.openspec.yaml` MUST carry `skip_specs: true` (Principle II)."
     - "If the change delivers a line of an enhancement's `tasks.md`, add `## Enhancement` with one line `Delivers NNNN, task X.Y.` per task; otherwise `None.` Read the entry with `openspec show <id>-<slug> --store opm-enhancements` and name its reason in words rather than restating its design."
+    - "If the change has no spec delta, write `skip_specs: true` in `.openspec.yaml`."
+    - "Name an enhancement only by its id beside a reason in words, never alone, never a decision number."
 
   design:
     - "Focus: HOW we'll implement it technically"
@@ -193,6 +197,7 @@ rules:
       page author needs and where it lands at archive (`AGENTS.md`, `CONSTITUTION.md`,
       `README.md`, a contributor note, or "stays with the change"). Write "None." when empty;
       never omit the section.
+    - Name an enhancement only by its id beside a reason in words, never alone, never a decision number.
 
   tasks:
     - "Focus: STEPS to take for implementation"
@@ -250,4 +255,4 @@ operations:
     guidance:
       - "Archive with `--skip-specs`: this workspace has no specs and the change declares skip_specs. Never let archive create an openspec/specs/ directory."
       - "Before archiving, read design.md's Durable decisions section. Every entry marked for promotion MUST already be landed in its target file (AGENTS.md, CONSTITUTION.md, README.md or a contributor note); if one is not, stop and land it first. An archived change must not be the only home of a rule."
-      - "If the change delivers a line of an enhancement's `tasks.md`, a PR on `enhancements` ticks that line."
+      - "If the change delivers a line of an enhancement's `tasks.md`, name it in the PR body; after the repo PR merges, a PR on `enhancements` ticks that line."
