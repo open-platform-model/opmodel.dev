@@ -76,7 +76,7 @@ override = library v1.0.0-beta.1 ...  override = library <library main SHA> froz
   docs-hiding sections should merge only after it.
 - Published versions: `/v1.0/` (and `/latest/`) only; its stamp shows the three rows at a branch
   commit (`cli main abc1234`) instead of the tag, as core's and catalog_opm's already do.
-  Documentation versioning stays 0021:OQ15; this change does not settle it.
+  Documentation versioning stays an open question (enhancement 0021); this change does not settle it.
 - Depends on: nothing to build. The workspace `RELEASING.md` citations resolve once the
   workspace `docs/release-cascade` branch merges.
 

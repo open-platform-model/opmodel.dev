@@ -65,7 +65,7 @@ URLs           /v1.0/...   /latest/* -> /v1.0/:splat   / -> /latest/   /referenc
 - **Touches:** everything under `site/`; `Taskfile.yml`, `.gitignore`, `README.md`, `AGENTS.md`, `CONSTITUTION.md`, `TODO.md`, `openspec/config.yaml`; `internal/cobradoc/generator.go` and `cmd/docgen/main.go` (comments and help text only).
 - **Build inputs:** gains the vendored theme, the pinned Hugo image and the read-only source mounts `/src/<repo>`. Loses Node, npm and the Astro packages.
 - **Source repos:** no edit here (Principle I). S1-S6 carry the dialect rewrite. After this change, a page in the old dialect fails the site build, naming file and line; the fix belongs in that repo. In-flight changes that add pages (library `refuse-colliding-contracts`, core `fold-colliding-contract-keys`) must write the new dialect; the supervisor tells their owners.
-- **URLs and versions:** everything moves under `/v1.0/`. Nothing is published yet, so no reader loses a link. How versions map to component releases stays 0021:OQ15, an open question; `v1.0` on `main` does not settle it.
+- **URLs and versions:** everything moves under `/v1.0/`. Nothing is published yet, so no reader loses a link. How versions map to component releases stays an open question (enhancement 0021); `v1.0` on `main` does not settle it.
 - **Contributors:** `task serve` moves from port 4321 to 1313. Builds read the source repos through `OPM_WS` and `OPM_SRC_<REPO>` (or `OPM_SRC_WORKTREE`).
 - **Docker on the shared host:** image tags come from Dockerfile hashes, and no container gets a fixed name. The Astro image `opmodel-dev-site:local` and the owner's live container on port 4321 are never touched.
 

@@ -87,7 +87,7 @@ AGENTS.md
   - The migration plan's list for this change names only `site/tools/og-card.*`, `brand:og` and `[params.navbar.logo]`. `site/tools/favicons.py`, `brand:favicons`, `params.images` and the `AGENTS.md` lines are added so the favicon set can be regenerated from the mark and agents learn how. They are flagged for the supervisor to accept.
 - **Must not edit.** `site/layouts/_partials/navbar-title.html` and `banner.html` (owned by B), any file under `site/themes/hextra/`, `site/overrides.sha256`, `site/scripts/*`, and the QA image's `site/tests/browser/Dockerfile`.
 - **Build inputs.** The build gains static files only: no mount, no source repo, no pinned tool, and no theme override. The QA image is reused as it is.
-- **Published URLs.** The same root-level favicon and manifest URLs Hextra publishes today, now with OPM content, plus `/images/opm-mark.svg`, `/images/opm-mark-dark.svg` and `/images/og-default.png`. Static files publish once at the root, so every version's pages share them. The version set (`v1.0`, beta) is unchanged, and 0021:OQ15 is not touched.
+- **Published URLs.** The same root-level favicon and manifest URLs Hextra publishes today, now with OPM content, plus `/images/opm-mark.svg`, `/images/opm-mark-dark.svg` and `/images/og-default.png`. Static files publish once at the root, so every version's pages share them. The version set (`v1.0`, beta) is unchanged, and documentation versioning (enhancement 0021) is not touched.
 - **Source repos.** None. No `docs/site` page, front matter or link changes.
 - **Depends on.**
   - Starts when A (`port-site-to-hugo-hextra`) is merged; builds read the supervisor's `site-src` worktrees.

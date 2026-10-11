@@ -15,7 +15,7 @@ Files under `site/` this change touches are listed in proposal.md's Impact. Sect
 - Versioning the enhancements (0021: enhancements are not versioned).
 - Publishing experiments, research notes, schemas or policy files; their links go to GitHub at the built SHA.
 - Rendering `authors` or `history` from `config.yaml`.
-- Rewriting enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction")-style tokens in prose into links (a later change).
+- Rewriting decision-number tokens in prose into links (a later change).
 
 ## Decisions
 

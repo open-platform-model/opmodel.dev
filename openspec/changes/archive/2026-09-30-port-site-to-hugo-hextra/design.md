@@ -23,7 +23,7 @@ Constraints this design works inside:
 - Tag-based versions and the manifest (B), the five remaining figures (C), the judges' design fixes (D), CI (E), hosting (F) and brand marks (M).
 - Any edit in a source repo (S1-S6).
 - The generated reference (GR) and the component archive (V6), beyond the reservations below. docgen behaviour, including its stale `../catalog` default.
-- Settling 0021:OQ15. Building `v1.0` from `main` is the owner's day-one choice, not an answer to it.
+- Settling how documentation is versioned (enhancement 0021). Building `v1.0` from `main` is the owner's day-one choice, not an answer to it.
 
 ## Decisions
 

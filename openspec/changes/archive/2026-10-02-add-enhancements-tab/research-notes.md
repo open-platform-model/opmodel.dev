@@ -59,7 +59,7 @@ CI (.github/workflows/site.yml on origin/main): three jobs (build, browser, sour
 - 0018 02-design gives the prose linter "decision numbers" as banned.
 - Enhancement 0018 ("`core/SPEC.md` is not published; the public reference is a projection of its normative spine") keeps SPEC.md unpublished partly because readers cannot resolve enhancement decision numbers.
 - 0021 02-design says outright that enhancements are not versioned ("not artifacts consumers pin").
-- 0021:OQ15's position is that docs follow the cli/operator MAJOR.MINOR, with an unversioned secondary section for per-component reference.
+- The position of enhancement 0021 on documentation versioning is that docs follow the cli/operator MAJOR.MINOR, with an unversioned secondary section for per-component reference.
 
 ## proposal
 Recommendation: one unversioned section at /enhancements/, built in the same Hugo run by a content adapter, with Mermaid vendored and loaded only on the pages that hold a diagram. I verified the two load-bearing Hugo behaviours in the local build image (scratch site under scratchpad/enh/hugotest*):
@@ -96,7 +96,7 @@ An enhancements-only render-link hook maps links as follows:
 - any other path that exists in the archived tree (.cue, .yaml, directories, research/, experiments/) goes to github.com/open-platform-model/enhancements/blob|tree/<built SHA>/<repo path>;
 - a target that does not exist fails the build, as Q1 does for docs.
 
-A heading hook gives `### D3: ...` the stable id `d3`, so enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") can be cited as /enhancements/0018/decisions/#d3. OQ ids (list items, not headings) and auto-linking `NNNN:DN` tokens can come in phase 2.
+A heading hook gives `### D3: ...` the stable id `d3`, so a decision can be cited as /enhancements/0018/decisions/#d3. OQ ids (list items, not headings) and auto-linking of decision-number tokens can come in phase 2.
 
 Every page carries a non-dismissible status banner, marked data-pagefind-ignore. For draft or accepted entries it reads "Design proposal, status draft, delivery not-started: nothing here describes OPM as it works today", with matching wording for delivered, superseded and rejected. This is what keeps the tab within enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction").
 
@@ -178,7 +178,7 @@ Index options: render from config.yaml in templates, which is easy for status, c
 - Do you accept adding enhancements CI (task vet, a relative-link check, INDEX/GRAPH freshness) as a prerequisite, and fixing the 14 broken links (0021/policy, archive/0001, archive/0015 and 0016 INDEX/GRAPH links) first?
 - Where does the manifest record the enhancements ref: a new `[section "enhancements"]` stanza in site/versions.conf, or somewhere outside the versions manifest?
 - Should the dialect contract allow docs pages (direction notes) to link `/enhancements/NNNN/` and `#dN` anchors? The parallel notes work needs a link target now: GitHub URLs until this ships?
-- Stable anchors and auto-linking: should enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction")-style tokens in enhancement prose become links to /enhancements/0018/decisions/#d3 (phase 2), and are the semantic slugs (problem, design, decisions, ...) acceptable as permanent URLs?
+- Stable anchors and auto-linking: should decision-number tokens in enhancement prose become links to /enhancements/0018/decisions/#d3 (phase 2), and are the semantic slugs (problem, design, decisions, ...) acceptable as permanent URLs?
 - Should 0018 gain a decision recording this section (it is a draft, so editable in place), and does the existing enhancement 0018 ("`core/SPEC.md` is not published; the public reference is a projection of its normative spine") rationale ('readers cannot resolve decision numbers') need its wording updated once they can?
 
 # SPIKE

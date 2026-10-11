@@ -34,7 +34,7 @@ Where this file and your change's artifacts disagree, stop and ask the superviso
 - **Scope.**
   - Stay inside your change's scope and "Touches" list.
   - Never add `enhancement.yaml`, even where a repo's propose skill or `openspec/config.yaml` says to write one (O7). Name related 0018 decisions in proposal prose only.
-  - Cite enhancement decisions as enhancement 0018 ("Figures are hand-built inline SVG with one visual language" and "Every page declares one type, a title and a one-line description"), never as a bare `D14`.
+  - Cite an enhancement decision by the enhancement id beside the reason in words, for example enhancement 0018 ("Figures are hand-built inline SVG with one visual language"), never as a bare `D14`.
 
 ## 2. The change set
 
@@ -102,7 +102,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 1. **Config.** Add `openspec/config.yaml` in the house style of cli and catalog_opm: a `context` constitution, `rules` for proposal, design and tasks, and `operations` for apply and archive. Every `rules:` entry must be a plain string; a mapping entry silently disables that artifact's rules. The text says:
    - the theme is Hextra, vendored as files;
    - the gates are `task check`, `task build`, `task test:site` and `task qa`;
-   - 0021:OQ15 is an open question;
+   - Documentation versioning is an open question (enhancement 0021);
    - no npm on the host.
 2. **Schema.** Add `openspec/schemas/docs-site-change/`, copied from `catalog_opm/openspec/schemas/catalog-change/` (read it from catalog_opm's `origin/main`, for example with `git -C WS/catalog_opm show origin/main:<path>`, because the main checkout is stale). Remove the CUE wording and rename `name: catalog-change` to `name: docs-site-change`. It holds proposal, design and tasks, and no specs.
 3. **Skills.** Add `.claude/skills/openspec-*`, copied from catalog_opm's `origin/main`.
@@ -165,8 +165,8 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 
 0018 is `draft`, so its decisions are revised in place, with no `Amends:` line. Follow the enhancements repo's `AGENTS.md` and its `enhancements` skill.
 
-1. **D14 decision body** (`0018/03-decisions.md`): "A figure on the site is an Astro component in the site engine ... and a page in any repository uses it through the site's import alias for components" becomes "A figure on the site is a figure component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the engine's figure shortcode". Everything else in D14 stays.
-2. **D14 alternatives.** "the site build copies only Markdown and MDX files" becomes "copies only Markdown files". Keep the astro-d2 rejection evidence as it is.
+1. **Decision body of the figure rule** (`0018/03-decisions.md`): "A figure on the site is an Astro component in the site engine ... and a page in any repository uses it through the site's import alias for components" becomes "A figure on the site is a figure component in the site engine that draws inline SVG by hand, and a page in any repository uses it through the engine's figure shortcode". Everything else in that decision stays.
+2. **Alternatives of the figure rule.** "the site build copies only Markdown and MDX files" becomes "copies only Markdown files". Keep the astro-d2 rejection evidence as it is.
 3. **`0018/README.md:103`.** Replace the whole bullet body. "**Site presentation.** The site generator, theme, search and styling. The site is built with Astro and Starlight; how it looks is not this entry's to decide." becomes "**Site presentation.** The site generator, theme, search and styling are not this entry's to decide."
 4. **Section.** One. Commit `docs(0018): make the figure decision engine-neutral`.
 5. **Touches.** `0018/03-decisions.md`, `0018/README.md`.
@@ -269,7 +269,7 @@ for dir in "$@"; do
       *.mdx) echo "$f:0: MDX file; rename to .md and replace components with {{< opm/... >}} shortcodes" >> "$out"; continue ;;
       index.md|*/index.md) echo "$f:0: index.md is a leaf bundle in Hugo; a section page is _index.md" >> "$out" ;;
       *.md) ;;
-      *) echo "$f:0: not a page; docs/site holds only .md files (no images or data, 0018:D14)" >> "$out"; continue ;;
+      *) echo "$f:0: not a page; docs/site holds only .md files (no images or data, enhancement 0018)" >> "$out"; continue ;;
     esac
     if ! printf '%s\n' "$rel" | grep -Eq '^([a-z0-9]+(-[a-z0-9]+)*/)*(_index|index|[a-z0-9]+(-[a-z0-9]+)*)\.md$'; then
       echo "$f:0: file and directory names are lower-case kebab-case (a-z, 0-9, -)" >> "$out"
@@ -325,7 +325,7 @@ for dir in "$@"; do
       /^[ \t]*>[ \t]*\[!/ {
         if ($0 !~ /^> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/) err(NR, "alert marker must be exactly \"> [!NOTE]\" (or TIP, IMPORTANT, WARNING, CAUTION) alone on its line")
       }
-      /!\[/ || /<[Ii][Mm][Gg][ \t>\/]/ { err(NR, "image; docs/site pages carry no images (0018:D14)") }
+      /!\[/ || /<[Ii][Mm][Gg][ \t>\/]/ { err(NR, "image; docs/site pages carry no images (enhancement 0018)") }
       /[Hh][Rr][Ee][Ff][ \t]*=|[Ss][Rr][Cc][ \t]*=/ { err(NR, "raw HTML link or source; write a Markdown link [text](/docs/<section>/<page>/)") }
       /^ ? ? ?\[[^]^][^]]*\]:/ {
         t = $0; sub(/^ ? ? ?\[[^]]+\]:[ \t]*/, "", t); sub(/[ \t].*$/, "", t); sub(/^</, "", t); sub(/>$/, "", t)
@@ -346,7 +346,7 @@ for dir in "$@"; do
         if (LEAF == 1) {
           if (!("type" in val)) err(1, "missing type (tutorial, how-to, explanation or reference)")
           else { t = unq(val["type"]); if (t !~ /^(tutorial|how-to|explanation|reference)$/) err(line["type"], "invalid type \"" t "\"") }
-        } else if ("type" in val) err(line["type"], "a section overview (_index.md) declares no type (0018:D7)")
+        } else if ("type" in val) err(line["type"], "a section overview (_index.md) declares no type (enhancement 0018)")
         if ("weight" in val) { w = unq(val["weight"]); if (w !~ /^[1-9][0-9]*$/) err(line["weight"], "weight must be a positive integer") }
       }' "$f" >> "$out"
   done < "$out.files"

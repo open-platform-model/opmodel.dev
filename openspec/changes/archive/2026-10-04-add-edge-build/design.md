@@ -21,7 +21,7 @@ Files under `site/` touched: `scripts/edge-config.sh` (new), `scripts/run-in-ima
 **Non-Goals:**
 
 - A published `/edge/` docs version (Decision 2 says why, and what it would need).
-- Changing what v1.0 publishes, or 0021:OQ15.
+- Changing what v1.0 publishes, or documentation versioning (enhancement 0021).
 
 ## Decisions
 

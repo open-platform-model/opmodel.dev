@@ -128,6 +128,6 @@ Gates, run on the whole worktree at every section end:
   - `surface`: design.md's Interface section.
   - `deviations`: whatever the spike changed.
   - `gates`: every command of 1.5, 2.10 and 3.5.
-  - `questions`: the Pages state from 1.1, if it differed, and the owner's acceptance of publishing every page as it is (0018:OQ15, proposal), which the pull request body must record before the merge.
+  - `questions`: the Pages state from 1.1, if it differed, and the owner's acceptance of publishing every page as it is (enhancement 0018, what a page must hold before the site is published; see the proposal), which the pull request body must record before the merge.
   - Then STOP and wait. The owner reviews and merges this change, and the merge deploys. After it, the supervisor checks the first deploy with README "GitHub Pages (interim)".
 - [x] 4.3 Only on the supervisor's go: tick this box, then run `cd <wt> && openspec archive publish-interim-github-pages --yes --skip-specs`, then `cd <wt> && openspec validate --all --strict --no-interactive`. When both are green, stage `openspec/changes/archive/<date>-publish-interim-github-pages` and the removed `openspec/changes/publish-interim-github-pages` by explicit path, and commit `chore(openspec): archive publish-interim-github-pages`. Pushing and the pull request follow orchestration.md section 7, step 7, outside this file. The pull request title, which becomes the squash commit on `main`, is `ci: deploy the site to github pages for now`.

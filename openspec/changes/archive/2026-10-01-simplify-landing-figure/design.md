@@ -97,7 +97,7 @@ Without a caption, the 372 x 472 drawing at the 26rem (416 px) column width is a
 
 ## Risks / Trade-offs
 
-- [The landing figure has no visible caption, so a sighted reader gets no one-line statement of its point (a departure from 0018:D14's caption clause)] -> The owner asked for no explanation text; the claim stays the accessible label, and the hero links to Start here, whose ModuleToCluster keeps its caption.
+- [The landing figure has no visible caption, so a sighted reader gets no one-line statement of its point (a departure from the caption clause that enhancement 0018 sets for figures)] -> The owner asked for no explanation text; the claim stays the accessible label, and the hero links to Start here, whose ModuleToCluster keeps its caption.
 - [`caption: false` could spread to docs figures] -> The frame's comment and README say page-dialect figures never pass it.
 - [The "Kubernetes objects" bar hides which kinds land] -> The chips name the kinds one row up; the docs figures show them per object.
 - [A future hero change could push the feature cards below the fold] -> `shots.py` `LANDING_FOLD` fails the QA run when they start below 900 px at 1280 or 1440 wide, and the 9 px text floor covers the phone.

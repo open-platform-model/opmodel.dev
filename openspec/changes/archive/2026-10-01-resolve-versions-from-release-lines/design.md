@@ -55,7 +55,7 @@ The build gains six `git archive` trees for `v1.0` (`.versions/v1.0/<repo>/`) in
 - `v1.0` (beta) moves onto line mode. The `source = main` and explicit modes stay for tests and local live editing.
 
 **Non-Goals:**
-- Settling 0021:OQ15. The site shows the core the cli pins, as before.
+- Settling how documentation is versioned (enhancement 0021). The site shows the core the cli pins, as before.
 - Cutting, creating or protecting release branches, or any release automation (Phase 2 in the workspace `AGENTS.md`).
 - A cross-repository dispatch (decision 9).
 - Changing where "Edit this page" points for cli, library and opm-operator after GA. A fix to a released line there goes to `release/v1.0`, which needs per-line edit targets. That is a follow-up (Open Questions).
@@ -536,7 +536,7 @@ Every line manifest uses `catalog-line = opm-v1` unless a case says otherwise.
 - Local live editing of source pages is `OPM_VERSIONS=v1.0=/src task serve`, because a line version serves archives. -> README "Site versions" and `AGENTS.md` "Build And Dev Commands".
 - The nightly run is how a new release reaches the site. There is no cross-repository dispatch, and `gh workflow run Site --ref main` publishes at once. The non-publishing `sources-main` job checks every source repository's `main` in explicit mode. -> README "CI" ("Source repositories") and the `site.yml` cron comment.
 - Never sort release tags with `sort -V` or plain `--sort=-v:refname`. -> A comment at `semver_max` in `resolve-versions.sh`; stays with the change.
-- 0021:OQ15 stays open. -> Already in `openspec/config.yaml` "Site Versions"; stays with the change.
+- Documentation versioning stays an open question (enhancement 0021). -> Already in `openspec/config.yaml` "Site Versions"; stays with the change.
 
 ## Open Questions
 
