@@ -199,7 +199,7 @@ Read these on entry:
 - `task versions:test` — a two-version build (v1.0 from the docs bundles of the last `task bundles:pull`, which must have run; a test v0.9 from the fixture docs bundles) into `site/.check/versions-test/` (never `site/public/`) and its assertions.
 - `task clean` — remove generated files.
 - `task cite-lint`: the comment rule of the enhancements repo (`enh cite-lint` at the commit `CITE_LINT_REF` in the Taskfile, with no exclude; needs the network and a host Go toolchain, so it is not part of `task check` or `task ci`). CI runs the same rule in the `Cite lint` job of `site.yml`, a plain call of the reusable `cite-lint.yml` of the `.github` repo; keep `CITE_LINT_REF` equal to that workflow's `enh-ref` default at each `.github` pin move, and put an exclude in both places with a reason.
-- `task check`: `openspec:check`, `openspec validate --all --strict --no-interactive`, then `.tasks/openspec-check.sh` (every active change's design has a Durable decisions section that is `None.` or names a target, and each root file it names exists) and its test `.tasks/openspec-check-test.sh`.
+- `task check`: `openspec:check`: `openspec validate --all --strict --no-interactive`, then `.tasks/openspec-check.sh` (every active change's design has a Durable decisions section that is `None.` or names a target, and each root file it names exists) and its test `.tasks/openspec-check-test.sh`.
 
 ## Coding Standards
 
