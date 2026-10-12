@@ -53,7 +53,7 @@ jobs:
     name: Cite lint
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-cite-lint
-      cancel-in-progress: true
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     permissions:
       contents: read
     uses: open-platform-model/.github/.github/workflows/cite-lint.yml@2b66da51fede4332969c324b069012632d8edea9 # .github main
