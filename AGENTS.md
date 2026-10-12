@@ -198,7 +198,8 @@ Read these on entry:
 - `task bundles:pull` — `opm-docs pull` in the build image: resolve, verify, lint and unpack the docs bundles of `site/bundles.cue` (each site version's docs projects, the Catalogs tab, the Enhancements section) into `site/.bundles/` with `lock.json` (network; `OPM_BUNDLES_LOCAL="<project>@<segment>=<dir> ..."` takes local bundle trees, all local means no network; `OPM_BUNDLES_FROZEN=<lock>` or a committed `site/bundles.frozen.json` pins the digests). `task build` never pulls and fails without a current lock; a local build after a release is `task bundles:pull build`.
 - `task versions:test` — a two-version build (v1.0 from the docs bundles of the last `task bundles:pull`, which must have run; a test v0.9 from the fixture docs bundles) into `site/.check/versions-test/` (never `site/public/`) and its assertions.
 - `task clean` — remove generated files.
-- `task check` — `openspec:check`.
+- `task cite-lint` — the comment rule of the enhancements repo (`enh cite-lint` at the commit `CITE_LINT_REF` in the Taskfile, with no exclude; needs the network and a host Go toolchain, so it is not part of `task check` or `task ci`). CI runs the same rule in the `Cite lint` job of `site.yml`, a plain call of the reusable `cite-lint.yml` of the `.github` repo; keep `CITE_LINT_REF` equal to that workflow's `enh-ref` default at each `.github` pin move, and put an exclude in both places with a reason.
+- `task check` — `openspec:check`: `openspec validate --all --strict --no-interactive`, then `.tasks/openspec-check.sh` (every active change's design has a Durable decisions section that is `None.` or names a target, and each root file it names exists) and its test `.tasks/openspec-check-test.sh`.
 
 ## Coding Standards
 

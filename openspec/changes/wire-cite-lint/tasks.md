@@ -12,5 +12,5 @@
 
 ## 3. Durable decisions
 
-- [ ] 3.1 Land the decisions of design.md in `AGENTS.md` and `README.md`
-- [ ] 3.2 `task check` green, then commit `docs: list task cite-lint, the Cite lint job and the durable decisions check`
+- [x] 3.1 Land the decisions of design.md in `AGENTS.md` and `README.md`
+- [x] 3.2 `task check` green, then commit `docs: list task cite-lint, the Cite lint job and the durable decisions check`
