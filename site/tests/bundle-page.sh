@@ -10,10 +10,6 @@
 #                                  history, and their trees (a build with no Catalogs section)
 #   add_version B NAME             copy v1.0's docs bundles as site version NAME: the trees under
 #                                  _versions/NAME/ and the lock's docs entries with site NAME
-#   use_enhancements_v2 B V2DIR    replace the Enhancements section bundle (enhancements/edge/) with
-#                                  the schema v2 fixture V2DIR (fixtures/bundles-v2/enhancements/edge,
-#                                  built by docs-kit's OpenSpec reader; the pinned opm-docs cannot
-#                                  re-pull it) and set the lock's commit to the one it was built from
 
 add_page() {
   _d=$1/_versions/v1.0/$2
@@ -43,11 +39,4 @@ add_version() {
   cp -R "$1/_versions/v1.0" "$1/_versions/$2"
   jq --arg v "$2" '.docs += [.docs[] | select(.site == "v1.0") | .site = $v | .dir = ("_versions/" + $v + "/" + .project)]' \
     "$1/lock.json" > "$1/lock.tmp" && mv "$1/lock.tmp" "$1/lock.json"
-}
-
-use_enhancements_v2() {
-  rm -rf "${1:?}/enhancements/edge"
-  cp -R "$2" "$1/enhancements/edge"
-  _c=$(jq -r '.source.commit' "$2/manifest.json")
-  jq --arg c "$_c" '(.bundles[] | select(.root == "/enhancements/") | .commit) = $c' "$1/lock.json" > "$1/lock.tmp" && mv "$1/lock.tmp" "$1/lock.json"
 }

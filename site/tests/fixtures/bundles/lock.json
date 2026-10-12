@@ -46,7 +46,7 @@
       "local": true,
       "version": "edge",
       "revision": 0,
-      "commit": "eddf92c16f02dddf146a6068b38a6ae03f1c4f77",
+      "commit": "590eb85c71e4e17d287c3d6ced8544ccc4bbde92",
       "dialect": 1,
       "builtBy": "0.9.0",
       "dir": "enhancements/edge"

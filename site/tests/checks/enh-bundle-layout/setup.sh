@@ -1,4 +1,4 @@
 #!/bin/sh
-# data/enhancements.json is schema v2, but an entry names no layout.
+# data/enhancements.json is schema v2, but no entry names a layout.
 d=$SITE/.bundles/enhancements/edge/data/enhancements.json
-jq '.schema = "docs.opmodel.dev/data/enhancements/v2"' "$d" > "$d.tmp" && mv "$d.tmp" "$d"
+jq 'del(.entries[].layout)' "$d" > "$d.tmp" && mv "$d.tmp" "$d"

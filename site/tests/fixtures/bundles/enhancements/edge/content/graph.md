@@ -5,9 +5,10 @@ type: explanation
 weight: 1
 ---
 
-## Overview
-
 ```mermaid
 graph LR
-  e0001["0001 Fixture Live Entry"] --> e0002["0002 Fixture Archived Entry"]
+  E0025["0025"] --> E0003["0003"]
+  E0001["0001"] --> E0002["0002"]
 ```
+
+Back to [the index](/enhancements/).
