@@ -25,19 +25,11 @@
 #                                              unless the result is byte-identical, then every
 #                                              site copy holds that pulled tree as .bundles/,
 #                                              with tests/fixtures/bundles.cue as bundles.cue
-#   site/tests/fixtures/ws/enhancements/       a small enhancements repository (a live
-#                                              entry, an archived one and the 0000
-#                                              template), the source of the section
-#                                              bundle fixture; no build reads it
-#   site/tests/fixtures/bundles-v2/enhancements/edge/
-#                                              the Enhancements section bundle as docs-kit's
-#                                              OpenSpec reader writes it (data schema v2),
-#                                              built from fixtures/ws/enhancements-v2/ by
-#                                              regen-enhancements-v2.sh with a newer opm-docs
-#                                              than the pinned one, which cannot re-pull it:
-#                                              the enhancements-v2 cases lay it over the
-#                                              pulled fixture (bundle-page.sh
-#                                              use_enhancements_v2) and set the lock's commit
+#   site/tests/fixtures/ws/enhancements/       a small enhancements repository in the
+#                                              OpenSpec layout (changes, archived changes,
+#                                              main specs) plus archived legacy entries
+#                                              (0001, 0002, 0003, 0025), the source of the
+#                                              section bundle fixture; no build reads it
 #   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library,
 #                                              opm-operator, opm and catalog-opm-docs (manifest
 #                                              version edge), pulled offline under the derived
@@ -180,8 +172,9 @@ else
   BUNDLES=$TESTS/fixtures/bundles
 fi
 # enh-fixture-regen: the Enhancements section fixture is exactly what the
-# pinned opm-docs builds from ws/enhancements (tests/fixtures/regen-enhancements.sh,
-# offline), so no hand edit can drift it from docs-kit C21.
+# pinned opm-docs builds from ws/enhancements, plus the progress step of
+# tests/fixtures/regen-enhancements.sh (offline), so no hand edit can drift it
+# from docs-kit C21.
 if sh "$TESTS/fixtures/regen-enhancements.sh" "$OUT/enh-regen" > "$OUT/enh-regen.log" 2>&1 &&
    diff -r "$TESTS/fixtures/bundles/enhancements/edge" "$OUT/enh-regen" >> "$OUT/enh-regen.log" 2>&1; then
   ok "enhancements/fixture-regen" "opm-docs $(opm-docs version | cut -d' ' -f2) rebuilds bundles/enhancements/edge/ from ws/enhancements byte-identical"
@@ -392,8 +385,8 @@ if [ $rc -eq 0 ]; then
   log=$OUT/$name/log
   if [ -f "$E/index.html" ] && [ -f "$E/graph/index.html" ] && [ -f "$E/0001/decisions/index.html" ] &&
      [ -f "$E/0002/questions/index.html" ] && [ ! -e "$E/0000" ] && [ ! -e "$P/enhancements" ] &&
-     grep -qF 'enhancements: 18 pages expected, 18 built' "$log"; then
-    ok "enhancements/pages" "the section page, the graph, two entries with seven documents each, keyed by id (archive/0002 at /enhancements/0002/); no 0000 template, nothing under /v1.0/"
+     grep -qF 'enhancements: 60 pages expected, 66 built' "$log"; then
+    ok "enhancements/pages" "the section page, the graph, every entry keyed by id (archive/0002 at /enhancements/0002/), 60 pages; nothing under /v1.0/"
   else bad "enhancements/pages" "the section's page set is wrong" "$log"; fi
 
   why=""
@@ -410,8 +403,8 @@ if [ $rc -eq 0 ]; then
   for want in 'href=/enhancements/0001/design/>the design document' 'href=/enhancements/0001/decisions/#d1>D1' \
     'href=/enhancements/0002/>the archived entry' 'href=/enhancements/>the index' 'href=/enhancements/graph/>the relationship graph' \
     'href=/enhancements/0001/decisions/>0001: Decisions' \
-    'href=https://github.com/open-platform-model/enhancements/blob/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas/target.cue' \
-    'href=https://github.com/open-platform-model/enhancements/tree/eddf92c16f02dddf146a6068b38a6ae03f1c4f77/0001/schemas' \
+    'href=https://github.com/open-platform-model/enhancements/blob/590eb85c71e4e17d287c3d6ced8544ccc4bbde92/archive/0001/schemas/target.cue' \
+    'href=https://github.com/open-platform-model/enhancements/tree/590eb85c71e4e17d287c3d6ced8544ccc4bbde92/archive/0001/schemas' \
     'href=/v1.0/docs/start/>the start section'; do
     printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }missing: $want"
   done
@@ -452,25 +445,22 @@ if [ $rc -eq 0 ]; then
   printf '%s' "$r" | grep -qF '<div class=opm-enh-diagram tabindex=0 role=region aria-label=Diagram><pre class=mermaid>' || why="no focusable diagram scroller"
   printf '%s' "$r" | grep -qF '%%{init: {&#34;flowchart&#34;: {&#34;useMaxWidth&#34;: false}' || why="${why:+$why; }no useMaxWidth false directive"
   printf '%s' "$r" | grep -qE '<script defer src=/lib/mermaid/mermaid\.min\.581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8\.js integrity=sha256-[^ ]+ crossorigin=anonymous>' || why="${why:+$why; }the page does not load the pinned Mermaid with SRI"
-  others=$(find "$OUT/$name/site/public" -name '*.html' -exec grep -lF 'lib/mermaid/' {} + | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html")
+  others=$(find "$OUT/$name/site/public" -name '*.html' -exec grep -lF 'lib/mermaid/' {} + | grep -vxF "$E/0001/index.html" | grep -vxF "$E/graph/index.html" | grep -vxF "$E/0026/design/index.html")
   [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
   if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
   else bad "enhancements/diagrams" "$why"; fi
 fi
 
 # ---------------------------------------------------------------------------
-# The Enhancements section from a schema v2 bundle (docs-kit C21): the same
-# site over tests/fixtures/bundles-v2/enhancements/edge (built by docs-kit's
-# OpenSpec reader from ws/enhancements-v2; regen-enhancements-v2.sh), which
-# the pinned opm-docs cannot re-pull, so the case lays it over the pulled
-# fixture and sets the lock's commit. An accepted entry shows its progress,
+# The Enhancements section from the OpenSpec-layout entries of the fixture
+# bundle (docs-kit C21, schema v2): the same site plus a page that links retired
+# slugs. An accepted entry shows its progress,
 # the commit it was accepted at, "breaking" and what it comes after; a
 # superseded one names every entry that replaced it; a withdrawn one has its
 # own banner; the new pages, the capability pages and the redirect stubs of a
 # migrated entry's retired slugs exist.
-ev2=enhancements-v2
+ev2=enhancements-openspec
 copy_site "$ev2"
-use_enhancements_v2 "$OUT/$ev2/site/.bundles" "$TESTS/fixtures/bundles-v2/enhancements/edge"
 # A site-owned page that still links two slugs the migration retired, one with
 # an anchor of the old page.
 mkdir -p "$OUT/$ev2/site/content/docs/retired-links"
@@ -484,7 +474,7 @@ See [the old problem page](/enhancements/0026/problem/) and [an old decision](/e
 MD
 build "$ev2"; ev2rc=$?
 ev2log=$OUT/$ev2/log
-if [ $ev2rc -eq 0 ]; then ok "$ev2" "the site builds over the schema v2 bundle"; else bad "$ev2" "the schema v2 build failed (exit $ev2rc)" "$ev2log"; fi
+if [ $ev2rc -eq 0 ]; then ok "$ev2" "the site builds over the OpenSpec-layout entries"; else bad "$ev2" "the OpenSpec-layout build failed (exit $ev2rc)" "$ev2log"; fi
 
 if [ $ev2rc -eq 0 ]; then
   E2=$OUT/$ev2/site/public/enhancements
@@ -495,9 +485,9 @@ if [ $ev2rc -eq 0 ]; then
     [ -f "$E2/$f" ] || why="${why:+$why; }no $f"
   done
   [ ! -e "$OUT/$ev2/site/public/v1.0/enhancements" ] || why="${why:+$why; }the section published under /v1.0/"
-  grep -qF 'enhancements: 44 pages expected, 50 built' "$ev2log" || why="${why:+$why; }the page-set line differs"
+  grep -qF 'enhancements: 60 pages expected, 66 built' "$ev2log" || why="${why:+$why; }the page-set line differs"
   grep -qF 'enhancements: 6 alias stubs expected' "$ev2log" || why="${why:+$why; }the stub count line differs"
-  if [ -z "$why" ]; then ok "$ev2/pages" "an entry has proposal, design, requirements and tasks pages; a legacy entry its seven; the capability pages; 44 pages and 6 redirect stubs"
+  if [ -z "$why" ]; then ok "$ev2/pages" "an entry has proposal, design, requirements and tasks pages; a legacy entry its seven; the capability pages; 60 pages and 6 redirect stubs"
   else bad "$ev2/pages" "$why" "$ev2log"; fi
 
   why=""
@@ -739,7 +729,7 @@ if [ $rc -eq 0 ]; then
   hd=sha256:$(sha256sum "$BUNDLES/catalog-opm/history.json" | cut -c1-64)
   if [ "$got" = "bundles false true catalog-opm/4.5/4.5.0/true,catalog-opm/4.4/4.4.5/true,catalog-opm/edge/edge/true" ] &&
      [ "$(jq -r '.sections.catalogs.history | map("\(.project) \(.digest)") | join(",")' "$st")" = "catalog-opm $hd" ] &&
-     [ "$(jq -r '.sections.enhancements | "\(.ref) \(.sha) \(.local)"' "$st")" = "edge eddf92c16f02dddf146a6068b38a6ae03f1c4f77 true" ]; then
+     [ "$(jq -r '.sections.enhancements | "\(.ref) \(.sha) \(.local)"' "$st")" = "edge 590eb85c71e4e17d287c3d6ced8544ccc4bbde92 true" ]; then
     ok "catalogs/stamp" "build-stamp.json's sections.catalogs records from, not frozen, the lock digest, every bundle (local) and the history digest; sections.enhancements names the section bundle (edge, its commit, local)"
   else bad "catalogs/stamp" "sections.catalogs is \"$got\"" "$st"; fi
 fi

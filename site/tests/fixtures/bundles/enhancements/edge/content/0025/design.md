@@ -8,7 +8,7 @@ weight: 2
 ## Overview
 
 The decisions are in [0025: Decisions](/enhancements/0025/decisions/#d11), and the target schema in
-[schemas/target.cue](https://github.com/open-platform-model/enhancements/blob/a756cff52c55e8ee2a93d1bebbf26f0a1518268c/archive/0025/schemas/target.cue).
+[schemas/target.cue](https://github.com/open-platform-model/enhancements/blob/590eb85c71e4e17d287c3d6ced8544ccc4bbde92/archive/0025/schemas/target.cue).
 
 ```text
 plain text, untagged

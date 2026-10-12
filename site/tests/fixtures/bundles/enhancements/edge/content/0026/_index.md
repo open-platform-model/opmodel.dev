@@ -15,7 +15,7 @@ Let a platform admit a catalog path with a version range, and let each module's 
 | 1 | [0026: Proposal](/enhancements/0026/proposal/) | What changes and why | 2 min |
 | 2 | [0026: Design](/enhancements/0026/design/) | How it works, and why this way | 6 min |
 | 3 | [specs/](/enhancements/0026/requirements/) | Exactly what must hold | as needed |
-| 4 | [evidence/](https://github.com/open-platform-model/enhancements/tree/a756cff52c55e8ee2a93d1bebbf26f0a1518268c/openspec/changes/0026-module-dictated-catalog-versions/evidence) | The proof behind a claim | as needed |
+| 4 | [evidence/](https://github.com/open-platform-model/enhancements/tree/590eb85c71e4e17d287c3d6ced8544ccc4bbde92/openspec/changes/0026-module-dictated-catalog-versions/evidence) | The proof behind a claim | as needed |
 
 ## Progress
 

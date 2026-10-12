@@ -5,11 +5,11 @@
   "revision": 0,
   "source": {
     "repo": "open-platform-model/enhancements",
-    "commit": "eddf92c16f02dddf146a6068b38a6ae03f1c4f77",
+    "commit": "590eb85c71e4e17d287c3d6ced8544ccc4bbde92",
     "ref": "main"
   },
   "created": "2026-09-20T12:00:00Z",
-  "tool": "0.7.1",
+  "tool": "0.9.0",
   "dialect": 1,
   "placement": {
     "kind": "section",
@@ -18,49 +18,49 @@
   "pages": [
     {
       "path": "0001/_index.md",
-      "source": "0001/README.md",
+      "source": "archive/0001/README.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/decisions.md",
-      "source": "0001/03-decisions.md",
+      "source": "archive/0001/03-decisions.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/design.md",
-      "source": "0001/02-design.md",
+      "source": "archive/0001/02-design.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/graduation.md",
-      "source": "0001/04-graduation.md",
+      "source": "archive/0001/04-graduation.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/operational.md",
-      "source": "0001/06-operational.md",
+      "source": "archive/0001/06-operational.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/problem.md",
-      "source": "0001/01-problem.md",
+      "source": "archive/0001/01-problem.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/questions.md",
-      "source": "0001/07-questions.md",
+      "source": "archive/0001/07-questions.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
     {
       "path": "0001/risks.md",
-      "source": "0001/05-risks.md",
+      "source": "archive/0001/05-risks.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
@@ -113,8 +113,256 @@
       "generated": true
     },
     {
+      "path": "0003/_index.md",
+      "source": "archive/0003/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/decisions.md",
+      "source": "archive/0003/03-decisions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/design.md",
+      "source": "archive/0003/02-design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/graduation.md",
+      "source": "archive/0003/04-graduation.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/operational.md",
+      "source": "archive/0003/06-operational.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/problem.md",
+      "source": "archive/0003/01-problem.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/questions.md",
+      "source": "archive/0003/07-questions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0003/risks.md",
+      "source": "archive/0003/05-risks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/_index.md",
+      "source": "archive/0025/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/decisions.md",
+      "source": "archive/0025/03-decisions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/design.md",
+      "source": "archive/0025/02-design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/graduation.md",
+      "source": "archive/0025/04-graduation.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/operational.md",
+      "source": "archive/0025/06-operational.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/problem.md",
+      "source": "archive/0025/01-problem.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/questions.md",
+      "source": "archive/0025/07-questions.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0025/risks.md",
+      "source": "archive/0025/05-risks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0026/_index.md",
+      "source": "openspec/changes/0026-module-dictated-catalog-versions/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0026/design.md",
+      "source": "openspec/changes/0026-module-dictated-catalog-versions/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0026/proposal.md",
+      "source": "openspec/changes/0026-module-dictated-catalog-versions/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0026/requirements.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0026/tasks.md",
+      "source": "openspec/changes/0026-module-dictated-catalog-versions/tasks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0040/_index.md",
+      "source": "openspec/changes/archive/2026-10-21-0040-fixture-delivered/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0040/design.md",
+      "source": "openspec/changes/archive/2026-10-21-0040-fixture-delivered/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0040/proposal.md",
+      "source": "openspec/changes/archive/2026-10-21-0040-fixture-delivered/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0040/requirements.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0040/tasks.md",
+      "source": "openspec/changes/archive/2026-10-21-0040-fixture-delivered/tasks.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0041/_index.md",
+      "source": "openspec/changes/archive/2026-10-22-0041-fixture-rejected/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0041/design.md",
+      "source": "openspec/changes/archive/2026-10-22-0041-fixture-rejected/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0041/proposal.md",
+      "source": "openspec/changes/archive/2026-10-22-0041-fixture-rejected/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0041/requirements.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0042/_index.md",
+      "source": "openspec/changes/0042-fixture-no-specs/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0042/design.md",
+      "source": "openspec/changes/0042-fixture-no-specs/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0042/proposal.md",
+      "source": "openspec/changes/0042-fixture-no-specs/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0043/_index.md",
+      "source": "openspec/changes/archive/2026-10-23-0043-fixture-withdrawn/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0043/design.md",
+      "source": "openspec/changes/archive/2026-10-23-0043-fixture-withdrawn/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0043/proposal.md",
+      "source": "openspec/changes/archive/2026-10-23-0043-fixture-withdrawn/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0044/_index.md",
+      "source": "openspec/changes/archive/2026-10-24-0044-fixture-superseded/README.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0044/design.md",
+      "source": "openspec/changes/archive/2026-10-24-0044-fixture-superseded/design.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "0044/proposal.md",
+      "source": "openspec/changes/archive/2026-10-24-0044-fixture-superseded/proposal.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
       "path": "_index.md",
       "source": "INDEX.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "capabilities/_index.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "capabilities/registration-acceptance.md",
+      "source": "openspec/specs/registration-acceptance/spec.md",
+      "lastmod": "2026-09-20T12:00:00Z",
+      "generated": true
+    },
+    {
+      "path": "capabilities/single-build-render.md",
+      "source": "openspec/specs/single-build-render/spec.md",
       "lastmod": "2026-09-20T12:00:00Z",
       "generated": true
     },
@@ -128,7 +376,7 @@
   "data": [
     {
       "path": "enhancements.json",
-      "schema": "docs.opmodel.dev/data/enhancements/v1"
+      "schema": "docs.opmodel.dev/data/enhancements/v2"
     }
   ]
 }
