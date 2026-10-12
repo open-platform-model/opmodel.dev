@@ -6,9 +6,9 @@
 
 ## 2. OpenSpec CLI and durable decisions check
 
-- [ ] 2.1 Move the CLI pin to 1.14.1 in `site.yml`, `Taskfile.yml`, `openspec/config.yaml`, `README.md`; `openspec validate --all --strict --no-interactive` green
-- [ ] 2.2 `.tasks/openspec-check.sh` and its test script; `openspec:check` runs both
-- [ ] 2.3 `task check` green, then commit `ci(deps): move the OpenSpec CLI pin to 1.14.1` and `ci: check the durable decisions of every active change`
+- [x] 2.1 Move the CLI pin to 1.14.1 in `site.yml`, `Taskfile.yml`, `openspec/config.yaml`, `README.md`; `openspec validate --all --strict --no-interactive` green
+- [x] 2.2 `.tasks/openspec-check.sh` and its test script; `openspec:check` runs both
+- [x] 2.3 `task check` green, then commit `ci(deps): move the OpenSpec CLI pin to 1.14.1 and check the durable decisions of every active change`
 
 ## 3. Durable decisions
 

@@ -42,7 +42,7 @@ context: |
   no gate keeps honest, so this OpenSpec workspace deliberately has no specs artifact.
   - There is no `openspec/specs/` directory and no delta specs. Every change's `.openspec.yaml`
     carries `skip_specs: true`; the author writes it when the change is created
-    (`rules.proposal` requires it; the pinned OpenSpec 1.12.0 does not write it). Never create a `specs/` directory inside a change.
+    (`rules.proposal` requires it; the pinned OpenSpec 1.14.1 writes it for this schema). Never create a `specs/` directory inside a change.
   - The proposal's **Before / After** block (the config keys or the directory tree) is where
     the intended result is reviewed before code exists. Write it as config or a tree, not
     prose.

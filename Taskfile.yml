@@ -206,13 +206,18 @@ tasks:
 
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.
+  # The second and third commands check the Durable decisions section of every
+  # active change (each names a target and the root files it names exist) and
+  # test that check. CI runs them through task ci, which calls task check.
   openspec:check:
-    desc: Validate every active OpenSpec change under strict mode
+    desc: Validate every active OpenSpec change under strict mode, check that each declares its durable decisions, and test that check
     preconditions:
       - sh: command -v openspec >/dev/null
-        msg: "openspec not found on PATH: install the OpenSpec CLI 1.12.0 (@fission-ai/openspec)"
+        msg: "openspec not found on PATH: install the OpenSpec CLI 1.14.1 (@fission-ai/openspec)"
     cmds:
       - openspec validate --all --strict --no-interactive
+      - bash .tasks/openspec-check.sh .
+      - bash .tasks/openspec-check-test.sh
 
   check:
     desc: Run all checks (openspec)
