@@ -1,5 +1,10 @@
 version: '3'
 
+vars:
+  # The commit of open-platform-model/enhancements that holds the enh tool; the
+  # enh-ref default of the .github cite-lint.yml that site.yml calls.
+  CITE_LINT_REF: e0335b2ec44e659c0191bc3523d79d17f26f8e7d
+
 tasks:
   default:
     desc: Show available tasks
@@ -185,15 +190,34 @@ tasks:
     cmds:
       - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/ site/.edge/
 
+  # The comment rule: a comment names an enhancement by id only beside a reason
+  # in words, never by decision number. The shared check of the enhancements
+  # repo; CI runs the same rule through the Cite lint job of
+  # .github/workflows/site.yml, which calls the reusable cite-lint.yml of the
+  # .github repo. That workflow holds the tool commit as its enh-ref default:
+  # keep CITE_LINT_REF equal to it (compare at each .github pin move). No
+  # excludes, here or in the CI call; an exclude added to one goes into the
+  # other with a reason. Not part of task check or task ci: those run in the
+  # Docker-only flow, and this step needs a host Go toolchain and the network.
+  cite-lint:
+    desc: Fail on a decision number or a lone enhancement id in a Go or CUE comment (enh cite-lint at the pinned commit; needs network for go run)
+    cmds:
+      - go run github.com/open-platform-model/enhancements/tools/enh@{{.CITE_LINT_REF}} cite-lint --root .
+
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.
+  # The second and third commands check the Durable decisions section of every
+  # active change (each names a target and the root files it names exist) and
+  # test that check. CI runs them through task ci, which calls task check.
   openspec:check:
-    desc: Validate every active OpenSpec change under strict mode
+    desc: Validate every active OpenSpec change under strict mode, check that each declares its durable decisions, and test that check
     preconditions:
       - sh: command -v openspec >/dev/null
-        msg: "openspec not found on PATH: install the OpenSpec CLI 1.12.0 (@fission-ai/openspec)"
+        msg: "openspec not found on PATH: install the OpenSpec CLI 1.14.1 (@fission-ai/openspec)"
     cmds:
       - openspec validate --all --strict --no-interactive
+      - bash .tasks/openspec-check.sh .
+      - bash .tasks/openspec-check-test.sh
 
   check:
     desc: Run all checks (openspec)
