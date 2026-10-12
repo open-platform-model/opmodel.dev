@@ -155,10 +155,24 @@ if [ "$mode" = post ]; then
     else
       : > "$tmp/enh.have"
     fi
+    # The redirect stubs of the slugs a migrated entry retired (data schema
+    # v2 aliases; custom/head-end.html): "<stub>\t<target>". They are the
+    # only pages besides the manifest's.
+    jq -r '.entries[] | .aliases[]? | "/enhancements/\(.from)/\t/enhancements/\(.to)/"' "$ENH_DIR/data/enhancements.json" | sort > "$tmp/enh.stubs"
+    cut -f1 "$tmp/enh.stubs" > "$tmp/enh.stubs.urls"
     missing=$(comm -23 "$tmp/enh.want" "$tmp/enh.have")
-    extra=$(comm -13 "$tmp/enh.want" "$tmp/enh.have")
+    sort -u "$tmp/enh.want" "$tmp/enh.stubs.urls" > "$tmp/enh.all"
+    extra=$(comm -13 "$tmp/enh.all" "$tmp/enh.have")
     if [ -n "$missing" ]; then rc=1; echo "Q2 FAIL enhancements: no page built for:"; echo "$missing" | sed 's/^/  /'; fi
     if [ -n "$extra" ]; then rc=1; echo "Q2 FAIL enhancements: unexpected pages:"; echo "$extra" | sed 's/^/  /'; fi
+    stubs=$(while IFS='	' read -r u to; do
+      f="$PUBLIC${u}index.html"
+      if [ ! -f "$f" ]; then echo "  $u: no stub"; continue; fi
+      got=$(grep -oE 'url=[^"> ]+' "$f" | head -n 1 | cut -c5-)
+      [ "$got" = "$BASE_PATH$to" ] || echo "  $u: refreshes to ${got:-nothing}, not $BASE_PATH$to"
+      grep -q 'content="\{0,1\}noindex' "$f" || echo "  $u: no robots noindex"
+    done < "$tmp/enh.stubs")
+    if [ -n "$stubs" ]; then rc=1; echo "REDIRECT FAIL enhancements: alias stubs:"; echo "$stubs"; fi
     stray=""
     [ ! -d "$E" ] || stray=$( (cd "$PUBLIC" && find enhancements -type f ! -path 'enhancements/pagefind/*') | sort | while IFS= read -r f; do
       case "$f" in
@@ -169,6 +183,7 @@ if [ "$mode" = post ]; then
     done)
     if [ -n "$stray" ]; then rc=1; echo "STRAY FAIL enhancements: files that are no known output:"; echo "$stray" | sed 's/^/  /'; fi
     echo "enhancements: $(wc -l < "$tmp/enh.want" | tr -d ' ') pages expected, $(wc -l < "$tmp/enh.have" | tr -d ' ') built"
+    echo "enhancements: $(wc -l < "$tmp/enh.stubs" | tr -d ' ') alias stubs expected"
   elif [ -e "$E" ]; then
     rc=1; echo "Q2 FAIL enhancements: $E exists, but the build has no enhancements section"
   fi

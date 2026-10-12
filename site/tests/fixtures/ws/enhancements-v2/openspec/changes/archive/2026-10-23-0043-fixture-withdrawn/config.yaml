@@ -1,0 +1,17 @@
+id: "0043"
+slug: fixture-withdrawn
+title: Fixture Withdrawn
+summary: >-
+  Fixture Withdrawn, a fixture
+  entry.
+status: withdrawn
+category: runtime
+breaking: false
+affects:
+  - cli
+authors:
+  - someone@example.com
+created: "2026-09-20"
+withdrawn:
+  date: "2026-10-23"
+  reason: A fixture reason.

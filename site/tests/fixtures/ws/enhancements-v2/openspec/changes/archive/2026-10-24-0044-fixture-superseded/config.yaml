@@ -1,0 +1,20 @@
+id: "0044"
+slug: fixture-superseded
+title: Fixture Superseded
+summary: >-
+  Fixture Superseded, a fixture
+  entry.
+status: superseded
+category: runtime
+breaking: false
+affects:
+  - cli
+authors:
+  - someone@example.com
+created: "2026-09-20"
+superseded_by:
+  date: "2026-10-24"
+  ids:
+    - "0026"
+    - "0040"
+  reason: A fixture reason.

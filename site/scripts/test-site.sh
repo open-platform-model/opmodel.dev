@@ -29,6 +29,15 @@
 #                                              entry, an archived one and the 0000
 #                                              template), the source of the section
 #                                              bundle fixture; no build reads it
+#   site/tests/fixtures/bundles-v2/enhancements/edge/
+#                                              the Enhancements section bundle as docs-kit's
+#                                              OpenSpec reader writes it (data schema v2),
+#                                              built from fixtures/ws/enhancements-v2/ by
+#                                              regen-enhancements-v2.sh with a newer opm-docs
+#                                              than the pinned one, which cannot re-pull it:
+#                                              the enhancements-v2 cases lay it over the
+#                                              pulled fixture (bundle-page.sh
+#                                              use_enhancements_v2) and set the lock's commit
 #   site/tests/fixtures/edge/<project>/        edge docs bundles of cli, core, library,
 #                                              opm-operator, opm and catalog-opm-docs (manifest
 #                                              version edge), pulled offline under the derived
@@ -447,6 +456,135 @@ if [ $rc -eq 0 ]; then
   [ -z "$others" ] || why="${why:+$why; }pages without a fence load Mermaid: $others"
   if [ -z "$why" ]; then ok "enhancements/diagrams" "a fence is drawn in a focusable scroller at natural size; only pages with a fence load the pinned Mermaid, with SRI"
   else bad "enhancements/diagrams" "$why"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# The Enhancements section from a schema v2 bundle (docs-kit C21): the same
+# site over tests/fixtures/bundles-v2/enhancements/edge (built by docs-kit's
+# OpenSpec reader from ws/enhancements-v2; regen-enhancements-v2.sh), which
+# the pinned opm-docs cannot re-pull, so the case lays it over the pulled
+# fixture and sets the lock's commit. An accepted entry shows its progress,
+# the commit it was accepted at, "breaking" and what it comes after; a
+# superseded one names every entry that replaced it; a withdrawn one has its
+# own banner; the new pages, the capability pages and the redirect stubs of a
+# migrated entry's retired slugs exist.
+ev2=enhancements-v2
+copy_site "$ev2"
+use_enhancements_v2 "$OUT/$ev2/site/.bundles" "$TESTS/fixtures/bundles-v2/enhancements/edge"
+# A site-owned page that still links two slugs the migration retired, one with
+# an anchor of the old page.
+mkdir -p "$OUT/$ev2/site/content/docs/retired-links"
+cat > "$OUT/$ev2/site/content/docs/retired-links/_index.md" <<'MD'
+---
+title: Retired links
+description: A page that links slugs an entry retired.
+---
+
+See [the old problem page](/enhancements/0026/problem/) and [an old decision](/enhancements/0026/decisions/#d3).
+MD
+build "$ev2"; ev2rc=$?
+ev2log=$OUT/$ev2/log
+if [ $ev2rc -eq 0 ]; then ok "$ev2" "the site builds over the schema v2 bundle"; else bad "$ev2" "the schema v2 build failed (exit $ev2rc)" "$ev2log"; fi
+
+if [ $ev2rc -eq 0 ]; then
+  E2=$OUT/$ev2/site/public/enhancements
+  why=""
+  for f in index.html graph/index.html 0026/index.html 0026/proposal/index.html 0026/design/index.html 0026/requirements/index.html 0026/tasks/index.html \
+    0040/tasks/index.html 0042/proposal/index.html 0003/problem/index.html capabilities/index.html capabilities/registration-acceptance/index.html \
+    capabilities/single-build-render/index.html; do
+    [ -f "$E2/$f" ] || why="${why:+$why; }no $f"
+  done
+  [ ! -e "$OUT/$ev2/site/public/v1.0/enhancements" ] || why="${why:+$why; }the section published under /v1.0/"
+  grep -qF 'enhancements: 44 pages expected, 50 built' "$ev2log" || why="${why:+$why; }the page-set line differs"
+  grep -qF 'enhancements: 6 alias stubs expected' "$ev2log" || why="${why:+$why; }the stub count line differs"
+  if [ -z "$why" ]; then ok "$ev2/pages" "an entry has proposal, design, requirements and tasks pages; a legacy entry its seven; the capability pages; 44 pages and 6 redirect stubs"
+  else bad "$ev2/pages" "$why" "$ev2log"; fi
+
+  why=""
+  for s in "problem proposal" "decisions requirements" "graduation tasks" "risks design" "operational design" "questions proposal"; do
+    from=${s% *}; to=${s#* }
+    f=$E2/0026/$from/index.html
+    [ -f "$f" ] || { why="${why:+$why; }no stub at /enhancements/0026/$from/"; continue; }
+    [ "$(refresh_of "$f")" = "/enhancements/0026/$to/" ] || why="${why:+$why; }the stub at $from refreshes to $(refresh_of "$f")"
+    grep -q 'content="\{0,1\}noindex' "$f" || why="${why:+$why; }the stub at $from has no noindex"
+    grep -qxF "/enhancements/0026/$from/ /enhancements/0026/$to/ 301" "$OUT/$ev2/site/public/_redirects" || why="${why:+$why; }_redirects has no line for $from"
+  done
+  [ ! -e "$E2/0040/problem" ] && [ ! -e "$E2/0042/problem" ] || why="${why:+$why; }a new entry without aliases has a stub"
+  grep -q 'enhancements/0026/problem' "$OUT/$ev2/site/public/sitemap.xml" "$OUT/$ev2/site/public/v1.0/sitemap.xml" 2>/dev/null && why="${why:+$why; }a stub is in a sitemap"
+  if [ -z "$why" ]; then ok "$ev2/redirects" "the six retired slugs of 0026 each have a noindex stub at the old URL (outside /v1.0/), a 301 line in _redirects, and none for entries without aliases"
+  else bad "$ev2/redirects" "$why"; fi
+
+  why=""
+  want_banner() { # PAGE TEXT
+    dq "$E2/$1/index.html" | grep -qF -- "<strong>$2</strong>" || why="${why:+$why; }$1 lacks the banner: $2"
+  }
+  want_banner 0026 "Accepted design, not delivered."
+  dq "$E2/0026/index.html" | grep -qF 'has not shipped in full: 2 of 5 tasks shipped. Nothing here' || why="${why:+$why; }0026's banner lacks its progress"
+  want_banner 0042 "Draft design."
+  dq "$E2/0042/index.html" | grep -qF 'data-status=draft><strong>Draft design.</strong> A proposal under discussion. Nothing here' || why="${why:+$why; }0042's draft banner changed"
+  want_banner 0040 "Delivered, closed."
+  want_banner 0041 "Rejected, closed."
+  want_banner 0043 "Withdrawn, closed."
+  dq "$E2/0043/index.html" | grep -qF 'data-status=withdrawn' || why="${why:+$why; }0043 is not data-status withdrawn"
+  want_banner 0044 "Superseded by 0026, 0040, closed."
+  want_banner 0003 "Superseded by 0025, closed."
+  dq "$E2/capabilities/registration-acceptance/index.html" | grep -qF '<strong>A capability.</strong>' || why="${why:+$why; }a capability page lacks its banner"
+  dq "$E2/0026/proposal/index.html" | grep -qF 'has not shipped in full: 2 of 5 tasks shipped' || why="${why:+$why; }a document of 0026 lacks the progress banner"
+  if [ -z "$why" ]; then ok "$ev2/banners" "accepted (with progress), draft, delivered, rejected, withdrawn, superseded by a list and by one id, and a capability page each say what they are"
+  else bad "$ev2/banners" "$why"; fi
+
+  why=""
+  r=$(dq "$E2/0026/index.html")
+  for want in '<dt>Accepted</dt><dd>2026-10-16, <a href=https://github.com/open-platform-model/enhancements/commit/4be19d0>4be19d0</a></dd>' \
+    '<dt>Breaking</dt><dd>yes</dd>' '<dt>Progress</dt><dd>2 of 5 tasks shipped</dd>' '<dt>After</dt><dd>0010, 0015, 0019</dd>' \
+    '<dt>Capabilities</dt><dd>authored-platform, catalog-version-selection, <a href=/enhancements/capabilities/registration-acceptance/>Registration acceptance</a>, <a href=/enhancements/capabilities/single-build-render/>Single build render</a></dd>' \
+    '<dt>Updated</dt><dd>2026-09-20</dd>'; do
+    printf '%s' "$r" | grep -qF -- "$want" || why="${why:+$why; }0026 lacks: $want"
+  done
+  printf '%s' "$r" | grep -qF 'Superseded by' && why="${why:+$why; }0026 shows Superseded by"
+  r=$(dq "$E2/0044/index.html")
+  printf '%s' "$r" | grep -qF '<dt>Superseded by</dt><dd><a href=/enhancements/0026/>0026: ' || why="${why:+$why; }0044 does not link 0026 first"
+  printf '%s' "$r" | grep -qF ', <a href=/enhancements/0040/>0040: Fixture Delivered</a></dd>' || why="${why:+$why; }0044 does not link 0040"
+  printf '%s' "$r" | grep -qF '<dt>Breaking</dt><dd>no</dd>' || why="${why:+$why; }0044 lacks Breaking no"
+  # The draft 0042 carries progress (1 of 4) in its data; the header still shows no Progress row.
+  dq "$E2/0042/index.html" | grep -qF '1 of 4' && why="${why:+$why; }the draft 0042 shows its progress"
+  dq "$E2/0040/index.html" | grep -qF '<dt>Progress</dt><dd>2 of 2 tasks shipped</dd>' || why="${why:+$why; }the delivered 0040 lacks Progress"
+  r=$(dq "$E2/0042/index.html")
+  for gone in 'Breaking' 'Progress' 'Accepted' 'Capabilities' 'After'; do
+    printf '%s' "$r" | grep -qF "<dt>$gone</dt>" && why="${why:+$why; }the draft 0042 shows $gone"
+  done
+  r=$(dq "$E2/0003/index.html")
+  for gone in 'Breaking' 'Progress' 'Accepted' 'Capabilities' 'After'; do
+    printf '%s' "$r" | grep -qF "<dt>$gone</dt>" && why="${why:+$why; }the legacy 0003 shows $gone"
+  done
+  if [ -z "$why" ]; then ok "$ev2/header" "an accepted entry lists Accepted (the commit linked), Breaking, Progress, After and Capabilities (linked when the section has the page); a delivered one lists Progress; a superseded one links every replacement; a draft (even with tasks in its data) and a legacy entry show none of the v2 rows"
+  else bad "$ev2/header" "$why"; fi
+
+  why=""
+  tail=$(dq "$E2/capabilities/registration-acceptance/index.html")
+  printf '%s' "$tail" | grep -qF 'href=/enhancements/0040/>0040: Fixture Delivered</a>' || why="the capability page does not link its delivered entry"
+  printf '%s' "$tail" | grep -qF '<td>seed</td>' || why="${why:+$why; }the capability page lacks the seed row"
+  dq "$E2/capabilities/index.html" | grep -qF 'href=/enhancements/capabilities/registration-acceptance/>Registration acceptance</a>' || why="${why:+$why; }the capabilities index lacks its link"
+  grep -q 'Edit this page' "$E2/0026/proposal/index.html" && why="${why:+$why; }a document has an edit link"
+  if [ -z "$why" ]; then ok "$ev2/capabilities" "a capability page lists the entry that changed it (linked) and the seed; the index links each capability"
+  else bad "$ev2/capabilities" "$why"; fi
+
+  why=""
+  r=$(dq "$OUT/$ev2/site/public/v1.0/docs/retired-links/index.html")
+  printf '%s' "$r" | grep -qF 'href=/enhancements/0026/proposal/>the old problem page' || why="a link to a retired slug does not reach the replacing page"
+  printf '%s' "$r" | grep -qF 'href=/enhancements/0026/requirements/>an old decision' || why="${why:+$why; }a link to a retired decision keeps its fragment or misses the page"
+  if [ -z "$why" ]; then ok "$ev2/retired-links" "a link to a retired slug goes to the page that replaced it, the old anchor dropped (a miss still fails: checks/enh-docs-missing-entry)"
+  else bad "$ev2/retired-links" "$why"; fi
+
+  why=""
+  grep -qE 'id="?d1"?></span>' "$E2/0003/decisions/index.html" || why="a legacy decision heading lost its d1 anchor"
+  ! grep -qE 'id="?d1"?></span>' "$E2/0026/design/index.html" || why="${why:+$why; }a page of the OpenSpec layout got a d1 anchor"
+  grep -qE 'id="?d1-a-numbered-heading"?' "$E2/0026/design/index.html" || why="${why:+$why; }the fixture heading lost its automatic id"
+  i=$(dq "$E2/index.html")
+  printf '%s' "$i" | grep -qF '<th class=opm-enh-col-nowrap>Capability</th><th class=opm-enh-col-nowrap>Requirements</th><th class=opm-enh-col-wide>Purpose</th>' || why="${why:+$why; }the Capabilities table columns are not classed"
+  printf '%s' "$i" | grep -qF '<th class=opm-enh-col-nowrap>Progress</th><th class=opm-enh-col-wide>Breaking</th>' || why="${why:+$why; }the INDEX Progress and Breaking columns are not classed"
+  if [ -z "$why" ]; then ok "$ev2/hooks" "the d1 anchor stays on a legacy page and is not added on an OpenSpec page; the INDEX's Progress, Breaking, Capability, Requirements and Purpose columns carry their classes"
+  else bad "$ev2/hooks" "$why"; fi
 fi
 
 # ---------------------------------------------------------------------------
