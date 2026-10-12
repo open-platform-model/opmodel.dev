@@ -172,8 +172,9 @@ else
   BUNDLES=$TESTS/fixtures/bundles
 fi
 # enh-fixture-regen: the Enhancements section fixture is exactly what the
-# pinned opm-docs builds from ws/enhancements (tests/fixtures/regen-enhancements.sh,
-# offline), so no hand edit can drift it from docs-kit C21.
+# pinned opm-docs builds from ws/enhancements, plus the progress step of
+# tests/fixtures/regen-enhancements.sh (offline), so no hand edit can drift it
+# from docs-kit C21.
 if sh "$TESTS/fixtures/regen-enhancements.sh" "$OUT/enh-regen" > "$OUT/enh-regen.log" 2>&1 &&
    diff -r "$TESTS/fixtures/bundles/enhancements/edge" "$OUT/enh-regen" >> "$OUT/enh-regen.log" 2>&1; then
   ok "enhancements/fixture-regen" "opm-docs $(opm-docs version | cut -d' ' -f2) rebuilds bundles/enhancements/edge/ from ws/enhancements byte-identical"
