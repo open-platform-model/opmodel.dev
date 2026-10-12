@@ -32,7 +32,7 @@ commit), so they need no change.
 - Generating the CLI reference (docgen `cli` is still a stub; that is the generated-reference
   change).
 - Changing the anchored kind, overrides, the `sources-main` job or the version set.
-- Settling how the docs are versioned against releases (0021:OQ15).
+- Settling how the docs are versioned against releases (enhancement 0021).
 
 ## Decisions
 

@@ -16,7 +16,7 @@ This change starts after the owner merges `port-site-to-hugo-hextra` (A). It cod
 
 A publishes one version, `v1.0`, labelled "v1.0 (beta)". It is built from each source root as checked out. Its `[versions]` block and `defaultContentVersion` are hand-written in `site/config/_default/hugo.toml`.
 
-Two owner decisions bind this change. **O3**: day one publishes one version, `v1.0`, labelled beta, built from each repository's `main` with the six SHAs recorded; moving it onto `v1.0.0-beta.N` tags must be a manifest edit that pins a fixed anchor ref bumped by commit, never a moving line resolved at build time; the catalog ref is explicit, because the CLI pins no catalog; core is read from library's `DefaultSchemaModule` and shown in the stamp; which core the site presents stays 0021:OQ15. **O4**: the source repositories were rewritten to the Hugo page dialect (the S1-S6 changes in `orchestration.md` section 2), with no compatibility layer, and A's lint rejects the old dialect.
+Two owner decisions bind this change. **O3**: day one publishes one version, `v1.0`, labelled beta, built from each repository's `main` with the six SHAs recorded; moving it onto `v1.0.0-beta.N` tags must be a manifest edit that pins a fixed anchor ref bumped by commit, never a moving line resolved at build time; the catalog ref is explicit, because the CLI pins no catalog; core is read from library's `DefaultSchemaModule` and shown in the stamp; which core the site presents stays an open question (enhancement 0021). **O4**: the source repositories were rewritten to the Hugo page dialect (the S1-S6 changes in `orchestration.md` section 2), with no compatibility layer, and A's lint rejects the old dialect.
 
 A's own plan (`port-site-to-hugo-hextra/design.md`, drafted beside this one) adds details this design relies on. Task 1.1 re-reads A's merged `main` for each of them:
 - The label sits beside the versions block as `[[params.opm.versions]]` (`name`, `label`).
@@ -61,13 +61,13 @@ No theme file is copied or overridden anew, so `site/overrides.sha256` is unchan
 
 **Goals:**
 - One manifest is the only list of site versions. Moving `v1.0` from `main` onto `v1.0.0-beta.N` tags is an edit of that file, reviewed as a commit (O3).
-- Each anchored version resolves its six refs from a fixed anchor, following the CLI's forward pins (0021:OQ15's position), with an explicit catalog ref and explicit `opm` ref.
+- Each anchored version resolves its six refs from a fixed anchor, following the CLI's forward pins (the position of enhancement 0021 on documentation versioning), with an explicit catalog ref and explicit `opm` ref.
 - A ref older than its repository's S merge fails before Hugo starts, naming the repository and the ref.
 - Each version publishes the refs it documents, and "View source" links point at those refs.
 - Every version-aware output iterates the manifest's versions.
 
 **Non-Goals:**
-- Settling 0021:OQ14 or 0021:OQ15. Which core the main site presents, the CLI's pin or the newest major, stays open. This change shows the core that the CLI's library pins (O3).
+- Settling whether the library, the CLI and the operator release in lockstep, or how the documentation is versioned (enhancement 0021). Which core the main site presents, the CLI's pin or the newest major, stays open. This change shows the core that the CLI's library pins (O3).
 - Cutting tags or releases in any repository, or scheduling them.
 - A `docs-pins.yaml` published by CLI releases. That is a cli follow-up.
 - The component archive (`/reference-archive/`) beyond its reservation, and the generated reference (`site/.gen/<v>/`).
@@ -628,7 +628,7 @@ Spike, task 1.2 (2026-09-30, image `opmodel-dev-hugo:cc96beb612fe`, Hugo 0.167.0
 - Each repository's dialect floor is its S merge, and no older ref builds. → `AGENTS.md` "Site versions", and the manifest's header comment.
 - A fixture-workspace build runs in explicit mode, with `OPM_VERSIONS=v1.0=/src`, because its roots are not git top levels. → `README.md` "Site versions".
 - In manifest mode every git date is computed on the host by `materialise.sh`, site-owned pages included; gen-lastmod runs `git` only in explicit mode. → `AGENTS.md` "Site versions".
-- Which core the site presents is 0021:OQ15 and stays open. → Already in `openspec/config.yaml` ("Site Versions"). It stays with the change.
+- Which core the site presents is an open question of enhancement 0021 (how the documentation site is versioned) and stays open. → Already in `openspec/config.yaml` ("Site Versions"). It stays with the change.
 - The two-version test never writes `site/public/`. → A comment in `site/tests/versions/check-two-versions.sh`. It stays with the change.
 
 ## Open Questions

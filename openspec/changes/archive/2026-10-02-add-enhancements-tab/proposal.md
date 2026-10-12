@@ -1,6 +1,6 @@
 ## Why
 
-The owner wants the enhancements, OPM's design record, on opmodel.dev as a tab of their own next to Docs and Reference: the INDEX, the GRAPH, every entry and its diagrams (decision 2026-10-01). The docs already point at them: What OPM does not do carries direction notes that link enhancements (0018:D3 as amended 2026-10-01), today through GitHub. A spike (worktree `enhancements-tab-spike`, 2026-10-01) built the tab on Hugo 0.167 with all 36 Mermaid diagrams rendering offline, and listed what the existing checks need.
+The owner wants the enhancements, OPM's design record, on opmodel.dev as a tab of their own next to Docs and Reference: the INDEX, the GRAPH, every entry and its diagrams (decision 2026-10-01). The docs already point at them: What OPM does not do carries direction notes that link enhancements (enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") as amended 2026-10-01), today through GitHub. A spike (worktree `enhancements-tab-spike`, 2026-10-01) built the tab on Hugo 0.167 with all 36 Mermaid diagrams rendering offline, and listed what the existing checks need.
 
 ## What Changes
 
@@ -45,9 +45,9 @@ mermaid       renders inside /enhancements/ only; a fence anywhere else still fa
 - **Files.** `site/config/_default/hugo.toml`, `site/versions.conf`, `site/scripts/{resolve-versions,materialise,gen-mounts,run-in-image,build-all,check-pages,lint-sources,test-site}.sh`, new `site/enhancements/`, `site/layouts/enhancements/`, `site/layouts/_markup/render-codeblock-mermaid.html`, partials for the banner, header and exclusions, `site/assets/css/opm/enhancements.css`, `site/assets/lib/mermaid/` with its licence and pin, test fixtures, `.github/workflows/site.yml` (one more checkout), `README.md`, `AGENTS.md`, and the dialect contract in `openspec/changes/deploy-site/orchestration.md`. As built, also `site/vendored.sha256` with `site/scripts/check-vendored.sh` (the Mermaid pin), `site/NOTICE`, the Hextra overrides `render-blockquote-alert.html` and the section partials, `gen-stamp.sh`, `serve.sh`, `opm-pagefind.js`, `sitemap.xml`, the Markdown output layouts and the browser and version tests; design.md's Context lists every file.
 - **Build inputs.** One gained: the enhancements repository at a resolved SHA. One vendored file: Mermaid 11.
 - **Source repos.** enhancements: its CI (vet, link and freshness checks) must land first, so a broken link there cannot turn every site build red; its own PR. opm: switch the six direction-note links on What OPM does not do from GitHub to `/enhancements/NNNN/` after this merges. Workspace `STYLE.md` ("Site Pages"): name the `/enhancements/` link form.
-- **Published URLs.** Added: `/enhancements/` and below. Nothing moved or removed. The version set is unchanged; enhancements are unversioned (0021:OQ15 is not touched).
+- **Published URLs.** Added: `/enhancements/` and below. Nothing moved or removed. The version set is unchanged; enhancements are unversioned (documentation versioning, enhancement 0021, is not touched).
 - **Depends on:** the enhancements CI and link-fix PR.
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. It follows 0018:D3 as amended on 2026-10-01 (direction notes may link enhancements).
+None implemented, so no `enhancement.yaml`. It follows enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") as amended on 2026-10-01 (direction notes may link enhancements).

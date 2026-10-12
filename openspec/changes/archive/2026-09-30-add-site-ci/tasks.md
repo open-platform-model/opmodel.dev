@@ -85,6 +85,6 @@ These steps change no file and have no boxes; orchestration.md owns them.
   - `sections`: `3/3`.
   - `gates`: each section's gates, plus the spike runs of 1.2 and 1.3.
   - `surface`: adds `task ci:lint`. Relies on `task ci`, `task qa`, `OPM_WS`, `OPM_SRC_<REPO>`, `OPM_SRC_WORKTREE`, `OPM_REQUIRE_DATES`, `OPM_BUILD_REFS`, `site/public/`, `site/public/build-stamp.json` and `site/.shots/`.
-  - `follow-ups`: at least checks in the source repos' own pull requests (0018:D13), and the tracked `.task/checksum/build-docgen` if it is still tracked (design.md decision 6).
+  - `follow-ups`: at least checks in the source repos' own pull requests (enhancement 0018, "Every writing rule names what checks it, and machine checks run in the owning repository's pull requests"), and the tracked `.task/checksum/build-docgen` if it is still tracked (design.md decision 6).
 - On the supervisor's go: the archive (with `--skip-specs`), the push and the pull request, as orchestration.md section 7, step 7 says. After the merge, the cleanup (step 8).
 - This change merges only when the `Site` workflow is green on its pull request. On that first run, also confirm that the run lists a non-empty `site-shots` artifact (`gh api repos/open-platform-model/opmodel.dev/actions/runs/<run-id>/artifacts --jq '.artifacts[] | [.name, .size_in_bytes]'`), and report it with the PR URL. design.md "Risks / Trade-offs" says how to fix a failure seen only there.

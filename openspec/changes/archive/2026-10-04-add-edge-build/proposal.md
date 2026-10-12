@@ -49,7 +49,7 @@ site/.edge/bundles.cue
 
 - **Files.** `site/scripts/{edge-config (new),run-in-image,test-site}.sh`, `Taskfile.yml`, `.gitignore`, `.github/workflows/site.yml` (`sources-main`), `site/tests/checks/` (new cases), `site/tests/fixtures/edge/` (new), `README.md` (CI, "Docs bundles in a site version", Quick Start, Contributing), `AGENTS.md` (Site versions, Environment Notes, Build And Dev Commands), `openspec/changes/retire-git-pipeline/{design,tasks}.md`.
 - **Build inputs.** The published build: none change. `sources-main`: gains the four products' `edge` docs bundles and the catalog tab resolved fresh; loses the build job's frozen lock.
-- **Published URLs.** None. The version set is unchanged and 0021:OQ15 is not touched.
+- **Published URLs.** None. The version set is unchanged and documentation versioning (enhancement 0021) is not touched.
 - **Other repositories.** docs-kit's orchestration names G2-edge as a gate of step 8; core, cli and opm-operator name it on their retire sections. No docs-kit contract changes: C16 already expresses an all-edge site version under a `vN.N` key (design.md Decision 1).
 
 ## Enhancement

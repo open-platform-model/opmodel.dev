@@ -49,7 +49,7 @@ site/Dockerfile                OPM_DOCS_VERSION=<release with add-version-histor
 
 - **Files.** `site/Dockerfile`, `site/scripts/{gen-mounts,gen-catalogs,gen-stamp,test-site}.sh`, `site/catalogs/_content.gotmpl`, the Hextra hook `site/layouts/_partials/custom/content-begin.html`, the link hook `site/layouts/catalogs/_markup/render-link.html` and the Markdown outputs `site/layouts/{page,section}.markdown.md` (design.md Decision 3), new `site/layouts/_partials/opm/history-{badge,changes,code,removed}.html`, `site/assets/css/opm/` (one new file for the badge), `site/tests/fixtures/bundles/**`, `site/tests/fixtures/history/` (sections 1-2 only), new check cases under `site/tests/checks/`, `site/tests/browser/` (a member with a badge and a list), `README.md`, `AGENTS.md`.
 - **Build inputs.** Gained: one file per tab project, `history.json`, at the digest the lock records. The pinned `opm-docs` moves to the release carrying `add-version-history`. No theme file is newly overridden.
-- **Published URLs.** None added or removed. The version set is unchanged; catalog minors are not site versions and 0021:OQ15 is not touched.
+- **Published URLs.** None added or removed. The version set is unchanged; catalog minors are not site versions and documentation versioning (enhancement 0021) is not touched.
 - **Source repos.** None. catalog_opm's bundles already carry every field the history reads (C10 `fqn`, `spec.fields`).
 - **Depends on.** docs-kit `add-version-history` released (G1b) for section 3; nothing else (opm-docs `0.2.2` is already pinned, opmodel.dev#25).
 - **Delivery.** Two PRs, as `add-catalogs-tab` did: sections 1 and 2 may merge before G1b (no real output changes without a lock `history` entry); section 3 merges after G1b and carries the archive.

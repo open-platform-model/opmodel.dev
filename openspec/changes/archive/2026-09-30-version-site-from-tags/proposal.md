@@ -125,7 +125,7 @@ Moving `v1.0` onto beta tags later is this edit. The tag names below are example
   - opm has no repository-level tag, so it stays at a SHA.
   - The anchor's own pins must name post-S tags: the library in `cli/go.mod`, `DefaultSchemaModule` in library, and `PinnedOperatorVersion` in cli. Any pin that does not needs an override, with a reason.
 - **Published URLs and versions.** No change on day one: `/v1.0/...`, `/latest/` to `/v1.0/`, and `/` to `/latest/`. A later version publishes under `/<name>/`, where the name matches `vN.N`. `/reference-archive/` stays reserved. Moving `v1.0` onto tags changes what a reader sees in two places: each page gains "View source at <ref>" beside "Edit this page", and the footer stamp names the refs instead of SHAs.
-- **What stays open.** Which core the site presents, the CLI's pin or the newest major, is 0021:OQ15 and stays open. This change shows the core that the CLI's library pins and does not settle the question. 0021:OQ14 stays open too.
+- **What stays open.** Which core the site presents, the CLI's pin or the newest major, is an open question of enhancement 0021 (how the documentation site is versioned) and stays open. This change shows the core that the CLI's library pins and does not settle the question. Whether the library, the CLI and the operator release in lockstep (enhancement 0021) stays open too.
 - **Depends on.**
   - Starts when A (`port-site-to-hugo-hextra`) is merged by the owner. The supervisor hands over the six S merge SHAs at launch. If A's merge needed source fixes after the S merges, it also names six buildable post-S SHAs for the two-version test.
   - Merges when verify is green, after E (`add-site-ci`).
@@ -146,4 +146,4 @@ Moving `v1.0` onto beta tags later is this edit. The tag names below are example
 
 ## Enhancement
 
-None delivered. Related: 0018:D8, under which a page lives in the repository whose change would make it wrong. This change assembles each version from those repositories at recorded refs, but it claims no decision. 0021:OQ14 and 0021:OQ15 stay open. No `enhancement.yaml` (this change set records no delivery claims).
+None delivered. Related: enhancement 0018 ("A page lives in the repository whose change would make it wrong; the site is assembled by section"), under which a page lives in the repository whose change would make it wrong. This change assembles each version from those repositories at recorded refs, but it claims no decision. Whether the library, the CLI and the operator release in lockstep, and how the documentation site is versioned (both enhancement 0021), stay open. No `enhancement.yaml` (this change set records no delivery claims).
