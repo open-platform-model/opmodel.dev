@@ -1,8 +1,8 @@
 ## 1. Comment rule
 
-- [ ] 1.1 `task cite-lint` in `Taskfile.yml` at the pinned tool commit; 0 findings with no exclude
-- [ ] 1.2 `Cite lint` job in `.github/workflows/site.yml`; `task ci:lint` green
-- [ ] 1.3 `task check` green, then commit `ci: run the comment rule locally and in CI`
+- [x] 1.1 `task cite-lint` in `Taskfile.yml` at the pinned tool commit; 0 findings with no exclude
+- [x] 1.2 `Cite lint` job in `.github/workflows/site.yml`; `task ci:lint` green
+- [x] 1.3 `task check` green, then commit `ci: run the comment rule locally and in CI`
 
 ## 2. OpenSpec CLI and durable decisions check
 

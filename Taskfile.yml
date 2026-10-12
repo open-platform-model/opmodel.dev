@@ -1,5 +1,10 @@
 version: '3'
 
+vars:
+  # The commit of open-platform-model/enhancements that holds the enh tool; the
+  # enh-ref default of the .github cite-lint.yml that site.yml calls.
+  CITE_LINT_REF: e0335b2ec44e659c0191bc3523d79d17f26f8e7d
+
 tasks:
   default:
     desc: Show available tasks
@@ -184,6 +189,20 @@ tasks:
     desc: Remove generated files (build output, generated inputs, check and screenshot output)
     cmds:
       - rm -rf site/public/ site/resources/ site/.hugo_build.lock site/data/opm/ site/config/production/ site/config/development/ site/.gen/ site/.versions/ site/.check/ site/.shots/ site/.bundles/ site/.cache/ site/.edge/
+
+  # The comment rule: a comment names an enhancement by id only beside a reason
+  # in words, never by decision number. The shared check of the enhancements
+  # repo; CI runs the same rule through the Cite lint job of
+  # .github/workflows/site.yml, which calls the reusable cite-lint.yml of the
+  # .github repo. That workflow holds the tool commit as its enh-ref default:
+  # keep CITE_LINT_REF equal to it (compare at each .github pin move). No
+  # excludes, here or in the CI call; an exclude added to one goes into the
+  # other with a reason. Not part of task check or task ci: those run in the
+  # Docker-only flow, and this step needs a host Go toolchain and the network.
+  cite-lint:
+    desc: Fail on a decision number or a lone enhancement id in a Go or CUE comment (enh cite-lint at the pinned commit; needs network for go run)
+    cmds:
+      - go run github.com/open-platform-model/enhancements/tools/enh@{{.CITE_LINT_REF}} cite-lint --root .
 
   # No openspec:install task: this repo runs no npm on the host. The CLI is
   # installed outside the repo, and a CI runner installs its own pinned copy.
