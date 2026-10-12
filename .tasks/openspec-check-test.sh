@@ -32,7 +32,7 @@ run_case "unfilled template (comment only)" 1 $'## Durable decisions\n\n<!-- Eve
 run_case "None." 0 $'## Durable decisions\n\nNone.'
 run_case "stays with the change" 0 $'## Durable decisions\n\n- A pitfall. It stays with the change.'
 run_case "existing file in backticks" 0 $'## Durable decisions\n\n- Lands in `AGENTS.md`.'
-run_case "missing file in backticks" 1 $'## Durable decisions\n\n- Lands in `TODO.md`.'
+run_case "missing file in backticks" 1 $'## Durable decisions\n\n- Lands in `AGENTS.md` and `TODO.md`.'
 run_case "existing file without backticks" 0 $'## Durable decisions\n\n- Lands in AGENTS.md, section 2.'
 run_case "one existing and one missing file" 1 $'## Durable decisions\n\n- Lands in AGENTS.md and TODO.md.'
 run_case "no target named" 1 $'## Durable decisions\n\n- A rule that matters.'
