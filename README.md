@@ -37,6 +37,7 @@ There is one version, `v1.0` (beta): the docs bundles of the newest cli `1.0` re
 - git
 - jq, for the host steps (the site-owned pages' dates, the two-version test)
 - The OpenSpec CLI, for `task check`
+- Go, for `task cite-lint` only
 
 No other repository needs to be on disk: every source page comes from a signed docs bundle.
 

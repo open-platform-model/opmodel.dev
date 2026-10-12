@@ -51,6 +51,9 @@ jobs:
   # Taskfile equal to the enh-ref default of that workflow.
   cite-lint:
     name: Cite lint
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-cite-lint
+      cancel-in-progress: true
     permissions:
       contents: read
     uses: open-platform-model/.github/.github/workflows/cite-lint.yml@2b66da51fede4332969c324b069012632d8edea9 # .github main
