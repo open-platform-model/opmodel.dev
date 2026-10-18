@@ -18,7 +18,7 @@ context: |
   six source repos (opm, core, catalog_opm, cli, library, opm-operator), each in its
   `docs/site/` tree, are published in that repo's signed docs bundle and assembled here at
   build time; the build reads no git repository but this one. Design principles for the whole repo
-  are in CONSTITUTION.md; commands and working rules are in AGENTS.md.
+  are in CONSTITUTION.md; commands and repo facts are in AGENTS.md, detail in references/.
 
   ### I. Content Lives in the Owning Repository
   A page's source lives in the repository whose change would make it wrong. This
@@ -47,7 +47,7 @@ context: |
     the intended result is reviewed before code exists. Write it as config or a tree, not
     prose.
   - Behaviour worth keeping gets a check with a failing fixture, not a sentence in a document.
-  - A decision a FUTURE maintainer or page author needs lands in `AGENTS.md`,
+  - A decision a FUTURE maintainer or page author needs lands in a `references/` file,
     `CONSTITUTION.md`, `README.md` or a contributor note before the change is archived.
     `design.md`'s **Durable decisions** section is where each change declares what it
     promotes. An archived change is never the only home of a rule.
@@ -143,7 +143,7 @@ context: |
   - Scope: site, openspec; a workflow-only change may be a bare `ci:`
   - Keep descriptions concise
   - Commits may end with the plain `Co-Authored-By: Claude <noreply@anthropic.com>` trailer (optional); never a session ID/URL or generated-with footer
-  - Never a bare `@name` in a commit message, PR title or PR body (AGENTS.md); PR bodies stay under 250 words
+  - Never a bare `@name` in a commit message, PR title or PR body (workspace references/git-text.md); PR bodies stay under 250 words
 
 rules:
   # Every entry in a rules list MUST be a plain string. OpenSpec 1.3.1 drops
@@ -194,7 +194,7 @@ rules:
     - Call out any change to published URLs, the version set, or the set of theme files the
       site overrides; these break readers or the drift guard in ways an added page does not.
     - MUST include a "Durable decisions" section listing every decision a future maintainer or
-      page author needs and where it lands at archive (`AGENTS.md`, `CONSTITUTION.md`,
+      page author needs and where it lands at archive (a `references/` file, `CONSTITUTION.md`,
       `README.md`, a contributor note, or "stays with the change"). Write "None." when empty;
       never omit the section.
     - Name an enhancement only by its id beside a reason in words, never alone, never a decision number.
@@ -254,5 +254,5 @@ operations:
   archive:
     guidance:
       - "Archive with `--skip-specs`: this workspace has no specs and the change declares skip_specs. Never let archive create an openspec/specs/ directory."
-      - "Before archiving, read design.md's Durable decisions section. Every entry marked for promotion MUST already be landed in its target file (AGENTS.md, CONSTITUTION.md, README.md or a contributor note); if one is not, stop and land it first. An archived change must not be the only home of a rule."
+      - "Before archiving, read design.md's Durable decisions section. Every entry marked for promotion MUST already be landed in its target file (a references/ file, CONSTITUTION.md, README.md or a contributor note); if one is not, stop and land it first. An archived change must not be the only home of a rule."
       - "If the change delivers a line of an enhancement's `tasks.md`, name it in the PR body; after the repo PR merges, a PR on `enhancements` ticks that line."

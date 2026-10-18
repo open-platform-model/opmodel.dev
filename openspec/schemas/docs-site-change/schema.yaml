@@ -62,7 +62,7 @@ artifacts:
       - **Risks / Trade-offs**: Known limitations, things that could go wrong.
         Format: [Risk] -> Mitigation.
       - **Durable decisions**: Every decision a FUTURE site maintainer or page author
-        needs to know, with where it lands at archive time: `AGENTS.md`,
+        needs to know, with where it lands at archive time: a `references/` file,
         `CONSTITUTION.md`, `README.md`, a contributor note, or "stays with the change".
         An archived change must never be the only home of a site or authoring rule.
         If nothing is durable, write "None." rather than omitting the section.

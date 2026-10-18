@@ -35,6 +35,7 @@ run_case "existing file in backticks" 0 $'## Durable decisions\n\n- Lands in `AG
 run_case "missing file in backticks" 1 $'## Durable decisions\n\n- Lands in `AGENTS.md` and `TODO.md`.'
 run_case "existing file without backticks" 0 $'## Durable decisions\n\n- Lands in AGENTS.md, section 2.'
 run_case "one existing and one missing file" 1 $'## Durable decisions\n\n- Lands in AGENTS.md and TODO.md.'
+run_case "references folder" 0 $'## Durable decisions\n\n- Lands in `references/site-urls.md`.'
 run_case "no target named" 1 $'## Durable decisions\n\n- A rule that matters.'
 
 if [ "$bad" = 0 ]; then
