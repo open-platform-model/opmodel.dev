@@ -6,5 +6,5 @@
 
 ## 2. Durable decisions <!-- delete this section when design.md says "None." -->
 
-- [ ] 2.1 <!-- Land each promoted decision from design.md in AGENTS.md, CONSTITUTION.md, README.md or a contributor note -->
+- [ ] 2.1 <!-- Land each promoted decision from design.md in a references/ file, CONSTITUTION.md, README.md or a contributor note -->
 - [ ] 2.2 `task check` green, then commit `<!-- docs(site): ... -->`

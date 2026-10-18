@@ -16,7 +16,7 @@ run_case() {
   local name="$1" want="$2" text="$3" dir="$tmp/case$n"
   n=$((n + 1))
   mkdir -p "$dir/openspec/changes/c"
-  : > "$dir/AGENTS.md"; : > "$dir/README.md"; : > "$dir/CONSTITUTION.md"
+  : > "$dir/AGENTS.md"; mkdir -p "$dir/references"; : > "$dir/references/site-urls.md"; : > "$dir/README.md"; : > "$dir/CONSTITUTION.md"
   printf '%s\n' "$text" > "$dir/openspec/changes/c/design.md"
   local got=0
   bash "$check" "$dir" >/dev/null 2>&1 || got=$?
@@ -35,6 +35,8 @@ run_case "existing file in backticks" 0 $'## Durable decisions\n\n- Lands in `AG
 run_case "missing file in backticks" 1 $'## Durable decisions\n\n- Lands in `AGENTS.md` and `TODO.md`.'
 run_case "existing file without backticks" 0 $'## Durable decisions\n\n- Lands in AGENTS.md, section 2.'
 run_case "one existing and one missing file" 1 $'## Durable decisions\n\n- Lands in AGENTS.md and TODO.md.'
+run_case "existing references file" 0 $'## Durable decisions\n\n- Lands in `references/site-urls.md`.'
+run_case "missing references file" 1 $'## Durable decisions\n\n- Lands in `references/nope.md`.'
 run_case "no target named" 1 $'## Durable decisions\n\n- A rule that matters.'
 
 if [ "$bad" = 0 ]; then

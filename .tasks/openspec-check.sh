@@ -9,7 +9,7 @@ set -euo pipefail
 #
 #   1. the "## Durable decisions" section must exist;
 #   2. HTML comments are removed first, so the unfilled template (a comment only) is empty;
-#   3. if what is left is not "None.", it must name a target: AGENTS.md, CONSTITUTION.md,
+#   3. if what is left is not "None.", it must name a target: a references/ file, AGENTS.md, CONSTITUTION.md,
 #      README.md, a contributor note, or the words "stays with the change";
 #   4. every root file it names (AGENTS.md, CONSTITUTION.md, README.md, TODO.md) must exist.
 #
@@ -61,8 +61,8 @@ for design in "$root"/openspec/changes/*/design.md; do
         continue ;;
   esac
 
-  if ! printf '%s\n' "$section" | grep -q -E 'AGENTS\.md|CONSTITUTION\.md|README\.md|contributor note|stays with the change'; then
-    echo "openspec-check: $change: 'Durable decisions' names no target (AGENTS.md, CONSTITUTION.md, README.md, a contributor note or 'stays with the change')" >&2
+  if ! printf '%s\n' "$section" | grep -q -E 'references/|AGENTS\.md|CONSTITUTION\.md|README\.md|contributor note|stays with the change'; then
+    echo "openspec-check: $change: 'Durable decisions' names no target (a references/ file, CONSTITUTION.md, README.md, a contributor note or 'stays with the change')" >&2
     fail=1
   fi
 
@@ -71,7 +71,7 @@ for design in "$root"/openspec/changes/*/design.md; do
       echo "openspec-check: $change: 'Durable decisions' names $path, which does not exist" >&2
       fail=1
     fi
-  done < <(printf '%s\n' "$section" | grep -o -E '\b(AGENTS|CONSTITUTION|README|TODO)\.md' | sort -u || true)
+  done < <(printf '%s\n' "$section" | grep -o -E '\b(AGENTS|CONSTITUTION|README|TODO)\.md|references/[A-Za-z0-9._-]+\.md' | sort -u || true)
 done
 
 exit "$fail"
