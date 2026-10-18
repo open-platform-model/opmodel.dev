@@ -371,7 +371,7 @@ All land in `README.md`, `## Deploy`, in section 2:
 - **The go-live runbook.**
 - **`TODO.md` item 3.2** names the chosen setup (Workers static assets, deployed from the `Site` workflow) and keeps open checkboxes only for the owner's go-live steps, pointing at the runbook. Section 2.
 - **Spike findings** stay with the change.
-- **The interim deploy's retirement** stays with the change. Section 3 only removes text; the base-path and indexing rules that `publish-interim-github-pages` put in `AGENTS.md` stay true and need no edit.
+- **The interim deploy's retirement** stays with the change. Section 3 only removes text; the base-path and indexing rules that `publish-interim-github-pages` moved to `references/site-urls.md` stay true and need no edit.
 
 ## Open Questions
 

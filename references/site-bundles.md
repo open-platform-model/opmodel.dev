@@ -6,18 +6,17 @@ Covers how the site gets its pages: the pull, the trust chain, the pins, the rec
 
 Every page outside `site/content/` arrives in a signed docs bundle. `task bundles:pull` runs `opm-docs pull` in the build image. It resolves each tag in GHCR, verifies the Sigstore signature, lints every page in bundle mode, and unpacks into `site/.bundles/` with `lock.json`. `task build` never pulls and fails without a lock pulled for the current `site/bundles.cue`. A local build after a release is `task bundles:pull build`.
 
-The lock is never committed. The build stamp (`site/public/build-stamp.json`) records the site commit, `versions.<v>.bundles` and the sections. With the lock (CI's `bundles-lock` artifact) it is enough to rebuild the same pages.
+The build stamp (`site/public/build-stamp.json`) records the site commit, `versions.<v>.bundles` and the sections. With the lock (CI's `bundles-lock` artifact) it is enough to rebuild the same pages.
 
 ## The trust chain
 
-- `opm-docs` is pinned by version and by the SHA-256 of its `linux_amd64` archive (from the release's `checksums.txt`) in `site/Dockerfile`.
-- The trust policy is `site/bundles.cue`, written out in full: `registry`, `signer.issuer`, `signer.workflow` and `signer.refs`. The pull accepts a bundle only when its signature names the docs-kit publish workflow at a ref that matches `signer.refs`, and the tab's `repo` at `refs/heads/main`. A change to the policy is a change to that file.
-- The page dialect is enforced twice: by each producer's `Docs` workflow and again by the pull.
-- Bump order: the site bumps `opm-docs` first. No producer's `.opm-docs-version` may name a docs-kit release newer than the one in `site/Dockerfile`, because an older `opm-docs` refuses a manifest or lock field it does not know. A new docs-kit schema is adopted in this order: docs-kit release, this repo's reader and pin bump, then the producer's bump.
+- The `opm-docs` pin in `site/Dockerfile` holds the version and the SHA-256 of its `linux_amd64` archive, taken from the release's `checksums.txt`.
+- The trust policy in `site/bundles.cue` is written out in full: `registry`, `signer.issuer`, `signer.workflow` and `signer.refs`. The pull accepts a bundle only when its signature names the docs-kit publish workflow at a ref that matches `signer.refs`, and the tab's `repo` at `refs/heads/main`.
+- Bump order: no producer's `.opm-docs-version` may name a docs-kit release newer than the one in `site/Dockerfile`. A new docs-kit schema is adopted in this order: docs-kit release, this repo's reader and pin bump, then the producer's bump.
 
 ## Recover from a bad bundle
 
-Commit the last good run's lock (its `bundles-lock` artifact) as `site/bundles.frozen.json`. Never loosen a check. A frozen pull still fetches from GHCR and Sigstore, so an outage of either is waited out. `OPM_BUNDLES_FROZEN=<lock>` pins the digests for one run (how a failed edge run replays from its `edge-lock` artifact). A committed `site/bundles.frozen.json` applies only to `site/bundles.cue`: with another `OPM_BUNDLES_CONFIG` it is skipped with a line saying so.
+Commit the last good run's lock (its `bundles-lock` artifact) as `site/bundles.frozen.json`. A frozen pull still fetches from GHCR and Sigstore, so an outage of either is waited out. `OPM_BUNDLES_FROZEN=<lock>` pins the digests for one run (how a failed edge run replays from its `edge-lock` artifact). A committed `site/bundles.frozen.json` applies only to `site/bundles.cue`: with another `OPM_BUNDLES_CONFIG` it is skipped with a line saying so.
 
 ## Pull settings
 
@@ -51,7 +50,7 @@ The data is docs-kit's schema v1 or v2 and nothing else. A v1 entry reads as the
 
 ## Pitfalls
 
-- Re-running the pull with `--update`-style shortcuts to turn a build green: fix the cause or freeze the last good lock.
+- Loosening the trust policy to turn a build green: fix the cause or freeze the last good lock.
 - Exporting `OPM_BUNDLES` to steer a pull: it steers the build only.
 - Adding a version by a directory glob: add it to `site/bundles.cue` and `site/versions.conf`.
 - A producer bumping `.opm-docs-version` before the site: the pull then fails on an unknown field.

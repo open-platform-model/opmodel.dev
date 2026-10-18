@@ -7,7 +7,6 @@ Covers the shape of every URL the site publishes, the rule that the site builds 
 - Every version lives under `/<version>/`. `/latest/` is the default version, and `/` goes to `/latest/` through `public/_redirects` plus meta-refresh stubs for hosts that ignore it. `/reference-archive/` is reserved.
 - The Catalogs tab lives at `/catalogs/<name>/<MAJOR.MINOR>/` and `/catalogs/<name>/edge/`, outside every version. `/catalogs/<name>/` and `/catalogs/<name>/<MAJOR>/...` are aliases of the newest minor (of that major), as `_redirects` lines and `noindex` stubs; `edge` has none. Docs pages link catalogs only through the bare tab root or the major alias; the site writes the resolved minor's URL.
 - The Enhancements section is at `/enhancements/`, unversioned.
-- Site-owned pages are mounted into every version, so their links must resolve in every version.
 - A `/latest/` URL in the output must exist as written, because some hosts ignore `_redirects`.
 
 ## Base path

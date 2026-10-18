@@ -7,7 +7,7 @@ Covers how the site is built, served and tested: the two images, the network rul
 The build image (Hugo, Pagefind, `opm-docs`, git, jq) and the QA image (Chromium, Playwright, axe-core) are the only toolchain. Their versions are pinned in `site/Dockerfile` and `site/tests/browser/Dockerfile`; every download is SHA-256-checked and the base image is pinned by digest. A change of a version is a change of that file.
 
 - Image tags are `opmodel-dev-hugo:<12 hex>` and `opmodel-dev-qa:<12 hex>`, the hash of the Dockerfile. Never stop or rebind a container another checkout runs, and never prune an image another checkout may use.
-- Build, test and QA run with `--network none`. Only `task image`, `task qa:image` (when their tag is missing) and `task bundles:pull` reach the network, and `task build:edge`, which runs the pull. An all-local pull needs none.
+- `task build:edge` runs the pull, so it needs the network too. An all-local pull needs none.
 - `serve` and `preview` publish only `127.0.0.1:${SITE_PORT:-1313}`. One Ctrl+C stops them.
 - Never commit `node_modules/`.
 - The repository is mounted at `/work/repo`, and `OPM_BUNDLES` read-only at `/bundles`.

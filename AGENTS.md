@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The public documentation site for Open Platform Model, at opmodel.dev. A Hugo site on the Hextra theme (neutral skin), built, served and tested only in Docker. Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-operator), each in its `docs/site/`; each publishes them in its signed docs bundle, and the build assembles the bundles. The build reads no git repository except its own. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews). The stack was chosen on evidence kept in the workspace folder `research/docs-site-stacks/`.
+The public documentation site for Open Platform Model, at opmodel.dev. A Hugo site on the Hextra theme (neutral skin), built, served and tested only in Docker. Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-operator), each in its `docs/site/`; each publishes them in its signed docs bundle, and the build assembles the bundles. The build reads no git repository except its own. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews).
 
 ## Repository rules
 
@@ -16,7 +16,6 @@ The public documentation site for Open Platform Model, at opmodel.dev. A Hugo si
 - **Checks fail the build.** Every check in `site/scripts/` has a failing case under `site/tests/` that `task test:site` runs; a new check brings its case.
 - **Pages live where their source lives.** Fix a page in the repository whose change would make it wrong. Never edit a generated reference page, here or there: regenerate it with that repo's task. Nothing generated is committed here. Site-owned pages are in every version, so their links must resolve in every version.
 - **Skill files.** After `openspec update` with the pinned CLI, no `openspec-*` skill file under `.claude/skills/` keeps a local patch; the repo rules live in `openspec/config.yaml`, which `openspec update` does not overwrite.
-- **Durable decisions** land in `AGENTS.md`, `CONSTITUTION.md`, `README.md` or a `references/` file before their change is archived, so an archived change is never the only home of a rule. A check under `.tasks/` enforces it for active changes.
 
 ## Layout
 
@@ -24,8 +23,7 @@ The public documentation site for Open Platform Model, at opmodel.dev. A Hugo si
 openspec/              OpenSpec workspace (docs-site-change schema, no specs)
 references/            detail files, one topic each
 .tasks/                the durable-decisions check and its test
-site/Dockerfile        build image (pinned); site/tests/browser/ holds the QA image
-site/bundles.cue       trust policy, site versions and tabs; site/versions.conf holds version labels
+site/                  the site; its root holds the build image, the trust policy and the version list
 site/config/           Hugo config per environment
 site/content/          site-owned pages: landing and section overviews
 site/layouts/          overrides, OPM partials and figure shortcodes
@@ -34,9 +32,10 @@ site/enhancements/     content adapter, unversioned Enhancements section
 site/catalogs/         content adapter, unversioned Catalogs section
 site/themes/hextra/    vendored Hextra
 site/scripts/          runner, build, checks, generators
+site/static/           fonts, favicons and images
 site/tools/            brand raster generators
 site/tests/            fixtures, check cases, subpath, versions and browser QA
-site/data/             schema JSON, generated and gitignored
+site/data/             build data, generated and gitignored
 ```
 
 ## Commands
