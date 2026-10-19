@@ -4,7 +4,7 @@
 
 | ID | Category | Affects | Status | Progress | Breaking | Title | Summary |
 | -- | -------- | ------- | ------ | -------- | -------- | ----- | ------- |
-| [0026](./openspec/changes/0026-module-dictated-catalog-versions/) | schema | core, library, cli, opm-controller, catalog | accepted | 2 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range. |
+| [0026](./openspec/changes/0026-module-dictated-catalog-versions/) | schema | core, library, cli, opm-operator, catalog | accepted | 2 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range. |
 | [0042](./openspec/changes/0042-fixture-no-specs/) | runtime | cli, catalog_opm, .github | draft | - | - | Fixture No Specs | A draft without a delta spec. |
 
 ## Archived (delivered / rejected / superseded / withdrawn)
