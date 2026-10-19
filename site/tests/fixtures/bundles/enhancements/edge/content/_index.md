@@ -5,7 +5,7 @@ description: "The fixture design record."
 
 | ID | Category | Affects | Status | Progress | Breaking | Title | Summary |
 | -- | -------- | ------- | ------ | -------- | -------- | ----- | ------- |
-| [0026](/enhancements/0026/) | schema | core, library, cli, opm-operator, catalog | accepted | 2 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range. |
+| [0026](/enhancements/0026/) | schema | core, library, cli, opm-controller, catalog | accepted | 2 of 5 | yes | Module-Dictated Catalog Versions and the Generated Platform | Let a platform admit a catalog path with a version range. |
 | [0042](/enhancements/0042/) | runtime | cli, catalog_opm, .github | draft | - | - | Fixture No Specs | A draft without a delta spec. |
 
 ## Archived (delivered / rejected / superseded / withdrawn)

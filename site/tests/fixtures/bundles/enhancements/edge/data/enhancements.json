@@ -284,7 +284,7 @@
         "core",
         "library",
         "cli",
-        "opm-operator",
+        "opm-controller",
         "catalog"
       ],
       "created": "2026-09-08",
