@@ -43,7 +43,7 @@ site/scripts/test-site.sh              both checks count nine
 - **Files.** The two shortcodes and two bodies above (all new), `site/scripts/lint-sources.sh`, `site/layouts/_partials/opm/figure-titles.html`, `site/scripts/test-site.sh`, `site/tests/fixtures/ws/opm/docs/site/start/_index.md`, `README.md`, `openspec/changes/deploy-site/orchestration.md`, and this change directory.
 - **Build inputs.** None gained or lost; no CSS class or token is added, no Hextra file is copied, `site/overrides.sha256` is untouched.
 - **Source repos.** The workspace `STYLE.md` ("Site Pages") lists the dialect's figure names and must name both new figures (the lint stays byte-identical to the contract there). `core` follow-up: `docs/site/concepts/application-and-platform-models.md` draws `{{< opm/what-opm-models >}}` and `{{< opm/two-models-one-boundary >}}`; that PR merges after this one, since the lint rejects an unknown figure name.
-- **Published URLs.** None until core's page uses the figures; then the page `/v1.0/docs/concepts/application-and-platform-models/` and its Markdown output. The version set stays `v1.0`; this change does not touch 0021:OQ15.
+- **Published URLs.** None until core's page uses the figures; then the page `/v1.0/docs/concepts/application-and-platform-models/` and its Markdown output. The version set stays `v1.0`; this change does not touch documentation versioning (enhancement 0021).
 - **Sections.** One implementation section, then verify and archive.
 
 ## Enhancement

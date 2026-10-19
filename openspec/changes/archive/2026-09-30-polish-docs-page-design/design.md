@@ -44,7 +44,7 @@ Files this change touches under `site/`: `assets/css/opm/{typography,toc,cards,l
 
 The lead is for docs pages only. Hextra's `hextra-home.html` (line 10 at 275e2ad) also calls `custom/content-begin.html`, and the landing carries a `description`, because A's front-matter check requires one on every page. Without the `.IsHome` guard, the landing would print a lead above the hero badge that repeats the hero subtitle. The guard matches the one on the crumbs. Anything added to this hook reaches the landing unless it is guarded the same way (SP2).
 
-The lead sits inside `.content` and is indexed on purpose. 0018:D7 makes the description the page's index entry and search snippet, so a word that appears only in it should still find the page. Alternatives: `data-pagefind-ignore` on the lead (then a description-only word finds nothing), or a hidden meta span beside a separate lead (the same text twice).
+The lead sits inside `.content` and is indexed on purpose. Enhancement 0018 ("Every page declares one type, a title and a one-line description") makes the description the page's index entry and search snippet, so a word that appears only in it should still find the page. Alternatives: `data-pagefind-ignore` on the lead (then a description-only word finds nothing), or a hidden meta span beside a separate lead (the same text twice).
 
 `typography.css`:
 
@@ -121,7 +121,7 @@ The media rule has the same specificity as A's `display: none` for that list, so
 
 ### 5. Section children as cards grouped by type
 
-`section-children.html` keeps A's child set and A's sort expression, applied within each group. Only the grouping and the markup change. Subsections come first, with no heading. Then pages are grouped by `.Type`, in the order tutorial, how-to guide, explanation, reference (the order of 0018:D7:R2, followed as intent). Empty groups are left out.
+`section-children.html` keeps A's child set and A's sort expression, applied within each group. Only the grouping and the markup change. Subsections come first, with no heading. Then pages are grouped by `.Type`, in the order tutorial, how-to guide, explanation, reference (the order of enhancement 0018 ("Every page declares one type, a title and a one-line description"), followed as intent). Empty groups are left out.
 
 ```go-html-template
 {{- $groups := slice
@@ -287,7 +287,7 @@ Each addition is its own test function or extras entry in `site/tests/browser/`,
 **Context**: Pagefind indexes only `main#content > .content` (orchestration.md trap 11), and plan-final.md requires the lead to sit "deliberately inside or outside" it.
 **Explored**: the prototype's `docs-main.html` (the hook renders inside `.content`), and Pagefind's metadata docs (element form, inline form "captured to the end").
 **Decision**: Inside, indexed, and the element is the `description` metadata (Decision 1). The cards are ignored (Decision 5).
-**Rationale**: The description is the search snippet by 0018:D7; one element serving both uses cannot drift.
+**Rationale**: The description is the search snippet by enhancement 0018 ("Every page declares one type, a title and a one-line description"); one element serving both uses cannot drift.
 
 ### Drawer scroll mechanism
 **Context**: The drawer opens scrolled past the section root (usability judge, `mobile-menu-open-dark.png`).

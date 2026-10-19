@@ -123,7 +123,7 @@ Every row passes its floor, holds `docs/site` and, for core and catalog_opm, con
   - Pages come from release tags and branch heads instead of `main`. On 2026-10-01 `docs/site` is the same tree at every pinned tag and at `main` in all five tagged repositories, so no page changes.
   - The footer names the refs, and every page gains "View source at <ref>".
   - After the merge, the next run of `main` (push or nightly) republishes the interim Pages site from the resolved refs.
-  - Documentation versioning stays 0021:OQ15, an open question this change does not settle: it shows the core that the cli pins, as before.
+  - Documentation versioning stays an open question (enhancement 0021) that this change does not settle: it shows the core that the cli pins, as before.
 - **Shared files with `deploy-site`.** Both changes edit `.github/workflows/site.yml` and the README "CI" section, and they conflict on the same lines: README "Summary and artifacts", the `build-stamp.json` curl comment in "GitHub Pages (interim)", and the adjacent `build-stamp` and Pages steps in `site.yml` (design.md, Risks). Whichever merges second merges `origin/main` into its branch (orchestration.md section 7, step 7), resolves the conflicts, and re-runs the section-3 gates.
 - **orchestration.md** is copied verbatim and predates this change, so a worker meets three conflicts:
   - It has no row for this change in section 2. This Impact section stands in for that row.
@@ -150,4 +150,4 @@ Every row passes its floor, holds `docs/site` and, for core and catalog_opm, con
 
 ## Enhancement
 
-None. No `enhancement.yaml` (orchestration.md section 1). 0021:OQ15 (how documentation is versioned against component releases) stays open; this change follows the owner's resolution rules for the site's own build and claims no decision.
+None. No `enhancement.yaml` (orchestration.md section 1). How documentation is versioned against component releases (enhancement 0021) stays open; this change follows the owner's resolution rules for the site's own build and claims no decision.

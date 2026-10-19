@@ -51,6 +51,12 @@ CUE
   git -c commit.gpgsign=false commit -q -m fixture
   opm-docs build --source . --config docs-kit.cue --out "$tmp/out" >/dev/null
 )
+# 0042 is a draft entry that carries tasks, which the header test uses to prove
+# that a draft shows no Progress row. Its source holds no tasks.md (one would add a
+# page), so the progress is set here, the same on every run.
+jq '(.entries[] | select(.id == "0042") | .progress) = {done: 1, total: 4}' \
+  "$tmp/out/enhancements/data/enhancements.json" > "$tmp/progress.json"
+cp "$tmp/progress.json" "$tmp/out/enhancements/data/enhancements.json"
 rm -rf "$out"
 mkdir -p "$out"
 cp -R "$tmp/out/enhancements/." "$out/"

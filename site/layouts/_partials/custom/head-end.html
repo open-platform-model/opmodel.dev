@@ -70,3 +70,14 @@
     {{- range $stubs -}}{{- (resources.FromString . $html).Publish -}}{{- end -}}
   {{- end -}}
 {{- end -}}
+{{- /* The Enhancements section's retired slugs (data schema v2 aliases, which
+       enhancements/_content.gotmpl hands to the replacing page as
+       params.retired): a meta-refresh stub (noindex, canonical to the
+       replacing page) at /enhancements/<old slug>/, outside every version.
+       Hugo's own aliases would land under the default version's directory.
+       scripts/build-all.sh writes the same as _redirects lines. */ -}}
+{{- if and (eq .Section "enhancements") .Params.retired -}}
+  {{- $to := .RelPermalink -}}
+  {{- $html := printf `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s"><link rel="canonical" href="%s"><title>Redirecting</title><a href="%s">%s</a>` $to .Permalink $to .Permalink -}}
+  {{- range .Params.retired -}}{{- (resources.FromString (printf "enhancements/%s/index.html" .) $html).Publish -}}{{- end -}}
+{{- end -}}

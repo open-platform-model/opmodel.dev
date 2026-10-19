@@ -74,7 +74,7 @@ Velero is a second platform, not a swap arrow: on the operator path the registra
 
 ## Risks / Trade-offs
 
-- [The otp claim is long for a caption] -> It must describe everything drawn (0018:D14); the drawing carries the point at a glance.
+- [The otp claim is long for a caption] -> It must describe everything drawn (enhancement 0018, "Figures are hand-built inline SVG with one visual language"); the drawing carries the point at a glance.
 - [k8up and Velero providers are examples, rendered against a stand-in contract in the experiment] -> Both are labelled "example" in the drawing and the claim.
 - [The source lint accepts the new name before any page uses it] -> Harmless; the opm follow-up adds the page use.
 

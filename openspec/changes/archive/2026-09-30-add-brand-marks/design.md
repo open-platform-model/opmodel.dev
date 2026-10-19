@@ -237,7 +237,7 @@ The migration plan sends section 1's shots to the owner. They reach the owner in
 **Context**: The card must reach every page of every version.
 **Explored**: Hextra's `layouts/_partials/opengraph.html` (page `images`, else `site.Params.images` index 0, then `relURL` and `absURL`); Hextra's `head.html`, which calls `twitter_cards.html` with no theme copy, so Hugo's embedded template (`absURL` of the path as written) renders `twitter:image`; the prototype's `hugo.toml` (`images = ['/images/og-default.png']`); orchestration.md trap 9 (static files publish once at the root).
 **Decision**: `params.images` names one root file. Section 1 checks both rendered URLs, and the absolute URL is the fallback for both (Decision 6).
-**Rationale**: No page sets `images` (source pages carry no images under 0018:D14), so the site parameter is the only path. Whether `relURL` or `absURL` adds the version prefix is unverified, and the two templates differ, hence A3.
+**Rationale**: No page sets `images` (source pages carry no images under enhancement 0018 ("Figures are hand-built inline SVG with one visual language")), so the site parameter is the only path. Whether `relURL` or `absURL` adds the version prefix is unverified, and the two templates differ, hence A3.
 
 ### The prototype's placeholders
 **Context**: The plan calls the prototype's marks placeholders, and O8 asks for drawn marks.

@@ -435,7 +435,7 @@ Recorded at apply time (2026-09-30, sources at the six `site-src` worktrees: opm
 - [Someone sets `OPM_BASE_URL` at workflow or job level] -> The workflow uses `PAGES_BASE_URL`, and its comment says why.
 - [Pages is turned off, or a custom domain is set on it] -> `configure-pages` fails, or the URL check stops the deploy. The live version keeps serving.
 - [Two robots tags on the interim site] -> The most restrictive rule applies. The test asserts the `noindex` tag.
-- [The interim site is public while 0018:OQ15 is open] -> `noindex` on the HTML pages, and nothing links to it. The owner decided to publish; the merge waits for the owner's explicit acceptance, recorded in the pull request body (proposal).
+- [The interim site is public while the question of what a page must hold before the site is published is open (enhancement 0018)] -> `noindex` on the HTML pages, and nothing links to it. The owner decided to publish; the merge waits for the owner's explicit acceptance, recorded in the pull request body (proposal).
 - [The Markdown twins and `llms.txt` carry no `noindex`] -> Accepted: no build setting can mark them on Pages. Nothing indexable links to them.
 - [The production output changes] -> Three relative forms (fonts, manifest), the stylesheet's fingerprint, and the Pagefind adapter's `baseUrl` option (the value Pagefind already derived) with its fingerprint. The share-image URLs do not change. Finding 3 proves nothing else moved.
 - [The first real deploy is the merge push] -> The pull request proves the Pages build and the artifact upload; `configure-pages` and `deploy-pages` first run on `main`. A failure is fixed forward by a new small change (proposal, Depends on).

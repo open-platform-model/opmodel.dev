@@ -35,5 +35,5 @@
 ## Durable decisions
 
 <!-- Every decision a future site maintainer or page author needs, and where it lands at
-     archive time: AGENTS.md, CONSTITUTION.md, README.md, a contributor note, or "stays with
+     archive time: a references/ file, CONSTITUTION.md, README.md, a contributor note, or "stays with
      the change". Write "None." if empty. -->

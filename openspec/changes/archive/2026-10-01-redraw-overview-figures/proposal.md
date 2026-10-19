@@ -50,9 +50,9 @@ site/scripts/test-site.sh             both checks count seven
 - **Files.** The four shortcodes and four bodies above (two new), `site/scripts/lint-sources.sh`, `site/layouts/_partials/opm/figure-titles.html`, `site/scripts/test-site.sh`, `site/tests/fixtures/ws/opm/docs/site/start/_index.md`, `README.md`, `openspec/changes/deploy-site/orchestration.md`, and this change directory.
 - **Build inputs.** None gained or lost; no CSS class or token is added, no Hextra file is copied, `site/overrides.sha256` is untouched.
 - **Source repos.** The workspace `STYLE.md` ("Site Pages") lists the dialect's figure names and must name `one-trait-any-provider` (the lint stays byte-identical to it). `opm` follow-up: `docs/site/start/what-is-opm.md` draws `{{< opm/one-trait-any-provider >}}` after `helm-and-opm` in "In Kubernetes terms", with a paragraph introducing it; that PR merges after this one, since the lint rejects an unknown figure name.
-- **Published URLs.** Content only: `/v1.0/` (landing), `/v1.0/docs/start/` and `/v1.0/docs/start/what-is-opm/`, and the Markdown outputs of those pages. The version set stays `v1.0`; this change does not touch 0021:OQ15.
+- **Published URLs.** Content only: `/v1.0/` (landing), `/v1.0/docs/start/` and `/v1.0/docs/start/what-is-opm/`, and the Markdown outputs of those pages. The version set stays `v1.0`; this change does not touch documentation versioning (enhancement 0021).
 - **Sections.** One implementation section, then verify and archive.
 
 ## Enhancement
 
-None implemented, so no `enhancement.yaml`. The figures keep 0018:D14's visual language. The new figure describes shipped 0015 behaviour (provider-fulfilled traits, one provider per contract); no provider catalog is published, so its providers are labelled as examples.
+None implemented, so no `enhancement.yaml`. The figures keep the visual language that enhancement 0018 sets for figures. The new figure describes shipped 0015 behaviour (provider-fulfilled traits, one provider per contract); no provider catalog is published, so its providers are labelled as examples.

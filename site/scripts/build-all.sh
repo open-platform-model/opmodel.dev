@@ -110,6 +110,12 @@ if [ -n "$CATALOGS" ]; then
     (.majors | to_entries[] | "\($r)\(.key)/ \($r)\(.value)/ 302", "\($r)\(.key)/* \($r)\(.value)/:splat 302")' \
     data/opm/catalogs.json >> "$PUBLIC/_redirects"
 fi
+# The Enhancements section's retired slugs (data schema v2 aliases;
+# custom/head-end.html publishes the same as stubs): a permanent redirect from
+# each old page to the page that replaced it.
+if [ -n "$ENH_DIR" ]; then
+  jq -r '.entries[] | .aliases[]? | "/enhancements/\(.from)/ /enhancements/\(.to)/ 301"' "$ENH_DIR/data/enhancements.json" >> "$PUBLIC/_redirects"
+fi
 printf '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url=%s/latest/"><title>Open Platform Model</title><a href="%s/latest/">%s/latest/</a>\n' "$BASE_PATH" "$BASE_PATH" "$BASE_PATH" > "$PUBLIC/index.html"
 cp "$PUBLIC/$DEFAULT/404.html" "$PUBLIC/404.html"
 cp data/opm/build.json "$PUBLIC/build-stamp.json"
@@ -169,6 +175,17 @@ if [ -n "$CATALOGS" ]; then
   ! grep -q '/edge/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects sends an alias to edge"
 else
   ! grep -q '^/catalogs/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects holds /catalogs/ lines, but the build has no catalogs section"
+fi
+# The retired slugs: a _redirects line and a stub for each alias in the data,
+# and no /enhancements/ line without the section.
+if [ -n "$ENH_DIR" ]; then
+  for a in $(jq -r '.entries[] | .aliases[]? | "\(.from) \(.to)" | gsub(" "; ",")' "$ENH_DIR/data/enhancements.json"); do
+    from=${a%,*}; to=${a#*,}
+    grep -qxF "/enhancements/$from/ /enhancements/$to/ 301" "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects does not send /enhancements/$from/ to /enhancements/$to/"
+    [ -s "$PUBLIC/enhancements/$from/index.html" ] || fail "REDIRECT FAIL: the alias stub $PUBLIC/enhancements/$from/index.html is missing"
+  done
+else
+  ! grep -q '^/enhancements/' "$PUBLIC/_redirects" || fail "REDIRECT FAIL: $PUBLIC/_redirects holds /enhancements/ lines, but the build has no enhancements section"
 fi
 echo "redirects: _redirects, root index.html, 404.html, robots.txt and the /latest/ stubs present"
 # Check 9: a Starlight aside that reached the output as text.

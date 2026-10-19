@@ -60,4 +60,4 @@ README.md                         A's headings     + ## Page design
 
 ## Enhancement
 
-Related, not claimed. Under 0018:D7 the description "does double duty as the index entry and the search snippet". Fixes 1, 4 and 5 put it on screen in those roles. The cards follow the order of 0018:D7:R2 (tutorial, how-to guide, explanation, reference) as intent only. The landing figure stays a figure in the engine, per 0018:D14. This change writes no `enhancement.yaml` and logs no delivery (supervisor ruling O7).
+Related, not claimed. Under enhancement 0018 ("Every page declares one type, a title and a one-line description") the description "does double duty as the index entry and the search snippet". Fixes 1, 4 and 5 put it on screen in those roles. The cards follow the order of enhancement 0018 ("Every page declares one type, a title and a one-line description") (tutorial, how-to guide, explanation, reference) as intent only. The landing figure stays a figure in the engine, per enhancement 0018 ("Figures are hand-built inline SVG with one visual language"). This change writes no `enhancement.yaml` and logs no delivery (supervisor ruling O7).

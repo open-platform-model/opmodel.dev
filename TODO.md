@@ -122,7 +122,7 @@ Since 2026-10-02 the site generates nothing: each repository generates its refer
 
 - [x] Every version under `/<version>/`; one version today, `v1.0` (beta), built from each source repo's `main`
   - [x] `/latest/` alias and root redirect, per-version Pagefind search, a version label next to the title
-  - [ ] Versions built from release tags, listed in a manifest, with a version switch and an outdated-version banner (change `version-site-from-tags`; how versions map to releases is 0021:OQ15)
+  - [ ] Versions built from release tags, listed in a manifest, with a version switch and an outdated-version banner (change `version-site-from-tags`; how versions map to releases is an open question of enhancement 0021)
   - [ ] Build multiple versions in CI
   - [ ] Component reference archive (every published core and catalog version; `/reference-archive/` is reserved)
 

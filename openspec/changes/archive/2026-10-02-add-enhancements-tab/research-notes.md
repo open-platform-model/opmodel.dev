@@ -11,11 +11,11 @@ Counts: 364 md files in all; 27 READMEs plus 189 numbered documents make 216 cor
 
 INDEX.md and GRAPH.md are generated (`task index`, `task graph` in Taskfile.yml, using yq and scripts/delivery.sh) and committed. Each carries a `<!-- Generated ... -->` comment. INDEX has two tables (live, then archived) with id, category, affects, status, delivery, title and summary, plus a status legend. GRAPH.md holds 7 Mermaid `graph` blocks: an Overview of categories, then one per category (schema, runtime, distribution, tooling, misc). They use a fixed classDef palette with light fills and `color:#000`, about 100 nodes in all. Nothing checks freshness, and INDEX.md is stale on main today: regenerating it in a scratch copy flips 0021's delivery from not-started to in-progress. GRAPH regenerated identical. A machine-readable delivery TSV exists (`task delivery:data`) but is not committed.
 
-Diagrams: Mermaid only. 36 fences: 7 in GRAPH, 1 in every entry README (27), plus 0018/02-design.md and 0027/02-design.md. There are no image files (no svg, png or jpg). ASCII diagrams sit in ```text or unlabelled fences (12 text fences, 139 unlabelled fences overall). `<br/>` appears inside Mermaid labels (32 hits). NNNN/diagrams/ is gitignored and local-only. A read-in-place build would see it, `git archive` would not.
+Diagrams: Mermaid only. 36 fences: 7 in GRAPH, 1 in every entry README (27), plus the design pages of enhancements 0018 and 0027. There are no image files (no svg, png or jpg). ASCII diagrams sit in ```text or unlabelled fences (12 text fences, 139 unlabelled fences overall). `<br/>` appears inside Mermaid labels (32 hits). NNNN/diagrams/ is gitignored and local-only. A read-in-place build would see it, `git archive` would not.
 
 Links (relative, outside fences): 618 in all. 339 point to .md files, 163 to directories (`../0008/`, `schemas/`, `experiments/03-.../`), 69 to .cue, 28 to .yaml and 9 to .txt. There are also 171 external links (89 to github.com). 14 are broken today:
 - 0021/policy/02 and 03 point at experiments/ and research/ relative to policy/.
-- archive/0001/01-problem.md points at ../../core/*.cue (workspace paths).
+- the problem page of archived enhancement 0001 points at ../../core/*.cue (workspace paths).
 - archive/0015 and archive/0016 READMEs point at ../INDEX.md and ../GRAPH.md, which are off by one level after archiving.
 - 1 is a false positive from a regex.
 
@@ -42,7 +42,7 @@ Navbar: site/config/_default/hugo.toml [menus.main] has Docs (pageRef docs, weig
 Checks that would object:
 - (1) lint-sources.sh, the page dialect, byte-identical to the workspace contract. It covers only <repo>/docs/site. It needs front matter, allows only /docs/... root-absolute links (so a direction note cannot link /enhancements/NNNN/ today), and bans images and shortcodes other than opm/ figures.
 - (2) render-link.html resolves every internal link with GetPage in the current version and fails on a miss.
-- (3) check-front-matter.html applies the four types (0018:D7) to every page backed by a file.
+- (3) check-front-matter.html applies the four types (enhancement 0018, "Every page declares one type, a title and a one-line description") to every page backed by a file.
 - (4) check-pages.sh pre/post: A1 collisions, reserved prefixes, Q2 page set and stray files, only under public/<v>/. Its link crawl covers every published HTML and CSS file.
 - (5) Check 10: any `<!--` in published HTML, txt, md, xml or json fails, including the Markdown twins.
 - (6) Check 11 (supply): every loaded URL must be relative or under BASE_URL, and any jsdelivr, unpkg, cdnjs, googleapis or gstatic string in HTML, JS or CSS fails.
@@ -55,11 +55,11 @@ CSP: none today. deploy-site design.md lists a CSP as a possible follow-up, and 
 CI (.github/workflows/site.yml on origin/main): three jobs (build, browser, sources-main), each checking out opmodel.dev plus six source repos. build and browser use fetch-depth 0. The nightly cron is 03:23. A source merge reaches the site only through the nightly build or a manual `gh workflow run Site`. pages-deploy publishes the interim GitHub Pages build under the /opmodel.dev/ base path.
 
 0018 and 0021 constraints:
-- 0018:D3 says future work appears only in a marked direction note on an explanation page, which links its enhancement, and drafts are never presented as forthcoming. One direction note exists in core/docs/site/concepts/application-and-platform-models.md.
+- Enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") says future work appears only in a marked direction note on an explanation page, which links its enhancement, and drafts are never presented as forthcoming. One direction note exists in core/docs/site/concepts/application-and-platform-models.md.
 - 0018 02-design gives the prose linter "decision numbers" as banned.
-- 0018:D2 keeps SPEC.md unpublished partly because readers cannot resolve enhancement decision numbers.
+- Enhancement 0018 ("`core/SPEC.md` is not published; the public reference is a projection of its normative spine") keeps SPEC.md unpublished partly because readers cannot resolve enhancement decision numbers.
 - 0021 02-design says outright that enhancements are not versioned ("not artifacts consumers pin").
-- 0021:OQ15's position is that docs follow the cli/operator MAJOR.MINOR, with an unversioned secondary section for per-component reference.
+- The position of enhancement 0021 on documentation versioning is that docs follow the cli/operator MAJOR.MINOR, with an unversioned secondary section for per-component reference.
 
 ## proposal
 Recommendation: one unversioned section at /enhancements/, built in the same Hugo run by a content adapter, with Mermaid vendored and loaded only on the pages that hold a diagram. I verified the two load-bearing Hugo behaviours in the local build image (scratch site under scratchpad/enh/hugotest*):
@@ -96,9 +96,9 @@ An enhancements-only render-link hook maps links as follows:
 - any other path that exists in the archived tree (.cue, .yaml, directories, research/, experiments/) goes to github.com/open-platform-model/enhancements/blob|tree/<built SHA>/<repo path>;
 - a target that does not exist fails the build, as Q1 does for docs.
 
-A heading hook gives `### D3: ...` the stable id `d3`, so 0018:D3 can be cited as /enhancements/0018/decisions/#d3. OQ ids (list items, not headings) and auto-linking `NNNN:DN` tokens can come in phase 2.
+A heading hook gives `### D3: ...` the stable id `d3`, so a decision can be cited as /enhancements/0018/decisions/#d3. OQ ids (list items, not headings) and auto-linking of decision-number tokens can come in phase 2.
 
-Every page carries a non-dismissible status banner, marked data-pagefind-ignore. For draft or accepted entries it reads "Design proposal, status draft, delivery not-started: nothing here describes OPM as it works today", with matching wording for delivered, superseded and rejected. This is what keeps the tab within 0018:D3.
+Every page carries a non-dismissible status banner, marked data-pagefind-ignore. For draft or accepted entries it reads "Design proposal, status draft, delivery not-started: nothing here describes OPM as it works today", with matching wording for delivered, superseded and rejected. This is what keeps the tab within enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction").
 
 5. INDEX and GRAPH. Phase 1 renders the committed INDEX.md tables, wrapped for horizontal scroll and with links rewritten, and GRAPH.md as is. Do not reimplement delivery derivation in templates; it lives in scripts/delivery.sh. Owner-side precondition: an enhancements CI workflow that runs `task vet` and fails when `task index graph` would change the files. INDEX is stale today. Phase 2: the enhancements repo commits a data file (delivery:data plus config) so the landing page can show cards, filters and "2/36 decisions delivered".
 
@@ -151,7 +151,7 @@ Mermaid options:
 Index options: render from config.yaml in templates, which is easy for status, category and title, but delivery state needs delivery.sh's logic, so that would duplicate it. Or regenerate INDEX/GRAPH on the host in materialise. That needs task, yq and bash on the host and in CI (ubuntu has yq), and it hides the upstream staleness instead of fixing it.
 
 ## risks
-1. Reader confusion, against 0018:D3. A visible tab full of draft designs (0009's lifecycle and workflows, 0012, 0027) on the product site can be read as a roadmap or as features. Mitigations: the status banner, separate search, no enhancement content in docs search or llms.txt, and possibly noindex for draft and accepted entries. Without at least the banner and separate search, this tab undercuts the decision the docs were built on.
+1. Reader confusion, against enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction"). A visible tab full of draft designs (0009's lifecycle and workflows, 0012, 0027) on the product site can be read as a roadmap or as features. Mitigations: the status banner, separate search, no enhancement content in docs search or llms.txt, and possibly noindex for draft and accepted entries. Without at least the banner and separate search, this tab undercuts the decision the docs were built on.
 
 2. Build coupling to an ungated repo. The enhancements repo has no CI, so a push with a broken link, a stray HTML comment or a `{{<` turns every site run red: pushes, PRs and the nightly. The deployed site stays at the last good build. Mitigations: upstream CI first, plus the `override` SHA escape hatch. 14 broken links exist today and would fail a strict hook on day one.
 
@@ -169,7 +169,7 @@ Index options: render from config.yaml in templates, which is easy for status, c
 
 ## openQuestions
 - Is an on-site record worth the change (adapter, vendored Mermaid, new checks), or is a navbar link to the GitHub INDEX (alternative A) enough for now?
-- Tab name: Enhancements (matches the repo and the `0018:D3` vocabulary), Design, or Proposals? And should it sit between Reference and Search?
+- Tab name: Enhancements (matches the repo and the enhancement 0018 ("The documentation states what OPM does not do, and future work appears only as direction") vocabulary), Design, or Proposals? And should it sit between Reference and Search?
 - Which entries publish: all 27 (live plus archived), or live only, with archived entries reachable from the index? Rejected and superseded entries included?
 - Which files per entry: README plus the seven documents only (216 pages), or also research/*.md, 0021/policy/*.md, schemas/spec.md and experiment READMEs? Everything else would link to GitHub at the built SHA.
 - Indexing: should search engines index enhancement pages at all, or should draft and accepted entries carry noindex so a web search never presents a draft as OPM behaviour? Keep them out of llms.txt?
@@ -178,8 +178,8 @@ Index options: render from config.yaml in templates, which is easy for status, c
 - Do you accept adding enhancements CI (task vet, a relative-link check, INDEX/GRAPH freshness) as a prerequisite, and fixing the 14 broken links (0021/policy, archive/0001, archive/0015 and 0016 INDEX/GRAPH links) first?
 - Where does the manifest record the enhancements ref: a new `[section "enhancements"]` stanza in site/versions.conf, or somewhere outside the versions manifest?
 - Should the dialect contract allow docs pages (direction notes) to link `/enhancements/NNNN/` and `#dN` anchors? The parallel notes work needs a link target now: GitHub URLs until this ships?
-- Stable anchors and auto-linking: should `0018:D3`-style tokens in enhancement prose become links to /enhancements/0018/decisions/#d3 (phase 2), and are the semantic slugs (problem, design, decisions, ...) acceptable as permanent URLs?
-- Should 0018 gain a decision recording this section (it is a draft, so editable in place), and does the existing 0018:D2 rationale ('readers cannot resolve decision numbers') need its wording updated once they can?
+- Stable anchors and auto-linking: should decision-number tokens in enhancement prose become links to /enhancements/0018/decisions/#d3 (phase 2), and are the semantic slugs (problem, design, decisions, ...) acceptable as permanent URLs?
+- Should 0018 gain a decision recording this section (it is a draft, so editable in place), and does the existing enhancement 0018 ("`core/SPEC.md` is not published; the public reference is a projection of its normative spine") rationale ('readers cannot resolve decision numbers') need its wording updated once they can?
 
 # SPIKE
 
@@ -209,7 +209,7 @@ WHAT WORKED
 - In the QA image all 36 diagrams on the 30 pages render to SVG at 1280 and 390 px wide. There were no Mermaid error SVGs, no console errors and no failed requests under `--network none`.
 - The global mermaid hook fails a docs page with "mermaid fence in .../reference/_index.md: only the enhancements section may hold one". The section-scoped hook overrides it inside the section, as intended.
 - The link hook maps 155 links to GitHub blob/tree URLs. In strict mode it lists all 10 broken links on published pages and fails the build:
-  - 6 `../../core/*.cue` links in archive/0001/01-problem.md;
+  - 6 `../../core/*.cue` links in the problem page of archived enhancement 0001;
   - `../INDEX.md` and `../GRAPH.md` in archive/0015 and archive/0016 READMEs (archiving broke those relative links).
   The repo's other 4 broken links are in files that are not published (0021/policy/*, 0001's regex text).
 - `/enhancements/0018/decisions/#d3` resolves, and the GitHub-style automatic anchors are kept too.

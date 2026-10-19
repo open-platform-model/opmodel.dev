@@ -76,7 +76,9 @@ def enhancement_pages():
     draft = next((e for e in entries if status(e) == "draft"), None)
     closed = next((e for e in entries if status(e) == "delivered"), None)
     if draft:
-        pages += [f"/enhancements/{draft.name}/", f"/enhancements/{draft.name}/decisions/"]
+        # A legacy entry has a decisions page, an OpenSpec one requirements or design.
+        doc = next((d for d in ("decisions", "requirements", "design") if (draft / d / "index.html").is_file()), None)
+        pages += [f"/enhancements/{draft.name}/"] + ([f"/enhancements/{draft.name}/{doc}/"] if doc else [])
     if closed:
         pages.append(f"/enhancements/{closed.name}/")
     return pages

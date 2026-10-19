@@ -1,0 +1,14 @@
+{{- /* The retired slugs of the Enhancements section, from data/enhancements.json
+       (data schema v2 aliases, docs-kit C21): a map from a retired page path
+       ("/enhancements/0013/problem") to the page that replaced it
+       ("/enhancements/0013/proposal"). Empty for schema v1, which retires
+       nothing. Called through partialCached by layouts/_markup/render-link.html. */ -}}
+{{- $out := dict -}}
+{{- with resources.Get "bundles/enhancements/edge/data/enhancements.json" -}}
+  {{- range (. | transform.Unmarshal).entries -}}
+    {{- range .aliases -}}
+      {{- $out = merge $out (dict (printf "/enhancements/%s" .from) (printf "/enhancements/%s" .to)) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- return $out -}}

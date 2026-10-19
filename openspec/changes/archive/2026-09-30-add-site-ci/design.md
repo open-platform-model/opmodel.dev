@@ -19,7 +19,7 @@ This change touches no file under `site/`. The site build gains and loses no inp
 **Non-Goals:**
 - Deploying (F), or any secret or environment.
 - Cross-repo `repository_dispatch`: the nightly run replaces it. Publishing a build image to GHCR: each run builds its images.
-- Checks inside the source repos' own pull requests (0018:D13, a follow-up).
+- Checks inside the source repos' own pull requests (enhancement 0018 ("Every writing rule names what checks it, and machine checks run in the owning repository's pull requests"), a follow-up).
 - Changing any Taskfile target A defines, or any file under `site/`.
 
 ## Decisions

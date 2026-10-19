@@ -1,7 +1,7 @@
 {
   "schema": "docs.opmodel.dev/lock/v1",
-  "tool": "0.7.0",
-  "config": "sha256:e1d5f8bd1edaf3609e0cd9240dc268c6fbae6d28718ca4d5b948e703a6db302c",
+  "tool": "0.9.0",
+  "config": "sha256:ccdbe2b4da720aef0b5762cee6b915a6ad4100e2e4d4baf7e6e869d44d2b048b",
   "bundles": [
     {
       "project": "catalog-opm",
@@ -46,16 +46,16 @@
       "local": true,
       "version": "edge",
       "revision": 0,
-      "commit": "eddf92c16f02dddf146a6068b38a6ae03f1c4f77",
+      "commit": "590eb85c71e4e17d287c3d6ced8544ccc4bbde92",
       "dialect": 1,
-      "builtBy": "0.7.0",
+      "builtBy": "0.9.0",
       "dir": "enhancements/edge"
     }
   ],
   "history": [
     {
       "project": "catalog-opm",
-      "digest": "sha256:7c356e695d380b3e036895cec879fba22fff052b1b1daa2ce5013c3259ba8566",
+      "digest": "sha256:7e95d5811bfbbf6819df550cd1c92d49faced54fd6e6514f908e440225ad1f56",
       "path": "catalog-opm/history.json"
     }
   ],

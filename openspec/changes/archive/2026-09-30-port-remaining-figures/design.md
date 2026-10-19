@@ -29,7 +29,7 @@ The build gains no input and loses none: no mount, source repo, vendored file or
 
 **Goals:**
 - The five figures render on `/v1.0/docs/start/` and `/v1.0/docs/start/what-is-opm/` element for element as Astro drew them at `2207ba1`, in the Hextra palette, following the site toggle.
-- Each keeps 0018:D14: a caption that is also its accessible label, the role colours, and text that stays at 9 px or more at a 390 px viewport.
+- Each keeps enhancement 0018 ("Figures are hand-built inline SVG with one visual language"): a caption that is also its accessible label, the role colours, and text that stays at 9 px or more at a 390 px viewport.
 - `README.md` (`## Contributing`, "Adding a figure") tells the next figure author how to add a figure.
 
 **Non-Goals:**
@@ -230,7 +230,7 @@ Totals: `cto` draws 53 elements and `ttd` draws 37.
 
 ### The 9 px text floor at 390 px
 
-**Context**: 0018:D14 requires figures that stay readable at phone width. `task shots` fails when any SVG text renders under 9 px at a 390 px viewport.
+**Context**: enhancement 0018 ("Figures are hand-built inline SVG with one visual language") requires figures that stay readable at phone width. `task shots` fails when any SVG text renders under 9 px at a 390 px viewport.
 **Explored**: The font sizes in `figure.css` at `2207ba1`. The smallest is 10 px (`.role`, `.zone-label`, `.req text`, `.obj text.note.small`), and every figure is 360 units wide.
 **Decision**: No size changes are planned. Rendered size is the font size times the rendered width divided by 360. All six figures share that ratio, so ModuleToCluster, which passes the check in A, predicts the other five. `task shots` still measures every figure.
 **Rationale**: This removes one assumption from the spike without skipping the measurement.
