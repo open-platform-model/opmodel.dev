@@ -15,7 +15,7 @@ The public documentation site for Open Platform Model, at opmodel.dev. A Hugo si
 - **Vendored files are pinned.** A third-party file served as it came (Mermaid, under `site/assets/lib/`) is pinned by SHA-256 in `site/vendored.sha256`, with its version, source and licence in the comment above its line. Never edit it or re-pin what is on disk: re-vendor from the source the comment names and verify it there. Mermaid draws only in the Enhancements section; a mermaid fence elsewhere fails the build.
 - **Checks fail the build.** Every check in `site/scripts/` has a failing case under `site/tests/` that `task test:site` runs; a new check brings its case.
 - **Pages live where their source lives.** Fix a page in the repository whose change would make it wrong. Never edit a generated reference page, here or there: regenerate it with that repo's task. Nothing generated is committed here. Site-owned pages are in every version, so their links must resolve in every version.
-- **Skill files.** After `openspec update` with the pinned CLI, no `openspec-*` skill file under `.claude/skills/` keeps a local patch; the repo rules live in `openspec/config.yaml`, which `openspec update` does not overwrite.
+- **Skill files.** `openspec update` overwrites the generated `openspec-*` skill files. Four keep a local edit for this repo's fixed `docs-site-change` schema and its section rules: archive-change, new-change, propose and verify-change. After each update, merge them with `git merge-file` against the pristine output of the previous version, and delete `.claude/skills/openspec-sync-specs/`, which the update recreates and this repo has no specs for. The repo rules live in `openspec/config.yaml`, which `openspec update` does not overwrite.
 
 ## Layout
 
