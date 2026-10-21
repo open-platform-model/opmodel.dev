@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The public documentation site for Open Platform Model, at opmodel.dev. A Hugo site on the Hextra theme (neutral skin), built, served and tested only in Docker. Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-operator), each in its `docs/site/`; each publishes them in its signed docs bundle, and the build assembles the bundles. The build reads no git repository except its own. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews).
+The public documentation site for Open Platform Model, at opmodel.dev. A Hugo site on the Hextra theme (neutral skin), built, served and tested only in Docker. Most pages live in six source repositories (opm, core, catalog_opm, cli, library, opm-controller), each in its `docs/site/`; each publishes them in its signed docs bundle, and the build assembles the bundles. The build reads no git repository except its own. This repo owns the pipeline, the theme overrides and the site-owned pages (the landing and the section overviews).
 
 ## Repository rules
 

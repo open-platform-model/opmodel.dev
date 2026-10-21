@@ -14,7 +14,7 @@ docs: {
 	"cli":              {repo: "open-platform-model/cli"}
 	"core":             {repo: "open-platform-model/core"}
 	"library":          {repo: "open-platform-model/library"}
-	"opm-operator":     {repo: "open-platform-model/opm-operator"}
+	"opm-controller":   {repo: "open-platform-model/opm-controller"}
 	"opm":              {repo: "open-platform-model/opm"}
 	"catalog-opm-docs": {repo: "open-platform-model/catalog_opm"}
 }
@@ -28,5 +28,5 @@ sections: {
 // docs project at its edge bundle, the cli as the anchor.
 versions: "v1.0": {
 	anchor: {project: "cli", tag: "edge"}
-	tags: {"core": "edge", "library": "edge", "opm-operator": "edge", "opm": "edge", "catalog-opm-docs": "edge"}
+	tags: {"core": "edge", "library": "edge", "opm-controller": "edge", "opm": "edge", "catalog-opm-docs": "edge"}
 }

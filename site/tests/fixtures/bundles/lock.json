@@ -1,7 +1,7 @@
 {
   "schema": "docs.opmodel.dev/lock/v1",
   "tool": "0.9.0",
-  "config": "sha256:ccdbe2b4da720aef0b5762cee6b915a6ad4100e2e4d4baf7e6e869d44d2b048b",
+  "config": "sha256:e1d5f8bd1edaf3609e0cd9240dc268c6fbae6d28718ca4d5b948e703a6db302c",
   "bundles": [
     {
       "project": "catalog-opm",
@@ -73,7 +73,7 @@
       "pins": {
         "core": "2.0.0-beta.3",
         "library": "1.0.0-beta.3",
-        "opm-operator": "1.0.0-beta.7"
+        "opm-controller": "1.0.0-beta.7"
       },
       "dir": "_versions/v1.0/cli"
     },
@@ -103,7 +103,7 @@
     },
     {
       "site": "v1.0",
-      "project": "opm-operator",
+      "project": "opm-controller",
       "role": "pinned",
       "local": true,
       "version": "1.0.0-beta.7",
@@ -111,7 +111,7 @@
       "commit": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
       "dialect": 1,
       "builtBy": "0.4.0",
-      "dir": "_versions/v1.0/opm-operator"
+      "dir": "_versions/v1.0/opm-controller"
     },
     {
       "site": "v1.0",

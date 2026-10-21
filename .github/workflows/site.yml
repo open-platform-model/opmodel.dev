@@ -13,7 +13,7 @@ on:
     # Nightly. The docs bundles of v1.0 (site/bundles.cue versions) are
     # resolved again on every pull, so the nightly run of main publishes what
     # moved upstream: new releases and docs revisions (the docs bundles of the
-    # newest cli 1.0 release and of the library, core and opm-operator
+    # newest cli 1.0 release and of the library, core and opm-controller
     # releases it pins, of the newest opm 1.0 release and of the newest
     # opm-v4.* catalog release, tab and docs). The sources-main job checks every source repository's
     # main together (task build:edge: every repository's edge docs bundle,
@@ -255,7 +255,7 @@ jobs:
 
   # The source pages on every source repository's main, built together:
   # task build:edge (openspec add-edge-build) pulls cli (the anchor), core,
-  # library, opm-operator, opm and catalog-opm-docs from their edge docs
+  # library, opm-controller, opm and catalog-opm-docs from their edge docs
   # bundles (each publishes one on every push to main, generated reference
   # included) and the Catalogs tab at its newest digests, then builds over
   # that pull (OPM_BUNDLES=site/.edge/bundles). The pull lints every page in
@@ -300,16 +300,16 @@ jobs:
       - name: The build read the edge docs bundles
         # A build over another lock (a local bundle, a stale
         # site/.edge/bundles/) would pass too, so the stamp must show cli,
-        # core, library, opm-operator, opm and catalog-opm-docs read from
+        # core, library, opm-controller, opm and catalog-opm-docs read from
         # pulled (not local) edge bundles, and no other kind of bundle, and
         # the Enhancements section from its pulled bundle.
         run: |
           stamp=site/public/build-stamp.json
           if ! jq -e '(.versions["v1.0"].bundles // []) as $b
-              | (["cli", "core", "library", "opm-operator", "opm", "catalog-opm-docs"] - [$b[].project]) == []
+              | (["cli", "core", "library", "opm-controller", "opm", "catalog-opm-docs"] - [$b[].project]) == []
                 and ($b | all(.version == "edge" and (.local | not)))
                 and (.sections.enhancements.local == false)' "$stamp" >/dev/null; then
-            echo "::error::The edge build did not read cli, core, library, opm-operator, opm and catalog-opm-docs, and the Enhancements section, from pulled edge bundles; the stamp's v1.0 bundles and its Enhancements section are below."
+            echo "::error::The edge build did not read cli, core, library, opm-controller, opm and catalog-opm-docs, and the Enhancements section, from pulled edge bundles; the stamp's v1.0 bundles and its Enhancements section are below."
             jq '.versions["v1.0"].bundles // []' "$stamp"
             jq '.sections.enhancements // "no Enhancements section"' "$stamp"
             exit 1

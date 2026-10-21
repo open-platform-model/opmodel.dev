@@ -51,7 +51,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 | S3 | catalog_opm | `adopt-hugo-page-dialect` | OpenSpec `catalog-change` | `docs/adopt-hugo-page-dialect` | 1 | planned on main | verify green; after A section 1 is green; before A section 2 | supervisor | lint; order diff; catalog_opm gates |
 | S4 | cli | `adopt-hugo-page-dialect` | OpenSpec spec-driven, `skip_specs` | `docs/adopt-hugo-page-dialect` | 1 | planned on main | verify green; after A section 1 is green; before A section 2 | supervisor | lint; order diff; cli gates |
 | S5 | library | `adopt-hugo-page-dialect` | OpenSpec spec-driven, `skip_specs` | `docs/adopt-hugo-page-dialect` | 1 | planned on main | verify green; after A section 1 is green; before A section 2 | supervisor | lint; order diff; library gates |
-| S6 | opm-operator | `adopt-hugo-page-dialect` | OpenSpec spec-driven, `skip_specs` | `docs/adopt-hugo-page-dialect` | 1 | planned on main | verify green; after A section 1 is green; before A section 2 | supervisor | lint; order diff; opm-operator gates |
+| S6 | opm-controller | `adopt-hugo-page-dialect` | OpenSpec spec-driven, `skip_specs` | `docs/adopt-hugo-page-dialect` | 1 | planned on main | verify green; after A section 1 is green; before A section 2 | supervisor | lint; order diff; opm-controller gates |
 | I1a | workspace root | `adopt-hugo-page-rules` | plain commits on main | (none: DONE, pushed) | 1 | done | done | supervisor | `git diff --check`; checklist |
 | I2 | enhancements | `0018-engine-neutral` | plain PR | `docs/0018-engine-neutral` | 1 | A's `design.md` on main | checklist verify green | supervisor | `task vet`; `task check ID=0018` |
 | E | opmodel.dev | `add-site-ci` | OpenSpec `docs-site-change` | `ci/add-site-ci` | 2 | A merged | verify green, and the site workflow green on the PR; first in wave 2 | supervisor | every section: `task check`; `task ci`; `task ci:lint` (actionlint, which E adds) |
@@ -99,7 +99,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 
 **Known consequences.**
 - Once S1-S6 merge, the old Astro build on opmodel.dev `main` renders degraded or fails. For example, Astro's glob loader ignores `_index.md`. This is accepted; the site is not live.
-- No tag that exists today can be built (O4): every pre-S tag carries `sidebar:` front matter, which A's lint rejects. `v1.0` moves onto tags only once every repo has a tag cut after its S merge (B). The S4-S6 merges open or grow release PRs in cli, library and opm-operator, which only the owner merges; core and catalog_opm hide `docs` commits, so S2 and S3 cut no release.
+- No tag that exists today can be built (O4): every pre-S tag carries `sidebar:` front matter, which A's lint rejects. `v1.0` moves onto tags only once every repo has a tag cut after its S merge (B). The S4-S6 merges open or grow release PRs in cli, library and opm-controller, which only the owner merges; core and catalog_opm hide `docs` commits, so S2 and S3 cut no release.
 
 ## 3. Plain rows: scope (the checklist verify checks against this text)
 
@@ -179,7 +179,7 @@ Workspace root: `/var/home/emil/dev/open-platform-model` (called WS below). Ever
 
 ## 4. Dialect contract for source pages
 
-This contract applies to every file under `<repo>/docs/site/` in opm, core, catalog_opm, cli, library and opm-operator. A enforces it with the lint below before every build. The lint does not read opmodel.dev's own site-owned content; Hugo's front-matter validation covers that.
+This contract applies to every file under `<repo>/docs/site/` in opm, core, catalog_opm, cli, library and opm-controller. A enforces it with the lint below before every build. The lint does not read opmodel.dev's own site-owned content; Hugo's front-matter validation covers that.
 
 **Files.**
 - Only `.md` files: no `.mdx`, no images, no data files, no symlinks.
@@ -291,7 +291,7 @@ diff <scratch>/order-before.txt <scratch>/order-after.txt && echo "order unchang
 ```
 
 - The helper maps the renames (`index.md` and `index.mdx` to `_index.md`, `.mdx` to `.md`) and sorts after mapping them. An empty diff therefore proves that every `sidebar.order` became the same `weight`, and that no page appeared or vanished.
-- On `origin/main` before your change (2026-09-30), the lint reports these findings: opm 14, core 13, catalog_opm 8, cli 5, library 8 (on 0cde6ce, after `colliding-contracts.md` merged), opm-operator 5. After your change it must report none. The S recipe applied mechanically to a copy of all six trees passes the lint with an unchanged page order, under gawk `--posix`, busybox awk and shellcheck.
+- On `origin/main` before your change (2026-09-30), the lint reports these findings: opm 14, core 13, catalog_opm 8, cli 5, library 8 (on 0cde6ce, after `colliding-contracts.md` merged), opm-controller 5. After your change it must report none. The S recipe applied mechanically to a copy of all six trees passes the lint with an unchanged page order, under gawk `--posix`, busybox awk and shellcheck.
 - S workers do not build the site; A renders every page.
 
 ## 5. Source trees for site builds (the blocker fix)
@@ -303,7 +303,7 @@ diff <scratch>/order-before.txt <scratch>/order-after.txt && echo "order unchang
   - `WS/catalog_opm/.claude/worktrees/site-src`
   - `WS/cli/.claude/worktrees/site-src`
   - `WS/library/.claude/worktrees/site-src`
-  - `WS/opm-operator/.claude/worktrees/site-src`
+  - `WS/opm-controller/.claude/worktrees/site-src`
 - **Builds in opmodel.dev** (A from section 2, and B, C, D, E, M, F) read those trees. Prefix each build command with `OPM_SRC_WORKTREE=site-src` (interface in section 6), for example `OPM_SRC_WORKTREE=site-src task -d <wt> build`. Never build against the owner's main checkouts: they are not kept up to date.
 - **Isolation.** Each opmodel.dev worker builds in its own worktree, so all generated state (`site/public`, generated config, `site/data/opm`, `site/.check`, `site/.shots`) belongs to that worktree alone.
 - **Dev-server ports** (`SITE_PORT`), only if you need `task serve` or `task preview`: A 1313, B 1314, C 1315, D 1316, M 1317. `task qa` publishes no port.
@@ -448,7 +448,7 @@ Added by G: the root `index.html` refreshes to `${BASE_PATH}/latest/`; the link 
    questions:   <none | what the supervisor must decide>
    ```
 7. **On the supervisor's go.** (W0 skips this step: the supervisor pushes its commits to `main`.)
-   - OpenSpec rows: archive the change in the worktree by following `<wt>/.claude/skills/openspec-archive-change/SKILL.md` (never the root `/opsx:archive` router, which would archive in the owner's main checkout), always with `--skip-specs` in this set: `cd <wt> && openspec archive <change-id> --yes --skip-specs`. Commit `chore(openspec): archive <change-id>`, then re-run `cd <wt> && openspec validate --all --strict --no-interactive` (opm-operator: skip this, see section 10). `--all` is deliberate here: after the archive, the change id is no longer an active change, so validating it by id fails. The archive rides the PR.
+   - OpenSpec rows: archive the change in the worktree by following `<wt>/.claude/skills/openspec-archive-change/SKILL.md` (never the root `/opsx:archive` router, which would archive in the owner's main checkout), always with `--skip-specs` in this set: `cd <wt> && openspec archive <change-id> --yes --skip-specs`. Commit `chore(openspec): archive <change-id>`, then re-run `cd <wt> && openspec validate --all --strict --no-interactive` (opm-controller: skip this, see section 10). `--all` is deliberate here: after the archive, the change id is no longer an active change, so validating it by id fails. The archive rides the PR.
    - Push the branch: `git -C <wt> push -u origin <branch>`.
    - Open the PR with `gh pr create`. The title is the change's main Conventional Commit subject; the body follows section 1 and the repo's `AGENTS.md`.
    - Report the PR URL. S1 adds its item-10 line (how github.com renders the alert).
@@ -470,7 +470,7 @@ Report in the `opsx:verify` shape: Summary, CRITICAL, WARNING, SUGGESTION, Final
 ## 9. Supervisor protocol
 
 **Wave 0.**
-- Add `.claude/worktrees/` to `.git/info/exclude` in opm, core, catalog_opm, library, opmodel.dev, enhancements and WS. This is local and needs no commit; cli and opm-operator already ignore it.
+- Add `.claude/worktrees/` to `.git/info/exclude` in opm, core, catalog_opm, library, opmodel.dev, enhancements and WS. This is local and needs no commit; cli and opm-controller already ignore it.
 - Run W0 through a worker. After its checklist verify, push its commits to main: `git -C <wt> push origin HEAD:main`.
 - Then plan every OpenSpec change of the set, one planning worktree per repo, never through the root `/opsx:propose` router (it resolves to the owner's stale main checkout, and opmodel.dev's has no skills):
   - `git -C WS/<repo> fetch origin`, then `git -C WS/<repo> worktree add --detach WS/<repo>/.claude/worktrees/plan-hugo origin/main`. For opmodel.dev this happens after W0 is on `origin/main`, so the worktree has the skills.
@@ -485,7 +485,7 @@ Report in the `opsx:verify` shape: Summary, CRITICAL, WARNING, SUGGESTION, Final
 - Wave 1: A (section 1 only, then its interim report, then wait), S1-S6, I1a, I2.
 - Merge the S PRs only after A's section 1 report is green: the fixture build renders bold-title alerts, parameterless `opm/` shortcodes, a source `_index.md` ordered by `weight`, and root-absolute links through the link hook. If it finds a dialect problem, fix the contract and the S branches before any S merge.
 - When S1-S6 are merged:
-  - tell the owner that the Astro build on opmodel.dev `main` now renders degraded or fails, and that the S4-S6 merges open or grow release PRs in cli, library and opm-operator (the owner's to merge);
+  - tell the owner that the Astro build on opmodel.dev `main` now renders degraded or fails, and that the S4-S6 merges open or grow release PRs in cli, library and opm-controller (the owner's to merge);
   - record the six S merge SHAs; B's manifest takes them as each repo's dialect floor;
   - create the six `site-src` worktrees (`git -C WS/<repo> fetch origin`, then `git -C WS/<repo> worktree add --detach WS/<repo>/.claude/worktrees/site-src origin/main`). Refresh one after a later source merge with `git -C WS/<repo>/.claude/worktrees/site-src checkout --detach origin/main`, after a fetch;
   - release A to section 2.
@@ -523,7 +523,7 @@ Report in the `opsx:verify` shape: Summary, CRITICAL, WARNING, SUGGESTION, Final
 - After A merges, never pull or fast-forward the opmodel.dev main checkout until the owner confirms the container is stopped.
 
 **Page the human (owner) for:**
-- nothing before wave 1: the round-1 items were settled on 2026-09-30 (dialect extras: supervisor ruling in section 4; F pre-merge preview: not planned). The supervisor TELLS the owner, without asking, that the S4-S6 merges open or grow release PRs in cli, library and opm-operator, and that `v1.0` stays on `main` until every repo has a tag cut after its S merge (core and catalog_opm hide `docs` commits, so they need another releasable commit or a `Release-As:` footer);
+- nothing before wave 1: the round-1 items were settled on 2026-09-30 (dialect extras: supervisor ruling in section 4; F pre-merge preview: not planned). The supervisor TELLS the owner, without asking, that the S4-S6 merges open or grow release PRs in cli, library and opm-controller, and that `v1.0` stays on `main` until every repo has a tag cut after its S merge (core and catalog_opm hide `docs` commits, so they need another releasable commit or a `Release-As:` footer);
 - reviewing and merging A, G and F; before G merges, the owner's explicit acceptance of publishing every page as it is (0018:OQ15);
 - the result of G's first Pages deploy, verified by the supervisor by curl;
 - turning GitHub Pages off and deleting the `github-pages` environment after F's first Cloudflare deploy is verified;
@@ -538,7 +538,7 @@ Report in the `opsx:verify` shape: Summary, CRITICAL, WARNING, SUGGESTION, Final
 
 ## 10. Gate commands per repo (read from each repo's Taskfile.yml or Makefile, 2026-09-30)
 
-Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git -C <wt> ...`. The `openspec` CLI reads the current directory, so run it as `cd <wt> && openspec ...`; `cd` into your own worktree is fine. As of 2026-09-30, `openspec validate --all --strict --no-interactive` is green in core (15 items), library (17) and cli (61), and catalog_opm has no items. opm-operator is the exception below.
+Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git -C <wt> ...`. The `openspec` CLI reads the current directory, so run it as `cd <wt> && openspec ...`; `cd` into your own worktree is fine. As of 2026-09-30, `openspec validate --all --strict --no-interactive` is green in core (15 items), library (17) and cli (61), and catalog_opm has no items. opm-controller is the exception below.
 
 | Repo | Gates for changes in this set | Known pre-existing failures and quirks |
 |---|---|---|
@@ -548,7 +548,7 @@ Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git 
 | catalog_opm | The lint and order diff; `task check`; `openspec validate adopt-hugo-page-dialect --strict --no-interactive` | none known |
 | cli | The lint and order diff; `task openspec:check` (the repo's own gate, `--all --strict`, green today with 61 items; kept because it is what cli's CI runs); `task vet`; `task test:unit` | Do **not** run `task check` or `task test`: they include integration and e2e tests against the kind cluster, which a docs-only change does not need |
 | library | The lint and order diff; `task vet` (plain `go vet`); `openspec validate adopt-hugo-page-dialect --strict --no-interactive` | Do **not** run `task test` for this docs-only change: in a fresh worktree it fetches `.cue-cache` cold into a read-only extract tree that makes `git worktree remove` fail (section 7, step 8), and `TestGenerate_BuildsThroughTheKernel` flakes in full-suite runs |
-| opm-operator | The lint and order diff; `make -C <wt> fmt vet` (the Makefile; `task -d <wt> dev:fmt dev:vet` is the same); `openspec validate adopt-hugo-page-dialect --strict --no-interactive` | 19 of 44 main specs fail `--strict`, so never use `--all` there. The Makefile has no `test` target; `task dev:test` downloads envtest and is not required for a docs-only change |
+| opm-controller | The lint and order diff; `make -C <wt> fmt vet` (the Makefile; `task -d <wt> dev:fmt dev:vet` is the same); `openspec validate adopt-hugo-page-dialect --strict --no-interactive` | 19 of 44 main specs fail `--strict`, so never use `--all` there. The Makefile has no `test` target; `task dev:test` downloads envtest and is not required for a docs-only change |
 | enhancements | `task vet` (hard gate); `task check ID=0018` (soft) | none known |
 | workspace root | `git -C <wt> diff --check` and the checklist | no check task for docs |
 
@@ -591,14 +591,14 @@ Run each from your worktree with `task -d <wt> ...`, `make -C <wt> ...` or `git 
 28. **Pins sit in four places.**
     - library in `cli/go.mod`;
     - core in library `opm/schema/loader.go` `DefaultSchemaModule`;
-    - the operator in cli `internal/operator/manifest.go` `PinnedOperatorVersion`;
+    - the controller in cli `internal/controller/pin.go` `PinnedControllerVersion`;
     - catalogs in no CLI pin at all: they are explicit in the manifest.
     `cli/hack/platform/` is a test fixture, never a pin source. Catalog git tags carry prefixes (`opm-v4.4.2`). No repo has a `v1.0.0-beta*` tag yet, and `opm` has no repo-level tag.
 29. **gen-lastmod needs full git history.** CI checks out with `fetch-depth: 0`.
 
 **Process.**
 30. **`openspec/config.yaml` rules.** Every `rules:` entry must be a plain string. `openspec validate --strict` fails a change with no spec deltas unless `.openspec.yaml` has `skip_specs: true`; every OpenSpec change in this set has it, and archives with `--skip-specs`.
-31. **Known failures.** See section 10: core index diff, cli e2e, library flake and `.cue-cache`, opm-operator strict specs.
+31. **Known failures.** See section 10: core index diff, cli e2e, library flake and `.cue-cache`, opm-controller strict specs.
 32. **A section that cannot end green is a planning defect.** Stop and report; do not merge sections.
 33. **The root `/opsx:*` routers point at stale checkouts.** They `cd` into `WS/<repo>/` and read that checkout's skills and changes. Main checkouts are never pulled (catalog_opm and enhancements were already behind `origin/main` on 2026-09-30), and opmodel.dev's has no skills. Read skills from your worktree and run `openspec` there (section 1).
 34. **The history-rewrite hook refuses rebase and lease-push.** It reads the branch from the session's working directory, not from `git -C`, so from the workspace root (on `main`) every rebase is refused. It matches text: any Bash command that mentions both `git` and the word "rebase" is refused, including a commit message or a heredoc. Keep that word out of your commands, and update branches with `git merge origin/main` (section 7, step 7).
