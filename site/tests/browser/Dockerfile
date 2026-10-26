@@ -7,13 +7,13 @@
 # mounted repo at run time, so they are not part of the image.
 #
 # Every input is pinned: the base image by digest (its browsers match
-# Playwright 1.63.0), the Python wheels by version and hash, and axe-core by
+# Playwright 1.64.0), the Python wheels by version and hash, and axe-core by
 # the SHA-256 of its npm registry tarball, fetched with curl (no npm).
-FROM mcr.microsoft.com/playwright/python:v1.63.0-noble@sha256:72bd171a9ffc2b4b59532aaa6210e21014d07093120dc25528870c0b840da1f0
+FROM mcr.microsoft.com/playwright/python:v1.64.0-noble@sha256:684df257a1fa0ef3fa288239819984008f560e8f8db5b635ee9e2a50cbcd2e23
 ARG AXE_VERSION=4.10.3
 ARG AXE_SHA256=0f2b4d7dcdf7d1219df8d1959ad68e565f51d14c3f0d88bb71cd59abeb956292
 RUN printf '%s\n' \
-      'playwright==1.63.0 --hash=sha256:ad21bc07516b187965a7521c5cf0df0bd657b17482eaad74335272d35a2b07de' \
+      'playwright==1.64.0 --hash=sha256:5a59af1b230b234008524a5d42b613b233d4256f73bc1dd25bf3f11db0c81b75' \
       'greenlet==3.5.6 --hash=sha256:975736b002ed080d124cf81a79cb7e05cb26d6b3f5c7a7b651c0fcce70353aa1' \
       'pyee==13.0.1 --hash=sha256:af2f8fede4171ef667dfded53f96e2ed0d6e6bd7ee3bb46437f77e3b57689228' \
       'typing-extensions==4.16.0 --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8' \
@@ -25,4 +25,4 @@ RUN printf '%s\n' \
  && mkdir -p /opt/axe \
  && tar -xzf /tmp/axe.tgz -C /opt/axe --strip-components=1 package/axe.min.js package/LICENSE \
  && rm /tmp/axe.tgz \
- && python3 -c "import playwright; from importlib.metadata import version; assert version('playwright') == '1.63.0'"
+ && python3 -c "import playwright; from importlib.metadata import version; assert version('playwright') == '1.64.0'"
