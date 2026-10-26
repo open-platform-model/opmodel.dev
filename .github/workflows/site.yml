@@ -84,12 +84,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.52.0
+          version: 3.54.0
       - name: Install openspec
         run: npm install -g @fission-ai/openspec@1.14.1
 
@@ -109,7 +109,7 @@ jobs:
         # site/bundles.frozen.json it rebuilds this run's pages, or recovers
         # from a bad bundle. Every event; include-hidden-files, because
         # .bundles is a dot directory.
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bundles-lock
           path: opmodel.dev/site/.bundles/lock.json
@@ -171,13 +171,13 @@ jobs:
             echo
             echo "Files in site/public: $(find site/public -type f | wc -l)"
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-public
           path: opmodel.dev/site/public
           if-no-files-found: error
           retention-days: 14
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: build-stamp
           path: opmodel.dev/site/public/build-stamp.json
@@ -225,9 +225,9 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.52.0
+          version: 3.54.0
       - name: Download the build job's docs bundles' lock
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: bundles-lock
           path: ${{ runner.temp }}/bundles-lock
@@ -240,7 +240,7 @@ jobs:
         run: task bundles:pull
       - name: Screenshots, accessibility and search smoke tests
         run: task qa
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         # The screenshots are the only way to see why an accessibility or
         # search test failed in CI, so they upload from failed runs too.
         # upload-artifact skips every file under a directory whose name starts
@@ -291,7 +291,7 @@ jobs:
 
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: 3.52.0
+          version: 3.54.0
       - name: Build every main from the edge docs bundles
         # Derive site/.edge/bundles.cue, pull it into site/.edge/bundles/
         # (anonymous, read-only: no token), build over it. The task sets
@@ -319,7 +319,7 @@ jobs:
         # pull: OPM_BUNDLES_FROZEN=<this lock> task build:edge replays it.
         # include-hidden-files, because .edge is a dot directory.
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: edge-lock
           path: opmodel.dev/site/.edge/bundles/lock.json
