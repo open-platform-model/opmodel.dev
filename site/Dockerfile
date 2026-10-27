@@ -22,8 +22,8 @@ ARG PAGEFIND_SHA256=afb824a9e7f64905a934900481cea5be679c03975e527329e0e5e6cc70f5
 # (docs-kit contract C12, build-image pattern). The page dialect is
 # docs-kit's C11, enforced by this binary; the site keeps no copy of its
 # conformance cases.
-ARG OPM_DOCS_VERSION=0.9.0
-ARG OPM_DOCS_SHA256=b054bfabc5479e927421b8f8d9995fe1d8d10f4b40c50118eb43093c496dcd6b
+ARG OPM_DOCS_VERSION=0.11.0
+ARG OPM_DOCS_SHA256=09849e8bce5900315b8295078bc0cfad50b1a4af3922d220802c2fbbf8933907
 WORKDIR /dl
 RUN wget -q "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz" -O hugo.tgz \
  && echo "${HUGO_SHA256}  hugo.tgz" | sha256sum -c - \
