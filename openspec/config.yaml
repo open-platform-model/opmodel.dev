@@ -9,6 +9,9 @@ references:
     remote: https://github.com/open-platform-model/enhancements.git
 
 context: |
+  Verify: when you verify a change, also apply every rule in `openspec/verify.md`, in the same run
+  and the same report. OpenSpec never writes that file.
+
   # opmodel.dev Development Constitution
 
   ## Core Principles (Documentation Site)
@@ -42,7 +45,7 @@ context: |
   no gate keeps honest, so this OpenSpec workspace deliberately has no specs artifact.
   - There is no `openspec/specs/` directory and no delta specs. Every change's `.openspec.yaml`
     carries `skip_specs: true`; the author writes it when the change is created
-    (`rules.proposal` requires it; the pinned OpenSpec 1.14.1 writes it for this schema). Never create a `specs/` directory inside a change.
+    (`rules.proposal` requires it; OpenSpec writes it for this schema). Never create a `specs/` directory inside a change.
   - The proposal's **Before / After** block (the config keys or the directory tree) is where
     the intended result is reviewed before code exists. Write it as config or a tree, not
     prose.
@@ -256,3 +259,6 @@ operations:
       - "Archive with `--skip-specs`: this workspace has no specs and the change declares skip_specs. Never let archive create an openspec/specs/ directory."
       - "Before archiving, read design.md's Durable decisions section. Every entry marked for promotion MUST already be landed in its target file (a references/ file, CONSTITUTION.md, README.md or a contributor note); if one is not, stop and land it first. An archived change must not be the only home of a rule."
       - "If the change delivers a line of an enhancement's `tasks.md`, name it in the PR body; after the repo PR merges, a PR on `enhancements` ticks that line."
+
+# Keep the generated skills in this repo; stops openspec update from asking.
+skillsScope: project
