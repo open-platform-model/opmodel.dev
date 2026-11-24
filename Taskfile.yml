@@ -213,7 +213,7 @@ tasks:
     desc: Validate every active OpenSpec change under strict mode, check that each declares its durable decisions, and test that check
     preconditions:
       - sh: command -v openspec >/dev/null
-        msg: "openspec not found on PATH: install the OpenSpec CLI 1.14.1 (@fission-ai/openspec)"
+        msg: "openspec not found on PATH: install the OpenSpec CLI 2.1.1 (@fission-ai/openspec)"
     cmds:
       - openspec validate --all --strict --no-interactive
       - bash .tasks/openspec-check.sh .

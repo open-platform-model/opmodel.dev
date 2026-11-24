@@ -91,7 +91,7 @@ jobs:
         with:
           version: 3.54.0
       - name: Install openspec
-        run: npm install -g @fission-ai/openspec@1.14.1
+        run: npm install -g --ignore-scripts @fission-ai/openspec@2.1.1
 
       - name: Lint the workflows
         run: task ci:lint

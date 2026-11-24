@@ -15,6 +15,7 @@ Router only. Facts and rules are in `AGENTS.md`.
 | Fix a bundle page, a generated reference page or a link in a source page | `AGENTS.md` | the source repository's `docs/site/` |
 | Edit a workflow | `.github/workflows/` | `Taskfile.yml` |
 | Start a feature change, or write a durable decision | `openspec/config.yaml` | `CONSTITUTION.md` |
+| Verify a change before archive | `openspec/verify.md` | `.agents/skills/` |
 | A `task check` or `openspec` failure | `openspec/config.yaml` | `.tasks/` |
 | Choose a commit or PR type | `openspec/config.yaml` | |
 | Deliver or cite an enhancement | `references/enhancements.md` at the workspace root | |
