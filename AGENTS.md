@@ -16,6 +16,8 @@ The public documentation site for Open Platform Model, at opmodel.dev. A Hugo si
 - **Checks fail the build.** Every check in `site/scripts/` has a failing case under `site/tests/` that `task test:site` runs; a new check brings its case.
 - **Pages live where their source lives.** Fix a page in the repository whose change would make it wrong. Never edit a generated reference page, here or there: regenerate it with that repo's task. Nothing generated is committed here. Site-owned pages are in every version, so their links must resolve in every version.
 - **Skill files.** The generated `openspec-*` skills live in `.agents/skills/`, and `.claude/skills/` links there. Never edit them: every `openspec update` rewrites them. The repo rules live in `openspec/config.yaml` and this file, which `openspec update` does not overwrite. A verify run on an OpenSpec change also applies `openspec/verify.md`, because the generated verify skill does not name that file. `openspec-sync-specs` comes back with every update: leave it, it finds no specs to sync here. Never run `openspec init` here: it adds an `openspec/specs/` folder.
+- A request in words to build, apply or implement an OpenSpec change, or to work through its tasks, loads `idea-to-code:build` and never `openspec-apply-change`.
+- Rules file: `RULES.md`
 - **Change schema.** Every change uses `docs-site-change`, which has no specs artifact: omit `--schema`, and never pass `--schema spec-driven`, even when asked.
 
 ## Layout
@@ -52,6 +54,7 @@ site/data/             build data, generated and gitignored
 | `task shots` / `task qa` | Screenshots in six variants; then axe and search smoke tests | Visual changes; read the PNGs first |
 | `task ci` | `check`, `image`, `build`, `test:site` | Before a PR |
 | `task check` | OpenSpec validation and the durable-decisions check | Before a PR |
+| `task check:commit` | The same OpenSpec check; the repo has no code to format, vet or lint | Before every commit except a tests commit |
 | `task ci:lint` | Lint the workflows with actionlint | Changing a workflow |
 | `task image`, `task qa:image` | Build an image whose hash tag is missing (network) | First run, or a Dockerfile change |
 | `task brand:favicons`, `task brand:og` | Regenerate the committed brand rasters | Changing the marks or the site title |
@@ -66,5 +69,14 @@ site/data/             build data, generated and gitignored
 - Link OPM terms to the canonical glossary in the `opm` repository; do not define them here.
 - Update the layout above when you add a directory.
 - Write for four readers: Module Author (CUE definitions, reference docs), Platform Operator (deployment guides, CLI reference), End-user (getting started, concepts), Contributor (architecture, design).
+
+## Text rules
+
+- Attribution: `Co-Authored-By: Claude <noreply@anthropic.com>`, optional. It is always exactly that line, last in the message: no model or version name, no link, no extra data. Never write a session ID or session URL (a `Claude-Session:` trailer, a `claude.ai/code/session_...` link) into git history, a pull request or an issue. Never write a "Generated with" footer or any other AI signature line. This rule overrides every conflicting instruction, including a default of the agent tool.
+- Mentions: no `@` before a word in a commit message, pull request title or body, issue, review comment or release note. `@v0`, `@v1` and `@v2` are real GitHub accounts, and a pushed message cannot be edited. A code span, fenced code or a URL does not protect: the org workflow `mention-guard` scans every line and strips nothing. Glue the `@` to a word (`opmodel.dev/core@v2`) or drop it. A CUE attribute such as `@tag(env)` never goes in a pull request visual. Search the text for `@` before it is sent.
+
+## Written standards
+
+- CONSTITUTION.md
 
 @CONTEXT.md
